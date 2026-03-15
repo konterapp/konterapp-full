@@ -1,0 +1,35 @@
+import { z } from "zod";
+
+export const createUserSchema = z.object({
+  name: z.string({ error: "Nama wajib diisi" }).min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
+  email: z.string({ error: "Email wajib diisi" }).min(1, "Email wajib diisi").includes("@", { message: "Email tidak valid" }),
+  password: z.string({ error: "Password wajib diisi" }).min(8, "Password minimal 8 karakter"),
+  phone_without_dc: z.string({ error: "Nomor telepon wajib diisi" }).min(1, "Nomor telepon wajib diisi"),
+  dc: z.string({ error: "Kode negara wajib dipilih" }).min(1, "Kode negara wajib dipilih"),
+  iso: z.string({ error: "Kode ISO wajib dipilih" }).min(1, "Kode ISO wajib dipilih"),
+  roles: z.coerce.number({ error: "Role wajib dipilih" }).min(1, "Role wajib dipilih"),
+  title: z.string().max(255).optional().nullable(),
+  company: z.string().max(255).optional().nullable(),
+  work_unit: z.string().max(255).optional().nullable(),
+  admin_scope: z.enum(["daerah", "nasional", "internasional", "mice"]).optional().nullable(),
+  province_id: z.coerce.number().optional().nullable(),
+  city_id: z.coerce.number().optional().nullable(),
+  wilayah_kode: z.string().optional().nullable(),
+});
+
+export const updateUserSchema = z.object({
+  name: z.string({ error: "Nama wajib diisi" }).min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
+  email: z.string({ error: "Email wajib diisi" }).min(1, "Email wajib diisi").includes("@", { message: "Email tidak valid" }),
+  password: z.string().min(8, "Password minimal 8 karakter").optional().or(z.literal("")),
+  phone_without_dc: z.string({ error: "Nomor telepon wajib diisi" }).min(1, "Nomor telepon wajib diisi"),
+  dc: z.string({ error: "Kode negara wajib dipilih" }).min(1, "Kode negara wajib dipilih"),
+  iso: z.string({ error: "Kode ISO wajib dipilih" }).min(1, "Kode ISO wajib dipilih"),
+  roles: z.coerce.number({ error: "Role wajib dipilih" }).min(1, "Role wajib dipilih"),
+  title: z.string().max(255).optional().nullable(),
+  company: z.string().max(255).optional().nullable(),
+  work_unit: z.string().max(255).optional().nullable(),
+  admin_scope: z.enum(["daerah", "nasional", "internasional", "mice"]).optional().nullable(),
+  province_id: z.coerce.number().optional().nullable(),
+  city_id: z.coerce.number().optional().nullable(),
+  wilayah_kode: z.string().optional().nullable(),
+});

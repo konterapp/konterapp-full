@@ -1,0 +1,70 @@
+'use client';
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getUser, User } from '@/lib/api/auth';
+
+interface UserContextType {
+  user: User | null;
+  roles: string[];
+  permissions: string[];
+  adminScope: 'daerah' | 'nasional' | 'internasional' | 'mice' | null;
+  isLoading: boolean;
+  refetchUser: () => Promise<void>;
+}
+
+const UserContext = createContext<UserContextType | undefined>(undefined);
+
+export function UserProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [adminScope, setAdminScope] = useState<'daerah' | 'nasional' | 'internasional' | 'mice' | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchUser = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getUser();
+      if (response.status === 'success' && response.data) {
+        const userData = response.data;
+        setUser(userData);
+        setRoles(userData.roles || []);
+        setPermissions(userData.permissions || []);
+        const asdepRole = (userData.roles || []).find((r: string) => r.startsWith('admin-asdep-'));
+        const scope = asdepRole ? asdepRole.replace('admin-asdep-', '') : null;
+        setAdminScope(scope as typeof adminScope);
+      } else {
+        setUser(null);
+        setRoles([]);
+        setPermissions([]);
+        setAdminScope(null);
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      setUser(null);
+      setRoles([]);
+      setPermissions([]);
+      setAdminScope(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  return (
+    <UserContext.Provider value={{ user, roles, permissions, adminScope, isLoading, refetchUser: fetchUser }}>
+      {children}
+    </UserContext.Provider>
+  );
+}
+
+export function useUser() {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error('useUser must be used within a UserProvider');
+  }
+  return context;
+}

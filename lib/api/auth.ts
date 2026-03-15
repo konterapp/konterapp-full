@@ -1,0 +1,56 @@
+import { apiRequest, ApiResponse } from './api';
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  roles: string[];
+  permissions: string[];
+  avatar?: string;
+  avatar_url?: string;
+  profile?: UserProfile;
+}
+
+export interface UserProfile {
+  phone_without_dc?: string;
+  dc?: string;
+  iso?: string;
+  address?: string;
+  avatar?: string;
+  title?: string;
+  company?: string;
+  work_unit?: string;
+  description?: string;
+  company_logo?: string;
+  country_id?: number;
+  wilayah_kode?: string;
+  province_id?: number;
+  city_id?: number;
+  admin_scope?: 'daerah' | 'nasional' | 'internasional' | 'mice' | null;
+}
+
+export async function login(email: string, password: string): Promise<ApiResponse<{ user: User }>> {
+  return apiRequest<{ user: User }>('/api/auth/login', {
+    method: 'POST',
+    data: { email, password },
+  });
+}
+
+export async function logout(): Promise<ApiResponse<void>> {
+  return apiRequest<void>('/api/auth/logout', {
+    method: 'POST',
+  });
+}
+
+export async function getUser(): Promise<ApiResponse<User>> {
+  return apiRequest<User>('/api/auth/user', {
+    method: 'GET',
+  });
+}
+
+export async function resendVerification(email: string): Promise<ApiResponse<null>> {
+  return apiRequest<null>('/api/auth/resend-verification', {
+    method: 'POST',
+    data: { email },
+  });
+}

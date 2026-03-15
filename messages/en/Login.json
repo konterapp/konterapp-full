@@ -1,0 +1,18 @@
+{
+  "metaTitle": "Login - Event By Indonesia",
+  "metaDescription": "Sign in to your account to access the Event By Indonesia platform",
+  "welcome": "Welcome to EBI Dashboard",
+  "subtitle": "Please sign in to access the dashboard",
+  "email": "Email",
+  "password": "Password",
+  "loginButton": "LOGIN",
+  "processing": "Processing...",
+  "noAccount": "Don't have an account?",
+  "registerHere": "Register here",
+  "resendVerification": "Resend Verification Email",
+  "resendIn": "Resend in {seconds} seconds",
+  "forgotPassword": "Forgot Password?",
+  "recaptchaProtected": "Protected by Google reCAPTCHA —",
+  "privacy": "Privacy",
+  "terms": "Terms"
+}
