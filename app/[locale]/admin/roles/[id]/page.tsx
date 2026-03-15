@@ -74,7 +74,7 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
 
    if (isLoading) {
       return (
-         <div className="p-6">
+         <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                <div className="text-center py-8">
                   <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto" />
@@ -86,14 +86,14 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
    }
 
    return (
-      <div className="p-6">
-         <div className="mb-6">
+      <div className="space-y-6">
+         <div>
             <Link
                href="/admin/roles"
-               className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+               className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
                <ArrowLeft className="w-5 h-5" />
-               <span>Kembali ke Daftar</span>
+               <span>Kembali ke Daftar Role</span>
             </Link>
          </div>
 
