@@ -9,6 +9,7 @@ import { usePermissions } from '@/lib/hooks/usePermissions';
 import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
+import ImpersonateButton from './ImpersonateButton';
 
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
@@ -306,6 +307,9 @@ const Navbar = () => {
           <Home className="w-4 h-4 shrink-0" />
           <span className="hidden md:inline">Kembali ke Beranda</span>
         </LocaleLink>
+
+        {/* Stop Impersonating Button */}
+        <ImpersonateButton />
 
         {/* User Profile */}
         <Link

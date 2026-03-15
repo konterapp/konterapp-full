@@ -17,6 +17,7 @@ declare module "next-auth" {
       email: string;
       roles: string[];
       permissions: string[];
+      impersonatorId?: string;
     };
   }
 }
@@ -26,6 +27,7 @@ declare module "@auth/core/jwt" {
     id: string;
     roles: string[];
     permissions: string[];
+    impersonatorId?: string;
   }
 }
 
@@ -86,6 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.roles = token.roles;
       session.user.permissions = token.permissions;
+      session.user.impersonatorId = token.impersonatorId;
       return session;
     },
   },

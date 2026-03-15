@@ -2,6 +2,7 @@ import {
     LayoutDashboard,
     Users,
     Shield,
+    Newspaper,
 } from 'lucide-react';
 
 export type AdminScope = 'daerah' | 'nasional' | 'internasional' | 'mice';
@@ -32,6 +33,7 @@ export interface MenuItem {
 
 export const allMenuItems: MenuItem[] = [
     { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard className="w-5 h-5" /> },
+    { label: 'Berita', href: '/admin/berita', icon: <Newspaper className="w-5 h-5" />, permission: 'admin.berita.index' },
     { label: 'User Management', href: '/admin/users', icon: <Users className="w-5 h-5" />, permission: 'admin.user.index' },
     { label: 'Role Management', href: '/admin/roles', icon: <Shield className="w-5 h-5" />, permission: 'admin.role.index' },
 ];

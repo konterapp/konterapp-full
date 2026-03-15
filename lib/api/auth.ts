@@ -8,6 +8,7 @@ export interface User {
   permissions: string[];
   avatar?: string;
   avatar_url?: string;
+  impersonating?: boolean;
   profile?: UserProfile;
 }
 

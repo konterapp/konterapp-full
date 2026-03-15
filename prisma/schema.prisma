@@ -24,6 +24,7 @@ model User {
 
   profile       UserProfile?
   modelHasRoles ModelHasRole[]
+  berita        Berita[]
 
   @@unique([sourceDb, sourceId], name: "users_source_db_source_id_unique")
   @@map("users")
@@ -123,6 +124,33 @@ model ModelHasPermission {
   @@id([permissionId, modelType, modelId])
   @@index([modelId, modelType], name: "model_has_permissions_model_id_model_type_index")
   @@map("model_has_permissions")
+}
+
+model Berita {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @unique @db.Char(36)
+  title       String    @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  content     String    @db.LongText
+  image       String?   @db.VarChar(255)
+  tags        Json?
+  publishedAt DateTime? @map("published_at") @db.Date
+  isPublished Boolean   @default(false) @map("is_published")
+  isDraft     Boolean   @default(false) @map("is_draft")
+  newsType    String?   @map("news_type") @db.VarChar(50)
+  category    String?   @db.VarChar(50)
+  views       Int       @default(0)
+  createdBy   Int?      @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  creator User? @relation(fields: [createdBy], references: [id])
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([createdBy])
+  @@map("berita")
 }
 
 model RoleHasPermission {

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Users, Plus, Edit, Trash2, User as UserIcon, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, User as UserIcon, ToggleLeft, ToggleRight, LogIn } from 'lucide-react';
 import Image from '@/components/ui/Image';
 import DataTable, { Column } from '../_components/DataTable';
-import { getUsers, deleteUser, getRoles, toggleUserActive, User, Role } from '@/lib/api/admin/user';
+import { getUsers, deleteUser, getRoles, toggleUserActive, impersonateUser, User, Role } from '@/lib/api/admin/user';
 import ConfirmModal from '../_components/ConfirmModal';
 import Select2 from '@/components/ui/Select2';
 import { usePermissions } from '@/lib/hooks/usePermissions';
@@ -28,6 +28,11 @@ export default function UsersPage() {
    const [roleFilter, setRoleFilter] = useState<string>('');
    const [roles, setRoles] = useState<Role[]>([]);
    const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; user: User | null; isLoading: boolean }>({
+      isOpen: false,
+      user: null,
+      isLoading: false,
+   });
+   const [impersonateModal, setImpersonateModal] = useState<{ isOpen: boolean; user: User | null; isLoading: boolean }>({
       isOpen: false,
       user: null,
       isLoading: false,
@@ -130,6 +135,33 @@ export default function UsersPage() {
 
    const handleDeleteCancel = () => {
       setDeleteModal({ isOpen: false, user: null, isLoading: false });
+   };
+
+   const handleImpersonateClick = (user: User) => {
+      setImpersonateModal({ isOpen: true, user, isLoading: false });
+   };
+
+   const handleImpersonateConfirm = async () => {
+      if (!impersonateModal.user) return;
+      setImpersonateModal(prev => ({ ...prev, isLoading: true }));
+
+      try {
+         const response = await impersonateUser(impersonateModal.user.id);
+         if (response.status === 'success') {
+            toast.success(`Berhasil login sebagai ${impersonateModal.user.name}`);
+            window.location.href = '/admin';
+         } else {
+            toast.error(response.message || 'Gagal login sebagai user');
+            setImpersonateModal(prev => ({ ...prev, isLoading: false }));
+         }
+      } catch {
+         toast.error('Terjadi kesalahan');
+         setImpersonateModal(prev => ({ ...prev, isLoading: false }));
+      }
+   };
+
+   const handleImpersonateCancel = () => {
+      setImpersonateModal({ isOpen: false, user: null, isLoading: false });
    };
 
    const handleToggleActive = async (user: User) => {
@@ -263,11 +295,22 @@ export default function UsersPage() {
          render: (_, row) => {
             const canEdit = hasPermission('admin.user.update');
             const canDelete = hasPermission('admin.user.delete');
+            const isAdmin = row.roles?.includes('admin');
+            const canImpersonate = !isAdmin;
 
-            if (!canEdit && !canDelete) return null;
+            if (!canEdit && !canDelete && !canImpersonate) return null;
 
             return (
                <div className="flex items-center gap-2">
+                  {canImpersonate && (
+                     <button
+                        onClick={() => handleImpersonateClick(row)}
+                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2a4061] hover:bg-[#1e2f47] text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+                     >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Login sebagai user</span>
+                     </button>
+                  )}
                   {canEdit && (
                      <Link
                         href={`/admin/users/${row.uuid}`}
@@ -387,6 +430,18 @@ export default function UsersPage() {
             cancelText="Batal"
             type="danger"
             isLoading={deleteModal.isLoading}
+         />
+
+         <ConfirmModal
+            isOpen={impersonateModal.isOpen}
+            onClose={handleImpersonateCancel}
+            onConfirm={handleImpersonateConfirm}
+            title="Login Sebagai User"
+            message={`Anda akan login sebagai "${impersonateModal.user?.name || ''}". Sesi admin Anda akan diganti dengan sesi user ini.`}
+            confirmText="Ya, Login"
+            cancelText="Batal"
+            type="warning"
+            isLoading={impersonateModal.isLoading}
          />
       </div>
    );

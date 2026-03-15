@@ -128,3 +128,9 @@ export async function toggleUserActive(uuid: string): Promise<ApiResponse<User>>
     method: 'PATCH',
   });
 }
+
+export async function impersonateUser(userId: number): Promise<ApiResponse<{ user: User; impersonating: boolean }>> {
+  return apiRequest<{ user: User; impersonating: boolean }>(`/api/admin/impersonate/users/${userId}`, {
+    method: 'POST',
+  });
+}

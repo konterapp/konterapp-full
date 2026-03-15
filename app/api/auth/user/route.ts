@@ -21,6 +21,9 @@ export async function GET() {
   const roles = await getUserRoles(user.id);
   const permissions = await getUserPermissions(user.id);
 
+  // Check if impersonating
+  const impersonatorId = (session.user as any).impersonatorId ?? null;
+
   return successResponse("User data", {
     id: user.id,
     uuid: user.uuid,
@@ -28,6 +31,7 @@ export async function GET() {
     email: user.email,
     roles,
     permissions,
+    impersonating: !!impersonatorId,
     avatar_url: user.profile?.avatar ?? null,
     profile: user.profile
       ? {
