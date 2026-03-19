@@ -18,7 +18,9 @@ export default async function middleware(req: NextRequest) {
   const isAdminRoute = pathname.match(/^(\/[a-z]{2})?\/admin/);
 
   if (isAdminRoute) {
-    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+    const isSecure = req.nextUrl.protocol === 'https:' || process.env.NODE_ENV === 'production';
+    const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
     if (!token) {
       const loginUrl = new URL('/login', req.url);
       loginUrl.searchParams.set('redirect', pathname);

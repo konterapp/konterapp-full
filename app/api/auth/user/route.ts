@@ -1,16 +1,19 @@
-import { auth } from "@/lib/auth-config";
 import { prisma } from "@/lib/prisma";
 import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { successResponse, errorResponse } from "@/lib/response";
+import { getToken } from "next-auth/jwt";
+import { NextRequest } from "next/server";
 
-export async function GET() {
-  const session = await auth();
-  if (!session?.user?.id) {
+export async function GET(req: NextRequest) {
+  const isSecure = req.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
+  const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
+  if (!token?.id) {
     return errorResponse("Unauthenticated", 401);
   }
 
   const user = await prisma.user.findFirst({
-    where: { id: Number(session.user.id), deletedAt: null },
+    where: { id: Number(token.id), deletedAt: null },
     include: { profile: true },
   });
 
@@ -22,7 +25,7 @@ export async function GET() {
   const permissions = await getUserPermissions(user.id);
 
   // Check if impersonating
-  const impersonatorId = (session.user as any).impersonatorId ?? null;
+  const impersonatorId = (token as any).impersonatorId ?? null;
 
   return successResponse("User data", {
     id: user.id,
