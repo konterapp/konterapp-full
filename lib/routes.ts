@@ -66,6 +66,10 @@ const routes: Record<string, RouteInfo> = {
     path: '/admin/users/:id/edit',
     permission: 'admin.user.update',
   },
+  'admin.user.detail': {
+    path: '/admin/users/:id',
+    permission: 'admin.user.update',
+  },
   'admin.role.index': {
     path: '/admin/roles',
     permission: 'admin.role.index',
@@ -77,5 +81,93 @@ const routes: Record<string, RouteInfo> = {
   'admin.role.edit': {
     path: '/admin/roles/:id/edit',
     permission: 'admin.role.update',
+  },
+  'admin.role.detail': {
+    path: '/admin/roles/:id',
+    permission: 'admin.role.index',
+  },
+  'admin.berita.index': {
+    path: '/admin/berita',
+    permission: 'admin.berita.index',
+  },
+  'admin.berita.create': {
+    path: '/admin/berita/create',
+    permission: 'admin.berita.create',
+  },
+  'admin.berita.detail': {
+    path: '/admin/berita/:id',
+    permission: 'admin.berita.index',
+  },
+  'admin.berita.edit': {
+    path: '/admin/berita/:id/edit',
+    permission: 'admin.berita.update',
+  },
+  'admin.pos.sale.create': {
+    path: '/admin/pos',
+    permission: 'admin.pos.sale.create',
+  },
+  'admin.pos.sale.index': {
+    path: '/admin/pos/transactions',
+    permission: 'admin.pos.sale.index',
+  },
+  'admin.pos.product.index': {
+    path: '/admin/pos/products',
+    permission: 'admin.pos.product.index',
+  },
+  'admin.pos.category.index': {
+    path: '/admin/pos/categories',
+    permission: 'admin.pos.category.index',
+  },
+  'admin.pos.supplier.index': {
+    path: '/admin/pos/suppliers',
+    permission: 'admin.pos.supplier.index',
+  },
+  'admin.pos.purchase.index': {
+    path: '/admin/pos/purchases',
+    permission: 'admin.pos.purchase.index',
+  },
+  'admin.pos.stock-movement.index': {
+    path: '/admin/pos/stock-movements',
+    permission: 'admin.pos.stock-movement.index',
+  },
+  'admin.pos.report.index': {
+    path: '/admin/pos/reports',
+    permission: 'admin.pos.report.index',
+  },
+  'admin.pos.payment-method.index': {
+    path: '/admin/pos/payment-methods',
+    permission: 'admin.pos.payment-method.index',
+  },
+  'admin.pos.payment-method.create': {
+    path: '/admin/pos/payment-methods/create',
+    permission: 'admin.pos.payment-method.create',
+  },
+  'admin.pos.payment-method.edit': {
+    path: '/admin/pos/payment-methods/:id/edit',
+    permission: 'admin.pos.payment-method.update',
+  },
+  'admin.pos.ppob.index': {
+    path: '/admin/pos/ppob',
+    permission: 'admin.pos.ppob.index',
+  },
+  'admin.pos.ppob.transactions': {
+    path: '/admin/pos/ppob/transactions',
+    permission: 'admin.pos.ppob.index',
+  },
+  'admin.pos.ppob.products': {
+    path: '/admin/pos/ppob/products',
+    permission: 'admin.pos.ppob.index',
+  },
+  'admin.pos.branch.index': {
+    path: '/admin/pos/branches',
+    permission: 'admin.pos.branch.index',
+  },
+  'admin.pos.branch.create': {
+    path: '/admin/pos/branches/create',
+    permission: 'admin.pos.branch.create',
+  },
+  'admin.pos.branch.edit': {
+    path: '/admin/pos/branches/:id/edit',
+    permission: 'admin.pos.branch.update',
   },
 };

@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Link as LocaleLink } from '@/i18n/navigation';
-import { Search, ChevronRight, Home, Menu, X } from 'lucide-react';
+import { Search, ChevronRight, Home, Menu, X, Bell, Settings, Store } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
@@ -14,95 +14,21 @@ import ImpersonateButton from './ImpersonateButton';
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
   "Dashboard": "Dashboard",
-  "Berita": "Berita",
-  "Kemitraan": "Kemitraan",
-  "Events": "Events",
-  "Publikasi Event": "Publikasi Event",
-  "Daftar Event": "Daftar Event",
-  "Tambah Event": "Tambah Event",
-  "Event Unggulan": "Event Unggulan",
-  "Event OTW": "Event OTW",
-  "Event Banner": "Event Banner",
-  "Sebaran Event": "Sebaran Event",
-  "Kategori Event": "Kategori Event",
-  "Top 10 KEN": "Top 10 KEN",
-  "Hotel Manager": "Hotel Manager",
-  "Daftar Hotel": "Daftar Hotel",
-  "Buat Hotel Baru": "Buat Hotel Baru",
-  "Venue Manager": "Venue Manager",
-  "Daftar Venue": "Daftar Venue",
-  "Buat Venue Baru": "Buat Venue Baru",
-  "Hotel Pusat": "Hotel Pusat",
-  "Pengajuan Pemda": "Pengajuan Pemda",
-  "Pengajuan Baru": "Pengajuan Baru",
-  "Telah Diverifikasi": "Telah Diverifikasi",
-  "Revisi": "Revisi",
-  "Ditolak": "Ditolak",
-  "Hotel Pemda": "Hotel Pemda",
-  "Venue Pusat": "Venue Pusat",
-  "Venue Pemda": "Venue Pemda",
-  "Aset Digital": "Aset Digital",
-  "Stok Gambar": "Stok Gambar",
-  "Stok Video": "Stok Video",
-  "Template Dokumen": "Template Dokumen",
-  "Monev": "Monev",
-  "Laporan Saya": "Laporan Saya",
-  "Petugas Monev": "Petugas Monev",
-  "Pertanyaan": "Pertanyaan",
-  "Grafik Monev": "Grafik Monev",
-  "Survey": "Survey",
-  "Konsultasi": "Konsultasi",
-  "Daftar Konsultasi": "Daftar Konsultasi",
-  "Kategori": "Kategori",
-  "Dokumen Resmi": "Dokumen Resmi",
-  "Daftar Dokumen": "Daftar Dokumen",
-  "Halaman Info": "Halaman Info",
-  "Profil Organisasi": "Profil Organisasi",
-  "Stravent": "Stravent",
-  "FAQ": "FAQ",
-  "Umum": "Umum",
-  "Kategori Event Daerah": "Kategori Event Daerah",
-  "Event Daerah": "Event Daerah",
-  "Event Nasional": "Event Nasional",
-  "Event Internasional": "Event Internasional",
-  "MICE": "MICE",
-  "Pitching MICE": "Pitching MICE",
-  "Daftar RFS": "Daftar RFS",
-  "Daftar Incentive": "Daftar Incentive",
-  "Hubungi Kami": "Hubungi Kami",
+  "Kasir (POS)": "Kasir (POS)",
+  "Transaksi": "Transaksi",
+  "Produk": "Produk",
+  "Kategori Produk": "Kategori Produk",
+  "Supplier": "Supplier",
+  "Pembelian": "Pembelian",
+  "Stok": "Stok",
+  "Laporan": "Laporan",
+  "Metode Pembayaran": "Metode Pembayaran",
+  "Cabang": "Cabang",
+  "PPOB": "PPOB",
+  "Produk PPOB": "Produk PPOB",
+  "Transaksi PPOB": "Transaksi PPOB",
   "User Management": "User Management",
   "Role Management": "Role Management",
-  "Activity Logs": "Activity Logs",
-  "Proposal Management": "Manajemen Proposal",
-  "Proposals": "Proposal",
-  "KEN Terpilih": "KEN Terpilih",
-  "KEN Proposal Terpilih": "KEN Proposal Terpilih",
-  "Proposal KEN": "Proposal KEN",
-  "Submissions": "Pengajuan",
-  "Pengajuan Telaah Proposal": "Pengajuan Telaah Proposal",
-  "Telaah Proposal": "Telaah Proposal",
-  "Periode": "Periode",
-  "Types": "Tipe",
-  "Categories": "Kategori",
-  "Organizers": "Penyelenggara",
-  "Question Management": "Manajemen Pertanyaan",
-  "Questions": "Pertanyaan",
-  "Question Groups": "Grup Pertanyaan",
-  "Review Questions": "Pertanyaan Review",
-  "Review Indicators": "Indikator Review",
-  "Curator Management": "Manajemen Kurator",
-  "Review Proposal": "Review Proposal",
-  "Riwayat Kurasi": "Riwayat Kurasi",
-  "Kalender Event": "Kalender Event",
-  "Kilasan Data": "Kilasan Data",
-  "Daftar Proposal": "Daftar Proposal",
-  "Ajukan Proposal": "Ajukan Proposal",
-  "Informasi": "Informasi",
-  "Data Spasial": "Data Spasial",
-  "Peta Sebaran Event": "Peta Sebaran Event",
-  "Proposal": "Proposal",
-  "AI Insight": "AI Insight",
-  "Pengaturan": "Pengaturan",
   "Logout": "Keluar",
 };
 
@@ -115,13 +41,14 @@ const Navbar = () => {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const { user } = useUser();
 
   useEffect(() => {
     if (isMobileSearchOpen && mobileSearchRef.current) {
       mobileSearchRef.current.focus();
     }
   }, [isMobileSearchOpen]);
-  const { user } = useUser();
+
   // Filter search results
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -170,7 +97,7 @@ const Navbar = () => {
 
   return (
     <nav
-      className="sticky top-0 z-30 h-16 flex items-center justify-between px-3 lg:px-6 shadow-sm"
+      className="sticky top-0 z-30 h-16 flex items-center justify-between px-3 lg:px-6 shadow-sm border-b border-gray-100"
       style={{ backgroundColor: '#ffffff' }}
     >
       {/* Mobile hamburger */}
@@ -299,14 +226,29 @@ const Navbar = () => {
           <Search className="w-[18px] h-[18px] text-gray-600" />
         </button>
 
-        {/* Landing Page Button */}
+        {/* Lihat Website Button */}
         <LocaleLink
           href="/"
-          className="inline-flex items-center justify-center gap-2 p-1.5 sm:p-2 md:px-4 md:py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold text-sm"
+          target="_blank"
+          className="inline-flex items-center justify-center gap-2 px-3 py-2 text-gray-600 hover:text-[#142D52] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium cursor-pointer"
         >
-          <Home className="w-4 h-4 shrink-0" />
-          <span className="hidden md:inline">Kembali ke Beranda</span>
+          <Store className="w-4 h-4 shrink-0" />
+          <span className="hidden md:inline">Lihat Website</span>
         </LocaleLink>
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div>
+
+        {/* Notifications */}
+        <button className="relative p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer">
+          <Bell className="w-5 h-5" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
+
+        {/* Settings */}
+        <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer hidden md:block">
+          <Settings className="w-5 h-5" />
+        </button>
 
         {/* Stop Impersonating Button */}
         <ImpersonateButton />
@@ -314,24 +256,24 @@ const Navbar = () => {
         {/* User Profile */}
         <Link
           href="/admin/profile"
-          className="flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-gray-200 hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-gray-100 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <div className="text-right hidden md:block">
-            <p className="text-sm font-semibold text-gray-900">{user?.name || ''}</p>
-            <p className="text-xs text-gray-500">{user?.email || ''}</p>
+            <p className="text-sm font-bold text-[#142D52] leading-none">{user?.name || 'Guest User'}</p>
+            <p className="text-xs text-gray-500 mt-1">{user?.email || 'guest@konterapp.id'}</p>
           </div>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-gray-200">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-[#EBC170] transition-all">
             <Image
               src={
                 user?.avatar_url && user.avatar_url.trim() !== ''
                   ? user.avatar_url
                   : user?.name
-                    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=EBC170&color=1f2937`
-                    : 'https://ui-avatars.com/api/?name=Guest&background=EBC170&color=1f2937'
+                    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=142D52&color=fff`
+                    : 'https://ui-avatars.com/api/?name=Guest&background=142D52&color=fff'
               }
               alt="User Avatar"
-              width={40}
-              height={40}
+              width={36}
+              height={36}
               className="w-full h-full object-cover"
               unoptimized
             />

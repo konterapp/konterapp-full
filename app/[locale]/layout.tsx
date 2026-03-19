@@ -19,10 +19,23 @@ export function generateStaticParams() {
 
 export const metadata: Metadata = {
   title: {
-    default: 'EventByID - Platform Event Indonesia',
+    default: 'KonterApp - Aplikasi Kasir & PPOB Terlengkap untuk Usaha Konter Anda',
     template: '%s',
   },
-  description: 'Temukan dan jelajahi event-event terbaik di seluruh Indonesia. Festival, konser, karnaval, olahraga, kuliner, dan MICE.',
+  description: 'Solusi lengkap untuk usaha konter dan PPOB. Kelola transaksi pulsa, paket data, token PLN, e-wallet, dan pembukuan kasir digital dalam satu aplikasi. Gratis pendaftaran!',
+  keywords: ['KonterApp', 'Aplikasi Konter', 'PPOB', 'Kasir Digital', 'POS', 'Pulsa', 'Token PLN', 'E-Wallet', 'Pembukuan Usaha', 'Manajemen Toko'],
+  authors: [{ name: 'KonterApp' }],
+  openGraph: {
+    title: 'KonterApp - Aplikasi Kasir & PPOB Terlengkap untuk Usaha Konter Anda',
+    description: 'Solusi lengkap untuk usaha konter dan PPOB. Kelola transaksi dan pembukuan dalam satu aplikasi.',
+    type: 'website',
+    locale: 'id_ID',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'KonterApp - Aplikasi Kasir & PPOB Terlengkap',
+    description: 'Solusi lengkap untuk usaha konter dan PPOB. Kelola transaksi dan pembukuan dalam satu aplikasi.',
+  },
   robots: {
     index: true,
     follow: true,

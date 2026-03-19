@@ -358,13 +358,13 @@ export default function UsersPage() {
       <div className="space-y-6">
          <div className="flex items-center justify-between">
             <div>
-               <h1 className="text-3xl font-bold text-gray-900">Daftar User</h1>
-               <p className="text-gray-600 mt-1">Kelola pengguna sistem</p>
+               <h1 className="text-2xl font-bold text-[#142D52]">Manajemen Pengguna</h1>
+               <p className="text-gray-600 mt-1">Kelola data pengguna dan peran (role).</p>
             </div>
             {hasPermission('admin.user.create') && (
                <Link
                   href="/admin/users/create"
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#2a4061] text-white rounded-lg hover:bg-[#1e2f47] transition-colors font-semibold"
+                  className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
                >
                   <Plus className="w-5 h-5" />
                   <span>Tambah User</span>

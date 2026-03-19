@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { logout } from '@/lib/api/auth';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import {
@@ -13,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  Zap,
 } from 'lucide-react';
 import { allMenuItems, SubMenuItem } from '../_constants/menuItems';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -21,95 +21,21 @@ import { filterMenuByAccess } from '@/lib/utils/menuFilter';
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
   "Dashboard": "Dashboard",
-  "Berita": "Berita",
-  "Kemitraan": "Kemitraan",
-  "Events": "Events",
-  "Publikasi Event": "Publikasi Event",
-  "Daftar Event": "Daftar Event",
-  "Tambah Event": "Tambah Event",
-  "Event Unggulan": "Event Unggulan",
-  "Event OTW": "Event OTW",
-  "Event Banner": "Event Banner",
-  "Sebaran Event": "Sebaran Event",
-  "Kategori Event": "Kategori Event",
-  "Top 10 KEN": "Top 10 KEN",
-  "Hotel Manager": "Hotel Manager",
-  "Daftar Hotel": "Daftar Hotel",
-  "Buat Hotel Baru": "Buat Hotel Baru",
-  "Venue Manager": "Venue Manager",
-  "Daftar Venue": "Daftar Venue",
-  "Buat Venue Baru": "Buat Venue Baru",
-  "Hotel Pusat": "Hotel Pusat",
-  "Pengajuan Pemda": "Pengajuan Pemda",
-  "Pengajuan Baru": "Pengajuan Baru",
-  "Telah Diverifikasi": "Telah Diverifikasi",
-  "Revisi": "Revisi",
-  "Ditolak": "Ditolak",
-  "Hotel Pemda": "Hotel Pemda",
-  "Venue Pusat": "Venue Pusat",
-  "Venue Pemda": "Venue Pemda",
-  "Aset Digital": "Aset Digital",
-  "Stok Gambar": "Stok Gambar",
-  "Stok Video": "Stok Video",
-  "Template Dokumen": "Template Dokumen",
-  "Monev": "Monev",
-  "Laporan Saya": "Laporan Saya",
-  "Petugas Monev": "Petugas Monev",
-  "Pertanyaan": "Pertanyaan",
-  "Grafik Monev": "Grafik Monev",
-  "Survey": "Survey",
-  "Konsultasi": "Konsultasi",
-  "Daftar Konsultasi": "Daftar Konsultasi",
-  "Kategori": "Kategori",
-  "Dokumen Resmi": "Dokumen Resmi",
-  "Daftar Dokumen": "Daftar Dokumen",
-  "Halaman Info": "Halaman Info",
-  "Profil Organisasi": "Profil Organisasi",
-  "Stravent": "Stravent",
-  "FAQ": "FAQ",
-  "Umum": "Umum",
-  "Kategori Event Daerah": "Kategori Event Daerah",
-  "Event Daerah": "Event Daerah",
-  "Event Nasional": "Event Nasional",
-  "Event Internasional": "Event Internasional",
-  "MICE": "MICE",
-  "Pitching MICE": "Pitching MICE",
-  "Daftar RFS": "Daftar RFS",
-  "Daftar Incentive": "Daftar Incentive",
-  "Hubungi Kami": "Hubungi Kami",
-  "User Management": "User Management",
-  "Role Management": "Role Management",
-  "Activity Logs": "Activity Logs",
-  "Proposal Management": "Manajemen Proposal",
-  "Proposals": "Proposal",
-  "KEN Terpilih": "KEN Terpilih",
-  "KEN Proposal Terpilih": "KEN Proposal Terpilih",
-  "Proposal KEN": "Proposal KEN",
-  "Submissions": "Pengajuan",
-  "Pengajuan Telaah Proposal": "Pengajuan Telaah Proposal",
-  "Telaah Proposal": "Telaah Proposal",
-  "Periode": "Periode",
-  "Types": "Tipe",
-  "Categories": "Kategori",
-  "Organizers": "Penyelenggara",
-  "Question Management": "Manajemen Pertanyaan",
-  "Questions": "Pertanyaan",
-  "Question Groups": "Grup Pertanyaan",
-  "Review Questions": "Pertanyaan Review",
-  "Review Indicators": "Indikator Review",
-  "Curator Management": "Manajemen Kurator",
-  "Review Proposal": "Review Proposal",
-  "Riwayat Kurasi": "Riwayat Kurasi",
-  "Kalender Event": "Kalender Event",
-  "Kilasan Data": "Kilasan Data",
-  "Daftar Proposal": "Daftar Proposal",
-  "Ajukan Proposal": "Ajukan Proposal",
-  "Informasi": "Informasi",
-  "Data Spasial": "Data Spasial",
-  "Peta Sebaran Event": "Peta Sebaran Event",
-  "Proposal": "Proposal",
-  "AI Insight": "AI Insight",
-  "Pengaturan": "Pengaturan",
+  "Kasir": "Kasir",
+  "Riwayat Transaksi": "Riwayat Transaksi",
+  "PPOB": "PPOB",
+  "Riwayat PPOB": "Riwayat PPOB",
+  "Produk PPOB": "Produk PPOB",
+  "Produk": "Produk",
+  "Kategori Produk": "Kategori Produk",
+  "Supplier": "Supplier",
+  "Pembelian": "Pembelian",
+  "Riwayat Stok": "Riwayat Stok",
+  "Laporan Laba/Rugi": "Laporan Laba/Rugi",
+  "Metode Pembayaran": "Metode Pembayaran",
+  "Cabang/Lokasi": "Cabang/Lokasi",
+  "Manajemen User": "Manajemen User",
+  "Manajemen Role": "Manajemen Role",
   "Logout": "Keluar",
 };
 
@@ -214,7 +140,8 @@ export default function Sidebar() {
     if (href === '/admin') {
       return pathname === '/admin';
     }
-    return pathname?.startsWith(href);
+    // Exact match for parent menu items
+    return pathname === href;
   };
 
   const hasActiveSubmenu = (submenu?: SubMenuItem[]) => {
@@ -266,13 +193,19 @@ export default function Sidebar() {
         <div className={`flex items-center p-4 border-b border-white/10 ${effectiveCollapsed ? 'justify-center' : 'justify-between'}`}>
           {!effectiveCollapsed && (
             <div className="flex-1 flex items-center justify-center">
-              <Image
-                src="/images/ic-eventbyid.png"
-                alt="Logo"
-                width={120}
-                height={120}
-                className="h-8 w-auto"
-              />
+              <div className="flex items-center gap-2">
+                <div className="bg-[#EBC170] p-1.5 rounded-lg text-[#142D52]">
+                  <Zap className="w-6 h-6 fill-current" />
+                </div>
+                <span className="text-xl font-bold text-white tracking-tight">KonterApp</span>
+              </div>
+            </div>
+          )}
+          {effectiveCollapsed && (
+            <div className="w-full flex justify-center">
+              <div className="bg-[#EBC170] p-1.5 rounded-lg text-[#142D52]">
+                <Zap className="w-6 h-6 fill-current" />
+              </div>
             </div>
           )}
           {/* Desktop collapse toggle */}

@@ -1,0 +1,105 @@
+export interface SaleItem {
+  product: {
+    uuid: string;
+    name: string;
+    sku: string;
+    image?: string | null;
+  };
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  subtotal: number;
+}
+
+export interface Sale {
+  uuid: string;
+  saleNumber: string;
+  branchUuid: string;
+  branch?: {
+    uuid: string;
+    name: string;
+    code: string;
+  };
+  customerUuid?: string;
+  customer?: {
+    uuid: string;
+    name: string;
+    phone?: string;
+  };
+  paymentMethodUuid: string;
+  paymentMethod?: {
+    uuid: string;
+    name: string;
+    code: string;
+  };
+  saleDate: string;
+  subtotal: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  changeAmount: number;
+  paymentStatus: string;
+  notes?: string;
+  createdBy: number;
+  creator?: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+  items: SaleItem[];
+}
+
+export interface SaleItemCreateData {
+  product_uuid: string;
+  quantity: number;
+  unit_price: number;
+  discount?: number;
+}
+
+export interface CreateSaleData {
+  branch_uuid: string;
+  customer_uuid?: string;
+  payment_method_uuid: string;
+  sale_date?: string;
+  items: SaleItemCreateData[];
+  discount_amount?: number;
+  paid_amount: number;
+  notes?: string;
+}
+
+export async function createSale(data: CreateSaleData): Promise<{ status: string; data: Sale }> {
+  const response = await fetch('/api/admin/pos/transactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function getTransactions(
+  page = 1,
+  perPage = 10,
+  filters?: {
+    search?: string;
+    branch_uuid?: string;
+    start_date?: string;
+    end_date?: string;
+    payment_status?: string;
+  }
+): Promise<{ status: string; data: { data: Sale[]; pagination: any } }> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    per_page: perPage.toString(),
+    ...filters,
+  });
+
+  const response = await fetch(`/api/admin/pos/transactions?${params}`);
+  return response.json();
+}
+
+export async function getTransaction(uuid: string): Promise<{ status: string; data: Sale }> {
+  const response = await fetch(`/api/admin/pos/transactions/${uuid}`);
+  return response.json();
+}

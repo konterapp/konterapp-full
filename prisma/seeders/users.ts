@@ -56,15 +56,15 @@ export async function seedUsers(
 ) {
   await createUserWithRole(
     prisma,
-    { name: "Admin", email: "admin@eventbyid.com", password: "password", userType: 2 },
+    { name: "Admin", email: "admin@admin.com", password: "password", userType: 2 },
     roles.adminRole
   );
-  console.log("✓ Admin user created: admin@eventbyid.com / password");
+  console.log("✓ Admin user created: admin@admin.com / password");
 
   await createUserWithRole(
     prisma,
-    { name: "User", email: "user@eventbyid.com", password: "password", userType: 4 },
+    { name: "User", email: "user@user.com", password: "password", userType: 4 },
     roles.userRole
   );
-  console.log("✓ Regular user created: user@eventbyid.com / password");
+  console.log("✓ Regular user created: user@user.com / password");
 }

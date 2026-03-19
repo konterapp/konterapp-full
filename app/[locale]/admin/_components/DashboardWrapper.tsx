@@ -38,7 +38,7 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
           </main>
           <footer className="shrink-0 flex items-center justify-between px-4 lg:px-6 py-2 bg-white border-t border-gray-200">
             <span className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Event By Indonesia
+              &copy; {new Date().getFullYear()} KonterApp
             </span>
           </footer>
         </div>

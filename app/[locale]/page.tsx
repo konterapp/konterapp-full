@@ -1,395 +1,377 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Calendar, MapPin, Users, ArrowRight, Mail, Phone, Newspaper, ChevronRight, LayoutDashboard } from 'lucide-react';
-import { apiRequest, PaginatedData } from '@/lib/api/api';
-import { getUser } from '@/lib/api/auth';
-
-interface Berita {
-  uuid: string;
-  title: string;
-  slug: string;
-  content: string;
-  image_url: string | null;
-  tags: string[];
-  news_type?: string;
-  category?: string;
-  author?: string;
-  published_at: string;
-}
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import {
+  Smartphone,
+  ShoppingCart,
+  TrendingUp,
+  ShieldCheck,
+  Zap,
+  CreditCard,
+  Users,
+  BarChart3,
+  CheckCircle2,
+  ArrowRight
+} from 'lucide-react';
 
 export default function LandingPage() {
-  const [beritas, setBeritas] = useState<Berita[]>([]);
-  const [isLoadingBerita, setIsLoadingBerita] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    fetchBeritas();
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const response = await getUser();
-      if (response.status === 'success' && response.data) {
-        setIsLoggedIn(true);
-      }
-    } catch {
-      // not logged in
+  const features = [
+    {
+      icon: <Smartphone className="w-8 h-8 text-[#EBC170]" />,
+      title: "PPOB Terlengkap",
+      description: "Jual pulsa, paket data, token PLN, bayar tagihan PDAM, BPJS, hingga topup e-wallet dengan harga termurah."
+    },
+    {
+      icon: <ShoppingCart className="w-8 h-8 text-[#EBC170]" />,
+      title: "Kasir Digital (POS)",
+      description: "Kelola stok barang, catat penjualan, cetak struk via printer bluetooth, dan pantau omzet harian secara realtime."
+    },
+    {
+      icon: <Users className="w-8 h-8 text-[#EBC170]" />,
+      title: "Manajemen Pelanggan",
+      description: "Simpan data pelanggan, catat hutang piutang, dan kirim struk pembelian via WhatsApp dengan mudah."
+    },
+    {
+      icon: <BarChart3 className="w-8 h-8 text-[#EBC170]" />,
+      title: "Laporan Keuangan",
+      description: "Analisa keuntungan usaha Anda dengan laporan keuangan otomatis yang detail dan mudah dipahami."
     }
-  };
+  ];
 
-  const fetchBeritas = async () => {
-    try {
-      const response = await apiRequest<PaginatedData<Berita>>('/api/berita?per_page=3');
-      if (response.status === 'success' && response.data) {
-        setBeritas(response.data.data);
-      }
-    } catch {
-      // silent
-    } finally {
-      setIsLoadingBerita(false);
+  const products = [
+    { name: "Pulsa & Data", icon: "📱", desc: "All Operator" },
+    { name: "Token PLN", icon: "⚡", desc: "Listrik Pintar" },
+    { name: "E-Wallet", icon: "💳", desc: "DANA, OVO, GoPay" },
+    { name: "Tagihan", icon: "📄", desc: "PDAM, BPJS, Telkom" },
+    { name: "Voucher Game", icon: "🎮", desc: "FF, MLBB, PUBG" },
+    { name: "Transfer Bank", icon: "🏦", desc: "Ke 100+ Bank" },
+  ];
+
+  const testimonials = [
+    {
+      name: "Budi Santoso",
+      role: "Pemilik Konter di Surabaya",
+      content: "Sejak pakai KonterApp, pembukuan jadi rapi banget. Nggak pusing lagi ngitung omzet manual. Produk PPOB-nya juga lengkap!",
+      image: "https://i.pravatar.cc/150?img=11"
+    },
+    {
+      name: "Siti Aminah",
+      role: "Agen PPOB di Bandung",
+      content: "Transaksi super cepat, detik-an langsung masuk. CS-nya juga fast response kalau ada kendala. Recommended banget buat usaha!",
+      image: "https://i.pravatar.cc/150?img=5"
+    },
+    {
+      name: "Rudi Hartono",
+      role: "Toko Kelontong di Jakarta",
+      content: "Fitur kasirnya ngebantu banget buat toko kelontong saya. Bisa scan barcode barang dan cetak struk langsung.",
+      image: "https://i.pravatar.cc/150?img=13"
     }
-  };
-
-  const stripHtml = (html: string) => {
-    return html.replace(/<[^>]*>/g, '').substring(0, 150) + '...';
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Image src="/images/logo_eventbyid.png" alt="EBI" width={40} height={40} />
-              <span className="font-bold text-lg text-[#142D52]">Event By Indonesia</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {isLoggedIn ? (
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-[#142D52] rounded-lg hover:bg-[#1e3a5f] transition-colors"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  Dashboard
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className="px-4 py-2 text-sm font-semibold text-white bg-[#142D52] rounded-lg hover:bg-[#1e3a5f] transition-colors"
-                >
-                  Masuk
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="overflow-x-hidden bg-white">
+      <Header />
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#142D52] via-[#1e3a5f] to-[#2a4a6b]">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-[#EBC170] rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#EBC170] rounded-full blur-3xl" />
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-[#142D52]">
+        {/* Abstract Background Shapes */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-[#EBC170]/10 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[#EBC170]/10 blur-3xl"></div>
+
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight mb-6">
-                Platform Event
-                <span className="text-[#EBC170]"> Terintegrasi</span> untuk Indonesia
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EBC170]/10 text-[#EBC170] text-sm font-semibold mb-6">
+                <Zap className="w-4 h-4" />
+                <span>Solusi Usaha #1 di Indonesia</span>
+              </div>
+              <h1 className="text-4xl lg:text-6xl font-bold text-white mb-6 leading-tight font-poppins">
+                Kelola Konter & <br />
+                <span className="text-[#EBC170]">Bisnis PPOB</span> Jadi Lebih Mudah
               </h1>
-              <p className="text-lg text-gray-300 mb-8 leading-relaxed">
-                Kelola, promosikan, dan temukan event terbaik di seluruh Indonesia.
-                Satu platform untuk semua kebutuhan industri event nasional.
+              <p className="text-lg text-gray-300 mb-8 leading-relaxed max-w-xl">
+                Satu aplikasi untuk semua kebutuhan usaha Anda. Mulai dari jualan pulsa, bayar tagihan, hingga aplikasi kasir canggih untuk memantau perkembangan bisnis.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#EBC170] text-[#142D52] font-bold rounded-lg hover:bg-[#d4ab5f] transition-colors"
-                >
-                  Mulai Sekarang
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link href="/register" className="px-8 py-4 bg-[#EBC170] hover:bg-[#d6af63] text-[#142D52] font-bold rounded-xl transition-all shadow-lg shadow-[#EBC170]/20 flex items-center justify-center gap-2">
+                  Daftar Gratis Sekarang
                   <ArrowRight className="w-5 h-5" />
                 </Link>
+                <Link href="#features" className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl backdrop-blur-sm transition-all flex items-center justify-center">
+                  Pelajari Fitur
+                </Link>
               </div>
-            </div>
-            <div className="hidden lg:flex justify-center">
-              <Image
-                src="/images/logo_eventbyid.png"
-                alt="Event By Indonesia"
-                width={400}
-                height={400}
-                className="w-80 h-auto opacity-90"
-              />
-            </div>
+
+              <div className="mt-10 flex items-center gap-6 text-gray-400 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#EBC170]" />
+                  <span>Gratis Pendaftaran</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#EBC170]" />
+                  <span>Transaksi 24 Jam</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#EBC170]" />
+                  <span>Aman & Terpercaya</span>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="relative hidden lg:block"
+            >
+              {/* Placeholder for App Screenshot */}
+              <div className="relative z-10 mx-auto w-[280px] h-[580px] bg-gray-900 rounded-[3rem] border-8 border-gray-800 shadow-2xl overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-6 bg-gray-800 rounded-b-xl z-20 w-40 mx-auto"></div>
+                <div className="w-full h-full bg-white overflow-hidden flex flex-col">
+                  {/* Mockup Screen Content */}
+                  <div className="bg-[#142D52] p-6 pt-10 text-white">
+                    <div className="flex justify-between items-center mb-6 mt-2">
+                      <div>
+                        <p className="text-xs opacity-80">Saldo Anda</p>
+                        <p className="text-xl font-bold">Rp 2.500.000</p>
+                      </div>
+                      <div className="w-8 h-8 bg-[#EBC170] rounded-full flex items-center justify-center text-[#142D52] font-bold">K</div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4 mt-4">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex flex-col items-center gap-1">
+                          <div className="w-10 h-10 bg-white/10 rounded-lg"></div>
+                          <div className="w-8 h-2 bg-white/10 rounded"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gray-50 flex-1">
+                    <div className="w-full h-24 bg-white rounded-xl shadow-sm mb-4 p-3">
+                      <div className="w-1/2 h-3 bg-gray-100 rounded mb-2"></div>
+                      <div className="w-3/4 h-3 bg-gray-100 rounded"></div>
+                    </div>
+                    <div className="w-full h-24 bg-white rounded-xl shadow-sm mb-4 p-3">
+                      <div className="w-1/2 h-3 bg-gray-100 rounded mb-2"></div>
+                      <div className="w-3/4 h-3 bg-gray-100 rounded"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating Cards */}
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute top-20 -right-10 bg-white p-4 rounded-xl shadow-xl z-20 max-w-[180px]"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Omzet Hari Ini</p>
+                    <p className="text-sm font-bold text-gray-900 font-poppins">+Rp 1.250.000</p>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                animate={{ y: [0, 10, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="absolute bottom-32 -left-10 bg-white p-4 rounded-xl shadow-xl z-20"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-[#142D52]">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 font-poppins">Transaksi Sukses</p>
+                    <p className="text-xs text-green-600 font-medium">Verified System</p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { icon: Calendar, label: 'Event Terdaftar', value: '500+' },
-              { icon: MapPin, label: 'Kota', value: '34 Provinsi' },
-              { icon: Users, label: 'Pengguna', value: '10.000+' },
-              { icon: Newspaper, label: 'Berita & Artikel', value: '100+' },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-[#EBC170]/10 rounded-xl mb-3">
-                  <stat.icon className="w-6 h-6 text-[#EBC170]" />
+      {/* Features Section */}
+      <section id="features" className="py-20 lg:py-32 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#142D52] mb-4 font-poppins">
+              Semua Fitur yang Anda Butuhkan
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Kami menyediakan alat lengkap untuk membantu operasional bisnis Anda berjalan lebih efisien dan menguntungkan.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 group"
+              >
+                <div className="w-14 h-14 rounded-xl bg-[#142D52]/5 flex items-center justify-center mb-6 group-hover:bg-[#142D52] transition-colors duration-300">
+                  <div className="group-hover:text-white transition-colors duration-300">
+                    {feature.icon}
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-[#142D52]">{stat.value}</div>
-                <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
-              </div>
+                <h3 className="text-xl font-bold text-[#142D52] mb-3 font-poppins">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">
+                  {feature.description}
+                </p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <span className="text-sm font-semibold text-[#EBC170] uppercase tracking-wider">Tentang Kami</span>
-              <h2 className="text-3xl font-bold text-[#142D52] mt-2 mb-6">
-                Event By Indonesia (EBI)
-              </h2>
-              <p className="text-gray-600 leading-relaxed mb-4">
-                Event By Indonesia (EBI) adalah platform terintegrasi yang dirancang untuk mendukung
-                ekosistem industri event di Indonesia. EBI mempermudah pengelolaan, promosi, dan
-                penemuan event di seluruh wilayah Indonesia.
-              </p>
-              <p className="text-gray-600 leading-relaxed mb-6">
-                Dengan fitur-fitur seperti manajemen event, direktori venue & hotel, sistem proposal,
-                dan pelaporan digital, EBI menjadi solusi satu pintu untuk semua kebutuhan
-                penyelenggaraan event nasional.
-              </p>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  'Manajemen Event',
-                  'Direktori Venue & Hotel',
-                  'Sistem Proposal',
-                  'Berita & Informasi',
-                ].map((feature, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-[#EBC170] rounded-full" />
-                    <span className="text-sm text-gray-700">{feature}</span>
-                  </div>
+      {/* Products Section */}
+      <section id="advantages" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="bg-[#142D52] rounded-3xl p-8 lg:p-16 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-[#EBC170]/10 blur-3xl"></div>
+
+            <div className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
+              <div>
+                <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6 font-poppins">
+                  Produk Digital Terlengkap & Termurah
+                </h2>
+                <p className="text-gray-300 mb-8 text-lg">
+                  Nikmati akses ke ribuan produk digital dengan harga modal. Margin keuntungan lebih besar untuk usaha Anda.
+                </p>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-white">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170]" />
+                    <span>Server stabil, transaksi hitungan detik</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-white">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170]" />
+                    <span>Customer service standby 24 jam</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-white">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170]" />
+                    <span>Bisa cetak struk dengan nama toko sendiri</span>
+                  </li>
+                </ul>
+                <Link href="/register" className="inline-block px-8 py-3 bg-[#EBC170] hover:bg-[#d6af63] text-[#142D52] font-bold rounded-xl transition-all">
+                  Lihat Daftar Harga
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {products.map((product, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/10 hover:bg-white/20 transition-all cursor-pointer text-center"
+                  >
+                    <div className="text-3xl mb-2">{product.icon}</div>
+                    <h4 className="text-white font-semibold text-sm mb-1">{product.name}</h4>
+                    <p className="text-gray-400 text-xs">{product.desc}</p>
+                  </motion.div>
                 ))}
               </div>
             </div>
-            <div className="flex justify-center">
-              <div className="relative w-full max-w-md aspect-square bg-gradient-to-br from-[#142D52] to-[#2a4a6b] rounded-2xl p-8 flex items-center justify-center">
-                <Image
-                  src="/images/logo_eventbyid.png"
-                  alt="EBI"
-                  width={300}
-                  height={300}
-                  className="w-48 h-auto"
-                />
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Berita Section */}
-      <section id="berita" className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="text-center mb-12">
-            <span className="text-sm font-semibold text-[#EBC170] uppercase tracking-wider">Berita Terbaru</span>
-            <h2 className="text-3xl font-bold text-[#142D52] mt-2">
-              Informasi & Artikel
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-20 lg:py-32 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#142D52] mb-4 font-poppins">
+              Apa Kata Mitra Kami?
             </h2>
-            <p className="text-gray-500 mt-3 max-w-2xl mx-auto">
-              Ikuti perkembangan terbaru seputar industri event di Indonesia
+            <p className="text-gray-600 text-lg">
+              Ribuan pengusaha konter dan toko kelontong telah mempercayakan bisnisnya pada KonterApp.
             </p>
           </div>
 
-          {isLoadingBerita ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#142D52]" />
-            </div>
-          ) : beritas.length > 0 ? (
-            <div className="grid md:grid-cols-3 gap-8">
-              {beritas.map((berita) => (
-                <article key={berita.uuid} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
-                  <div className="aspect-video bg-gray-100 overflow-hidden">
-                    {berita.image_url ? (
-                      <img
-                        src={berita.image_url}
-                        alt={berita.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Newspaper className="w-12 h-12 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <div className="flex items-center gap-2 mb-3">
-                      {berita.category && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-[#EBC170]/10 text-[#b8904f] rounded-full">
-                          {berita.category}
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-400">
-                        {formatDate(berita.published_at)}
-                      </span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-[#142D52] mb-2 line-clamp-2 group-hover:text-[#EBC170] transition-colors">
-                      {berita.title}
-                    </h3>
-                    <p className="text-sm text-gray-500 line-clamp-3">
-                      {stripHtml(berita.content)}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-400">
-              Belum ada berita
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-          <div className="grid lg:grid-cols-2 gap-16">
-            <div>
-              <span className="text-sm font-semibold text-[#EBC170] uppercase tracking-wider">Hubungi Kami</span>
-              <h2 className="text-3xl font-bold text-[#142D52] mt-2 mb-6">
-                Ada Pertanyaan?
-              </h2>
-              <p className="text-gray-600 leading-relaxed mb-8">
-                Jangan ragu untuk menghubungi kami jika Anda memiliki pertanyaan
-                atau membutuhkan informasi lebih lanjut tentang Event By Indonesia.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#142D52] rounded-lg flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-[#EBC170]" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Email</div>
-                    <div className="font-medium text-[#142D52]">info@eventbyindonesia.id</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#142D52] rounded-lg flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-[#EBC170]" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Telepon</div>
-                    <div className="font-medium text-[#142D52]">+62 21 1234 5678</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-[#142D52] rounded-lg flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-[#EBC170]" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Alamat</div>
-                    <div className="font-medium text-[#142D52]">Jakarta, Indonesia</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
-              <h3 className="text-lg font-semibold text-[#142D52] mb-6">Kirim Pesan</h3>
-              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nama</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent"
-                    placeholder="Nama Anda"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent"
-                    placeholder="email@anda.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Pesan</label>
-                  <textarea
-                    rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent resize-none"
-                    placeholder="Tulis pesan Anda..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#142D52] text-white font-semibold rounded-lg hover:bg-[#1e3a5f] transition-colors flex items-center justify-center gap-2"
-                >
-                  Kirim Pesan
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-[#142D52] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid md:grid-cols-3 gap-8">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <Image src="/images/logo_eventbyid.png" alt="EBI" width={36} height={36} />
-                <span className="font-bold text-lg">Event By Indonesia</span>
-              </div>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                Platform terintegrasi untuk mendukung ekosistem industri event di Indonesia.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Navigasi</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#about" className="hover:text-[#EBC170] transition-colors">Tentang Kami</a></li>
-                <li><a href="#berita" className="hover:text-[#EBC170] transition-colors">Berita</a></li>
-                <li><a href="#contact" className="hover:text-[#EBC170] transition-colors">Hubungi Kami</a></li>
-                <li><Link href="/login" className="hover:text-[#EBC170] transition-colors">Dashboard</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Kontak</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>info@eventbyindonesia.id</li>
-                <li>+62 21 1234 5678</li>
-                <li>Jakarta, Indonesia</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 mt-10 pt-6 text-center text-sm text-gray-500">
-            &copy; {new Date().getFullYear()} Event By Indonesia. All rights reserved.
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100"
+              >
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                    <Image
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-[#142D52]">{testimonial.name}</h4>
+                    <p className="text-xs text-gray-500">{testimonial.role}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1 mb-4">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <svg key={star} className="w-4 h-4 text-[#EBC170] fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed italic">
+                  "{testimonial.content}"
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* CTA Bottom */}
+      <section className="py-20 px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto bg-[#EBC170] rounded-3xl p-10 lg:p-16 text-center relative overflow-hidden shadow-xl">
+          <div className="relative z-10">
+            <h2 className="text-3xl lg:text-5xl font-bold text-[#142D52] mb-6 font-poppins">
+              Siap Mengembangkan Usaha Anda?
+            </h2>
+            <p className="text-[#142D52]/80 text-lg mb-8 max-w-2xl mx-auto">
+              Bergabunglah dengan ribuan mitra sukses lainnya. Pendaftaran gratis, tanpa biaya bulanan, dan langsung bisa transaksi.
+            </p>
+            <Link href="/register" className="inline-flex px-10 py-4 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-bold rounded-xl transition-all shadow-lg items-center gap-2">
+              <Zap className="w-5 h-5 text-[#EBC170]" />
+              Daftar & Transaksi Sekarang
+            </Link>
+            <p className="mt-4 text-sm text-[#142D52]/70 font-medium">
+              *Aplikasi mobile segera hadir. Saat ini transaksi dapat dilakukan melalui website.
+            </p>
+          </div>
+
+          {/* Decorative shapes */}
+          <div className="absolute top-0 left-0 -ml-16 -mt-16 w-64 h-64 rounded-full bg-white/20 blur-2xl"></div>
+          <div className="absolute bottom-0 right-0 -mr-16 -mb-16 w-64 h-64 rounded-full bg-white/20 blur-2xl"></div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 }
