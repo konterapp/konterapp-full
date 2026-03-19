@@ -1,5 +1,5 @@
 import createMiddleware from 'next-intl/middleware';
-import { auth } from '@/lib/auth-config';
+import { getToken } from 'next-auth/jwt';
 import { routing } from '@/i18n/routing';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -18,8 +18,8 @@ export default async function middleware(req: NextRequest) {
   const isAdminRoute = pathname.match(/^(\/[a-z]{2})?\/admin/);
 
   if (isAdminRoute) {
-    const session = await auth();
-    if (!session) {
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+    if (!token) {
       const loginUrl = new URL('/login', req.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
