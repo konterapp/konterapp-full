@@ -10,6 +10,7 @@ import { writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 import { v7 as uuidv7 } from "uuid";
 
+export const preferredRegion = "sin1";
 function formatUser(user: any, permissions?: string[]) {
   const roles = user.modelHasRoles?.map((r: any) => r.role.name) ?? [];
   const result: any = {

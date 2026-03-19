@@ -5,6 +5,8 @@ import { setRequestLocale } from 'next-intl/server';
 import { routing } from '@/i18n/routing';
 import Providers from "@/components/providers/Providers";
 
+export const preferredRegion = "sin1";
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,

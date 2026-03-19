@@ -5,6 +5,7 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { updateSupplierSchema } from '@/lib/validations/supplier';
 
+export const preferredRegion = "sin1";
 // GET /api/admin/pos/suppliers/[uuid] - Get supplier detail
 export const GET = withPermission(
   'admin.pos.supplier.index',

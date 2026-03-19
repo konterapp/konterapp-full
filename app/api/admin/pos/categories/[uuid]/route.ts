@@ -5,6 +5,7 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { updateCategorySchema } from '@/lib/validations/category';
 
+export const preferredRegion = "sin1";
 // GET /api/admin/pos/categories/[uuid] - Get category detail
 export const GET = withPermission(
   'admin.pos.category.index',

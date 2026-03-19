@@ -5,6 +5,7 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { createPaymentMethodSchema } from '@/lib/validations/payment-method';
 
+export const preferredRegion = "sin1";
 // GET /api/admin/pos/payment-methods - List all payment methods
 export const GET = withPermission('admin.pos.payment-method.index', async (req: NextRequest) => {
   try {

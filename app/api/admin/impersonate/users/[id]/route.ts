@@ -5,6 +5,7 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 
+export const preferredRegion = "sin1";
 export const POST = withAuth(async (req, context) => {
   try {
     const params = await context.params;

@@ -5,6 +5,7 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { updatePaymentMethodSchema } from '@/lib/validations/payment-method';
 
+export const preferredRegion = "sin1";
 // GET /api/admin/pos/payment-methods/[uuid] - Get payment method detail
 export const GET = withPermission(
   'admin.pos.payment-method.index',

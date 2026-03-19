@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse } from "@/lib/response";
 import { withPermission } from "@/lib/api-middleware";
 
+export const preferredRegion = "sin1";
 function formatUser(user: any) {
   const roles = user.modelHasRoles?.map((r: any) => r.role.name) ?? [];
   return {

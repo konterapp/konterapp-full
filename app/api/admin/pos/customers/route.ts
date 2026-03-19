@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '@/lib/response';
 import { prisma } from '@/lib/prisma';
 import { withPermission } from '@/lib/api-middleware';
 
+export const preferredRegion = "sin1";
 // GET /api/admin/pos/customers - List all customers
 export const GET = withPermission('admin.pos.sale.create', async (req: NextRequest) => {
   try {

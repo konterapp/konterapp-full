@@ -4,6 +4,7 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode, decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 
+export const preferredRegion = "sin1";
 export async function POST() {
   try {
     const cookieStore = await cookies();

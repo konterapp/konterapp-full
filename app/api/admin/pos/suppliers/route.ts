@@ -5,6 +5,7 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { createSupplierSchema } from '@/lib/validations/supplier';
 
+export const preferredRegion = "sin1";
 async function generateSupplierCode(): Promise<string> {
   const count = await prisma.posSupplier.count();
   const nextNumber = count + 1;

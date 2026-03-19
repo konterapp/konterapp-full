@@ -7,6 +7,7 @@ import { v7 as uuidv7 } from "uuid";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import { join } from "path";
 
+export const preferredRegion = "sin1";
 function formatBerita(berita: any) {
   let tags: string[] = [];
   if (berita.tags) {

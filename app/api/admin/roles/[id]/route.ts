@@ -4,6 +4,7 @@ import { withPermission } from "@/lib/api-middleware";
 import { validateSchema } from "@/lib/validation";
 import { updateRoleSchema } from "@/lib/validations/role";
 
+export const preferredRegion = "sin1";
 function formatRole(role: any) {
   return {
     id: role.id,
