@@ -46,6 +46,10 @@ export async function POST(req: NextRequest) {
     const permissions = await getUserPermissions(user.id);
 
     // Create session token manually
+    const isSecure = process.env.NODE_ENV === "production";
+    const cookieName = isSecure
+      ? "__Secure-authjs.session-token"
+      : "authjs.session-token";
     const token = await encode({
       token: {
         id: String(user.id),
@@ -55,13 +59,12 @@ export async function POST(req: NextRequest) {
         permissions,
       },
       secret: process.env.AUTH_SECRET!,
-      salt: "authjs.session-token",
+      salt: cookieName,
     });
 
     // Set session cookie
     const cookieStore = await cookies();
-    const isSecure = process.env.NODE_ENV === "production";
-    cookieStore.set("authjs.session-token", token, {
+    cookieStore.set(cookieName, token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",
