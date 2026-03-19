@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -42,7 +43,7 @@ model UserProfile {
   sourceDb        String?   @map("source_db") @db.VarChar(50)
   sourceId        String?   @map("source_id") @db.VarChar(50)
   userId          Int       @unique @map("user_id")
-  userType        Int?      @map("user_type") @db.TinyInt
+  userType        Int?      @map("user_type") @db.SmallInt
   adminScope      String?   @map("admin_scope") @db.VarChar(50)
   countryId       Int?      @map("country_id")
   provinceId      Int?      @map("province_id")
@@ -135,7 +136,7 @@ model Berita {
   uuid        String    @unique @db.Char(36)
   title       String    @db.VarChar(255)
   slug        String    @unique @db.VarChar(255)
-  content     String    @db.LongText
+  content     String    @db.Text
   image       String?   @db.VarChar(255)
   tags        Json?
   publishedAt DateTime? @map("published_at") @db.Date

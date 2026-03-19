@@ -248,9 +248,11 @@ export default function DataTable<T extends Record<string, any>>({
                         </tr>
                      ))
                   ) : paginatedData.length > 0 ? (
-                     paginatedData.map((row) => (
+                     paginatedData.map((row, index) => {
+                        const rowKey = getRowId?.(row) ?? row.uuid ?? row.id ?? index;
+                        return (
                         <tr
-                           key={getRowId(row)}
+                           key={rowKey}
                            onClick={() => onRowClick?.(row)}
                            className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${onRowClick ? 'cursor-pointer' : ''
                               }`}
@@ -272,7 +274,8 @@ export default function DataTable<T extends Record<string, any>>({
                               </td>
                            ))}
                         </tr>
-                     ))
+                     );
+                     })
                   ) : (
                      <tr>
                         <td colSpan={columns.length} className="py-12 text-center">
