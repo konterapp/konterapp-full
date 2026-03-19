@@ -3,6 +3,7 @@
  * Jalankan: npm run seed:dummy prisma/seeders/dummy/branches.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { v7 as uuidv7 } from "uuid";
 
 const BRANCHES_DATA = [
   {
@@ -39,7 +40,10 @@ export async function seedBranches(prisma: PrismaClient) {
     await prisma.posBranch.upsert({
       where: { code: data.code },
       update: data,
-      create: data,
+      create: {
+        uuid: uuidv7(),
+        ...data,
+      },
     });
   }
 

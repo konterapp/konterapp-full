@@ -3,6 +3,7 @@
  * Jalankan: npm run seed:dummy prisma/seeders/dummy/payment-methods.ts
  */
 import { PrismaClient } from "@prisma/client";
+import { v7 as uuidv7 } from "uuid";
 
 const PAYMENT_METHODS_DATA = [
   {
@@ -62,7 +63,10 @@ export async function seedPaymentMethods(prisma: PrismaClient) {
     await prisma.posPaymentMethod.upsert({
       where: { code: data.code },
       update: data,
-      create: data,
+      create: {
+        uuid: uuidv7(),
+        ...data,
+      },
     });
   }
 

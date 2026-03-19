@@ -1,172 +1,323 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ShoppingCart, Plus, Eye } from 'lucide-react';
+import { ShoppingCart, Plus, Eye, Trash2 } from 'lucide-react';
 import DataTable, { Column } from '../../_components/DataTable';
+import ConfirmModal from '../../_components/ConfirmModal';
+import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface Purchase {
-   id: number;
-   purchase_number: string;
-   supplier_name: string;
-   total: number;
-   status: string;
-   purchase_date: string;
+  uuid: string;
+  purchase_number: string;
+  purchase_date: string;
+  total_amount: number;
+  payment_status: string;
+  branch?: {
+    uuid: string;
+    name: string;
+  } | null;
+  supplier?: {
+    uuid: string;
+    name: string;
+    code?: string | null;
+  } | null;
 }
 
 export default function PurchasesPage() {
-   const { hasPermission } = usePermissions();
+  const toast = useToast();
+  const { hasPermission } = usePermissions();
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; purchase: Purchase | null; isLoading: boolean }>({
+    isOpen: false,
+    purchase: null,
+    isLoading: false,
+  });
 
-   // Sample data
-   const purchases: Purchase[] = [
-      {
-         id: 1,
-         purchase_number: 'PO-2024-001',
-         supplier_name: 'PT. Sumber Makmur',
-         total: 5000000,
-         status: 'received',
-         purchase_date: '2024-01-10',
-      },
-      {
-         id: 2,
-         purchase_number: 'PO-2024-002',
-         supplier_name: 'CV. Jaya Abadi',
-         total: 3500000,
-         status: 'pending',
-         purchase_date: '2024-01-12',
-      },
-      {
-         id: 3,
-         purchase_number: 'PO-2024-003',
-         supplier_name: 'UD. Sentosa',
-         total: 2750000,
-         status: 'ordered',
-         purchase_date: '2024-01-14',
-      },
-      {
-         id: 4,
-         purchase_number: 'PO-2024-004',
-         supplier_name: 'PT. Sumber Makmur',
-         total: 4200000,
-         status: 'received',
-         purchase_date: '2024-01-15',
-      },
-   ];
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
 
-   const columns: Column<Purchase>[] = [
-      {
-         key: 'no',
-         label: 'No',
-         sortable: false,
-         width: '4rem',
-         render: (_, row) => {
-            const index = purchases.findIndex(p => p.id === row.id);
-            return <span className="text-sm text-gray-600">{index + 1}</span>;
-         },
-      },
-      {
-         key: 'purchase_number',
-         label: 'No. Pembelian',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">{row.purchase_number}</span>
-         ),
-      },
-      {
-         key: 'supplier_name',
-         label: 'Supplier',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-900">{row.supplier_name}</span>
-         ),
-      },
-      {
-         key: 'total',
-         label: 'Total',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">
-               Rp {row.total.toLocaleString('id-ID')}
-            </span>
-         ),
-      },
-      {
-         key: 'status',
-         label: 'Status',
-         sortable: true,
-         render: (_, row) => (
-            row.status === 'received' ? (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                  Diterima
-               </span>
-            ) : row.status === 'ordered' ? (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                  Dipesan
-               </span>
-            ) : (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">
-                  Pending
-               </span>
-            )
-         ),
-      },
-      {
-         key: 'purchase_date',
-         label: 'Tanggal',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-600">{row.purchase_date}</span>
-         ),
-      },
-      {
-         key: 'actions',
-         label: 'Aksi',
-         sortable: false,
-         width: '6rem',
-         className: 'whitespace-nowrap',
-         render: (_, row) => (
-            <div className="flex items-center gap-2">
-               <Link
-                  href={`/admin/pos/purchases/${row.id}`}
-                  className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2a4061] text-white hover:bg-[#1e2f47] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-               >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
-               </Link>
-            </div>
-         ),
-      },
-   ];
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-   return (
-      <div className="space-y-6">
-         <div className="flex items-center justify-between">
-            <div>
-               <h1 className="text-2xl font-bold text-gray-900">Pembelian</h1>
-               <p className="text-gray-500 mt-1">Manajemen pembelian stok</p>
-            </div>
-            {hasPermission('admin.pos.purchases.create') && (
-               <Link
-                  href="/admin/pos/purchases/create"
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#2a4061] text-white rounded-lg hover:bg-[#1e2f47] transition-colors font-semibold"
-               >
-                  <Plus className="w-5 h-5" />
-                  <span>Tambah Pembelian</span>
-               </Link>
-            )}
-         </div>
+  useEffect(() => {
+    fetchPurchases(currentPage);
+  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder]);
 
-         <DataTable
-            data={purchases}
-            columns={columns}
-            itemsPerPage={10}
-            searchPlaceholder="Cari pembelian..."
-            emptyMessage="Belum ada pembelian"
-            emptyIcon={<ShoppingCart className="w-16 h-16 text-gray-300 mx-auto" />}
-            isLoading={false}
-            getRowId={(row) => row.id}
-         />
+  const fetchPurchases = async (page: number) => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: itemsPerPage.toString(),
+        search: debouncedSearch,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      });
+
+      const response = await fetch(`/api/admin/pos/purchases?${params}`);
+      const result = await response.json();
+
+      if (result.status === 'success' && result.data) {
+        setPurchases(result.data.data || []);
+        if (result.data.pagination) {
+          setTotalPages(result.data.pagination.totalPages);
+          setTotalItems(result.data.pagination.total);
+        }
+      } else if (result.status === 'error') {
+        setError(result.message || 'Gagal memuat data pembelian');
+      }
+    } catch {
+      setError('Terjadi kesalahan saat memuat data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSortChange = (field: string, order: 'asc' | 'desc') => {
+    setSortBy(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
+
+  const handleDeleteClick = (purchase: Purchase) => {
+    setDeleteModal({ isOpen: true, purchase, isLoading: false });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.purchase) return;
+
+    setDeleteModal((prev) => ({ ...prev, isLoading: true }));
+
+    try {
+      const response = await fetch(`/api/admin/pos/purchases/${deleteModal.purchase.uuid}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        toast.success('Pembelian berhasil dihapus');
+        setDeleteModal({ isOpen: false, purchase: null, isLoading: false });
+        fetchPurchases(currentPage);
+      } else {
+        toast.error(result.message || 'Gagal menghapus pembelian');
+        setDeleteModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch {
+      toast.error('Terjadi kesalahan. Silakan coba lagi.');
+      setDeleteModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModal({ isOpen: false, purchase: null, isLoading: false });
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, string> = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      partial: 'bg-blue-100 text-blue-800',
+      paid: 'bg-green-100 text-green-800',
+    };
+    const labels: Record<string, string> = {
+      pending: 'Belum Dibayar',
+      partial: 'Dibayar Sebagian',
+      paid: 'Lunas',
+    };
+
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${badges[status] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[status] || status}
+      </span>
+    );
+  };
+
+  const columns: Column<Purchase>[] = [
+    {
+      key: 'no',
+      label: 'No',
+      sortable: false,
+      width: '4rem',
+      render: (_, row) => {
+        const index = purchases.findIndex((purchase) => purchase.uuid === row.uuid);
+        const rowNumber = (currentPage - 1) * itemsPerPage + index + 1;
+        return <span className="text-sm text-gray-600">{rowNumber}</span>;
+      },
+    },
+    {
+      key: 'purchase_number',
+      label: 'No. Pembelian',
+      sortable: true,
+      sortValue: (row) => row.purchase_number,
+      width: '12rem',
+      render: (_, row) => (
+        <p className="text-sm font-medium text-gray-900">{row.purchase_number}</p>
+      ),
+    },
+    {
+      key: 'purchase_date',
+      label: 'Tanggal',
+      sortable: true,
+      sortValue: (row) => row.purchase_date,
+      width: '10rem',
+      render: (_, row) => (
+        <p className="text-sm text-gray-600">{formatDate(row.purchase_date)}</p>
+      ),
+    },
+    {
+      key: 'branch',
+      label: 'Cabang',
+      sortable: false,
+      width: '12rem',
+      render: (_, row) => (
+        <p className="text-sm text-gray-900">{row.branch?.name || '-'}</p>
+      ),
+    },
+    {
+      key: 'supplier',
+      label: 'Supplier',
+      sortable: false,
+      render: (_, row) => (
+        <div>
+          <p className="text-sm font-medium text-gray-900">{row.supplier?.name || '-'}</p>
+          <p className="text-xs text-gray-500">{row.supplier?.code || ''}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'total_amount',
+      label: 'Total',
+      sortable: true,
+      sortValue: (row) => row.total_amount,
+      width: '12rem',
+      render: (_, row) => (
+        <p className="text-sm font-semibold text-gray-900">{formatCurrency(row.total_amount)}</p>
+      ),
+    },
+    {
+      key: 'payment_status',
+      label: 'Status',
+      sortable: false,
+      width: '12rem',
+      render: (_, row) => getStatusBadge(row.payment_status),
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      className: 'whitespace-nowrap',
+      render: (_, row) => (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/pos/purchases/${row.uuid}`}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
+          </Link>
+          {hasPermission('admin.pos.purchase.delete') && (
+            <button
+              onClick={() => handleDeleteClick(row)}
+              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#142D52]">Pembelian / Stock In</h1>
+          <p className="text-gray-600 mt-1">Kelola pembelian barang dari supplier.</p>
+        </div>
+        {hasPermission('admin.pos.purchase.create') && (
+          <Link
+            href="/admin/pos/purchases/create"
+            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Tambah Pembelian</span>
+          </Link>
+        )}
       </div>
-   );
+
+      {error && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      <DataTable
+        data={purchases}
+        columns={columns}
+        itemsPerPage={itemsPerPage}
+        searchPlaceholder="Cari pembelian..."
+        emptyMessage="Tidak ada pembelian ditemukan"
+        emptyIcon={<ShoppingCart className="w-16 h-16 text-gray-300 mx-auto" />}
+        serverSide={true}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+        isLoading={isLoading}
+        getRowId={(row) => row.uuid}
+      />
+
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Hapus Pembelian"
+        message={`Apakah Anda yakin ingin menghapus pembelian "${deleteModal.purchase?.purchase_number}"? Stock yang telah masuk akan dikurangi. Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
+        isLoading={deleteModal.isLoading}
+      />
+    </div>
+  );
 }

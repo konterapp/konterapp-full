@@ -221,10 +221,25 @@ model PosProduct {
 
   category    PosProductCategory  @relation(fields: [categoryUuid], references: [uuid], onDelete: Cascade)
   stockItems  PosProductStock[]
+  images      PosProductImage[]
   purchaseItems PosPurchaseItem[]
   saleItems   PosSaleItem[]
 
   @@map("pos_products")
+}
+
+model PosProductImage {
+  uuid        String   @id @default(cuid()) @db.Char(36)
+  productUuid String   @map("product_uuid") @db.Char(36)
+  image       String   @db.VarChar(255)
+  isPrimary   Boolean  @default(false) @map("is_primary")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
+
+  @@map("pos_product_images")
 }
 
 model PosProductStock {

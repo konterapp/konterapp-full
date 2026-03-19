@@ -67,6 +67,20 @@ CREATE TABLE `pos_product_stocks` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `pos_product_images` (
+    `uuid` CHAR(36) NOT NULL,
+    `product_uuid` CHAR(36) NOT NULL,
+    `image` VARCHAR(255) NOT NULL,
+    `is_primary` BOOLEAN NOT NULL DEFAULT false,
+    `sort_order` INTEGER NOT NULL DEFAULT 0,
+    `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL,
+
+    INDEX `pos_product_images_product_uuid_idx`(`product_uuid`),
+    PRIMARY KEY (`uuid`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `pos_suppliers` (
     `uuid` CHAR(36) NOT NULL,
     `code` VARCHAR(50) NOT NULL,
@@ -284,6 +298,9 @@ ALTER TABLE `pos_product_stocks` ADD CONSTRAINT `pos_product_stocks_product_uuid
 
 -- AddForeignKey
 ALTER TABLE `pos_product_stocks` ADD CONSTRAINT `pos_product_stocks_branch_uuid_fkey` FOREIGN KEY (`branch_uuid`) REFERENCES `pos_branches`(`uuid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `pos_product_images` ADD CONSTRAINT `pos_product_images_product_uuid_fkey` FOREIGN KEY (`product_uuid`) REFERENCES `pos_products`(`uuid`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `pos_purchases` ADD CONSTRAINT `pos_purchases_branch_uuid_fkey` FOREIGN KEY (`branch_uuid`) REFERENCES `pos_branches`(`uuid`) ON DELETE CASCADE ON UPDATE CASCADE;

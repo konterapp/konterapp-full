@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { successResponse, errorResponse } from '@/lib/response';
 import { prisma } from '@/lib/prisma';
 import { withPermission } from '@/lib/api-middleware';
+import { validateSchema } from '@/lib/validation';
+import { updateCategorySchema } from '@/lib/validations/category';
 
 // GET /api/admin/pos/categories/[uuid] - Get category detail
 export const GET = withPermission(
@@ -33,8 +35,12 @@ export const GET = withPermission(
     }
 
     return successResponse('Category retrieved successfully', {
-      ...category,
-      productCount: category._count.products,
+      uuid: category.uuid,
+      name: category.name,
+      description: category.description,
+      product_count: category._count.products,
+      created_at: category.createdAt,
+      updated_at: category.updatedAt,
     });
   } catch (error: any) {
     console.error('Error fetching category:', error);
@@ -42,14 +48,16 @@ export const GET = withPermission(
   }
 });
 
-// PUT /api/admin/pos/categories/[uuid] - Update category
-export const PUT = withPermission(
+// PATCH /api/admin/pos/categories/[uuid] - Update category
+export const PATCH = withPermission(
   'admin.pos.category.update',
   async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
   try {
     const { uuid } = await params;
     const body = await req.json();
-    const { name, description } = body;
+    const result = validateSchema(updateCategorySchema, body);
+    if (!('data' in result)) return result;
+    const validated = result.data;
 
     // Check if category exists
     const existingCategory = await prisma.posProductCategory.findFirst({
@@ -63,17 +71,26 @@ export const PUT = withPermission(
     const category = await prisma.posProductCategory.update({
       where: { uuid },
       data: {
-        name: name || existingCategory.name,
-        description: description ?? existingCategory.description,
+        name: validated.name ?? existingCategory.name,
+        description: validated.description ?? existingCategory.description,
       },
     });
 
-    return successResponse('Category updated successfully', category);
+    return successResponse('Category updated successfully', {
+      uuid: category.uuid,
+      name: category.name,
+      description: category.description,
+      created_at: category.createdAt,
+      updated_at: category.updatedAt,
+    });
   } catch (error: any) {
     console.error('Error updating category:', error);
     return errorResponse('Failed to update category', 500);
   }
 });
+
+// PUT /api/admin/pos/categories/[uuid] - Update category (alias)
+export const PUT = PATCH;
 
 // DELETE /api/admin/pos/categories/[uuid] - Delete category
 export const DELETE = withPermission(
