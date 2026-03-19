@@ -6,9 +6,9 @@ import { withPermission } from '@/lib/api-middleware';
 // GET /api/admin/pos/customers/[uuid] - Get customer detail
 export const GET = withPermission(
   'admin.pos.sale.create',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     const customer = await prisma.posCustomer.findFirst({
       where: { uuid },
@@ -28,9 +28,9 @@ export const GET = withPermission(
 // PUT /api/admin/pos/customers/[uuid] - Update customer
 export const PUT = withPermission(
   'admin.pos.sale.create',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
     const body = await req.json();
     const { name, phone, email, address } = body;
 
@@ -63,9 +63,9 @@ export const PUT = withPermission(
 // DELETE /api/admin/pos/customers/[uuid] - Delete customer
 export const DELETE = withPermission(
   'admin.pos.sale.create',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     // Check if customer exists
     const customer = await prisma.posCustomer.findFirst({

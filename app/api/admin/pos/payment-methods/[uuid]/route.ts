@@ -8,9 +8,9 @@ import { updatePaymentMethodSchema } from '@/lib/validations/payment-method';
 // GET /api/admin/pos/payment-methods/[uuid] - Get payment method detail
 export const GET = withPermission(
   'admin.pos.payment-method.index',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     const paymentMethod = await prisma.posPaymentMethod.findFirst({
       where: { uuid },
@@ -30,9 +30,9 @@ export const GET = withPermission(
 // PUT /api/admin/pos/payment-methods/[uuid] - Update payment method
 export const PUT = withPermission(
   'admin.pos.payment-method.update',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
     const rawBody = await req.json();
     const body = {
       ...rawBody,
@@ -87,9 +87,9 @@ export const PUT = withPermission(
 // DELETE /api/admin/pos/payment-methods/[uuid] - Delete payment method
 export const DELETE = withPermission(
   'admin.pos.payment-method.delete',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     // Check if payment method exists
     const paymentMethod = await prisma.posPaymentMethod.findFirst({

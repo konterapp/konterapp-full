@@ -249,4 +249,4 @@ export const POST = withPermission('admin.pos.sale.create', async (req: NextRequ
     console.error('Error creating sale:', error);
     return errorResponse(error.message || 'Failed to create sale', 500);
   }
-}
+});

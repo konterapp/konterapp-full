@@ -321,6 +321,9 @@ ALTER TABLE `pos_purchase_items` ADD CONSTRAINT `pos_purchase_items_product_uuid
 ALTER TABLE `pos_stock_movements` ADD CONSTRAINT `pos_stock_movements_branch_uuid_fkey` FOREIGN KEY (`branch_uuid`) REFERENCES `pos_branches`(`uuid`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE `pos_stock_movements` ADD CONSTRAINT `pos_stock_movements_product_uuid_fkey` FOREIGN KEY (`product_uuid`) REFERENCES `pos_products`(`uuid`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE `pos_stock_movements` ADD CONSTRAINT `pos_stock_movements_created_by_fkey` FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey

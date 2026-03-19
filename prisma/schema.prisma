@@ -221,6 +221,7 @@ model PosProduct {
 
   category    PosProductCategory  @relation(fields: [categoryUuid], references: [uuid], onDelete: Cascade)
   stockItems  PosProductStock[]
+  stockMovements PosStockMovement[]
   images      PosProductImage[]
   purchaseItems PosPurchaseItem[]
   saleItems   PosSaleItem[]
@@ -330,6 +331,7 @@ model PosStockMovement {
   createdAt     DateTime @default(now()) @map("created_at")
 
   branch PosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
   creator User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([branchUuid])

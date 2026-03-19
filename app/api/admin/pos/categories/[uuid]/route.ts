@@ -8,9 +8,9 @@ import { updateCategorySchema } from '@/lib/validations/category';
 // GET /api/admin/pos/categories/[uuid] - Get category detail
 export const GET = withPermission(
   'admin.pos.category.index',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     const category = await prisma.posProductCategory.findFirst({
       where: { uuid },
@@ -51,9 +51,9 @@ export const GET = withPermission(
 // PATCH /api/admin/pos/categories/[uuid] - Update category
 export const PATCH = withPermission(
   'admin.pos.category.update',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
     const body = await req.json();
     const result = validateSchema(updateCategorySchema, body);
     if (!('data' in result)) return result;
@@ -95,9 +95,9 @@ export const PUT = PATCH;
 // DELETE /api/admin/pos/categories/[uuid] - Delete category
 export const DELETE = withPermission(
   'admin.pos.category.delete',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     // Check if category exists
     const category = await prisma.posProductCategory.findFirst({

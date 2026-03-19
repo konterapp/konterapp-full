@@ -6,9 +6,10 @@ import { withPermission } from '@/lib/api-middleware';
 // DELETE /api/admin/pos/purchases/[uuid] - Delete purchase
 export const DELETE = withPermission(
   'admin.pos.purchase.delete',
-  async (_req: NextRequest, { params, userId }: { params: Promise<{ uuid: string }>; userId: number }) => {
+  async (_req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
+      const { userId } = context;
 
       const purchase = await prisma.posPurchase.findFirst({
         where: { uuid },

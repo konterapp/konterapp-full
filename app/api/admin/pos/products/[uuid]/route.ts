@@ -96,9 +96,9 @@ async function deleteImageFile(filename: string | null) {
 // GET /api/admin/pos/products/[uuid] - Get product detail
 export const GET = withPermission(
   'admin.pos.product.index',
-  async (_req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (_req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
 
       const product = await prisma.posProduct.findFirst({
         where: { uuid },
@@ -133,9 +133,9 @@ export const GET = withPermission(
 // PATCH /api/admin/pos/products/[uuid] - Update product
 export const PATCH = withPermission(
   'admin.pos.product.update',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
       const contentType = req.headers.get('content-type') || '';
       let rawBody: Record<string, any> = {};
       let imageFiles: File[] = [];
@@ -293,6 +293,9 @@ export const PATCH = withPermission(
           images: { orderBy: { sortOrder: 'asc' } },
         },
       });
+      if (!updated) {
+        return errorResponse('Product not found', 404);
+      }
 
       return successResponse('Product updated successfully', {
         ...mapProduct(updated),
@@ -315,9 +318,9 @@ export const PUT = PATCH;
 // DELETE /api/admin/pos/products/[uuid] - Delete product
 export const DELETE = withPermission(
   'admin.pos.product.delete',
-  async (_req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (_req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
 
       const product = await prisma.posProduct.findFirst({
         where: { uuid },

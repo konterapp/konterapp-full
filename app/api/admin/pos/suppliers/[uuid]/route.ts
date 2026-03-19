@@ -8,9 +8,9 @@ import { updateSupplierSchema } from '@/lib/validations/supplier';
 // GET /api/admin/pos/suppliers/[uuid] - Get supplier detail
 export const GET = withPermission(
   'admin.pos.supplier.index',
-  async (_req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (_req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
 
       const supplier = await prisma.posSupplier.findFirst({
         where: { uuid },
@@ -44,9 +44,9 @@ export const GET = withPermission(
 // PATCH /api/admin/pos/suppliers/[uuid] - Update supplier
 export const PATCH = withPermission(
   'admin.pos.supplier.update',
-  async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
       const rawBody = await req.json();
       const body = {
         ...rawBody,
@@ -104,9 +104,9 @@ export const PUT = PATCH;
 // DELETE /api/admin/pos/suppliers/[uuid] - Delete supplier
 export const DELETE = withPermission(
   'admin.pos.supplier.delete',
-  async (_req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+  async (_req: NextRequest, context) => {
     try {
-      const { uuid } = await params;
+      const { uuid } = await context.params;
 
       const supplier = await prisma.posSupplier.findFirst({
         where: { uuid },

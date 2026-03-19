@@ -6,9 +6,9 @@ import { validateSchema } from '@/lib/validation';
 import { updateBranchSchema } from '@/lib/validations/branch';
 
 // GET /api/admin/pos/branches/[uuid] - Get branch detail
-export const GET = withPermission('admin.pos.branch.index', async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+export const GET = withPermission('admin.pos.branch.index', async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     const branch = await prisma.posBranch.findFirst({
       where: { uuid },
@@ -26,9 +26,9 @@ export const GET = withPermission('admin.pos.branch.index', async (req: NextRequ
 });
 
 // PUT /api/admin/pos/branches/[uuid] - Update branch
-export const PUT = withPermission('admin.pos.branch.update', async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+export const PUT = withPermission('admin.pos.branch.update', async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
     const rawBody = await req.json();
     const body = {
       ...rawBody,
@@ -91,9 +91,9 @@ export const PUT = withPermission('admin.pos.branch.update', async (req: NextReq
 });
 
 // DELETE /api/admin/pos/branches/[uuid] - Delete branch
-export const DELETE = withPermission('admin.pos.branch.delete', async (req: NextRequest, { params }: { params: Promise<{ uuid: string }> }) => {
+export const DELETE = withPermission('admin.pos.branch.delete', async (req: NextRequest, context) => {
   try {
-    const { uuid } = await params;
+    const { uuid } = await context.params;
 
     // Check if branch exists
     const branch = await prisma.posBranch.findFirst({
