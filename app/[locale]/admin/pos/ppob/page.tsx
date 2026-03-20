@@ -1,192 +1,301 @@
 'use client';
 
-import { useState } from 'react';
-import { Link } from '@/i18n/navigation';
-import { Smartphone, Plus, Eye } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
-import { usePermissions } from '@/lib/hooks/usePermissions';
+import { useState, useEffect, useMemo } from 'react';
+import { Zap, Wallet, RefreshCw } from 'lucide-react';
+import { getAllBranches, Branch } from '@/lib/api/admin/branch';
+import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/admin/payment-method';
+import { PpobProductLocal, PpobTransaction, getPpobProductsByCategory, getPpobBrandsByCategory, getProviderBalance } from '@/lib/api/admin/ppob';
+import { detectBrandFromPhone } from '@/lib/utils/phone';
+import CategoryTabs from './_components/CategoryTabs';
+import ProductGrid from './_components/ProductGrid';
+import TransactionPanel from './_components/TransactionPanel';
 
-interface PPOBProduct {
-   id: number;
-   code: string;
-   name: string;
-   category: string;
-   price: number;
-   status: string;
+const PPOB_GROUPS = [
+  { code: 'PULSA', label: 'Pulsa', type: 'prepaid' as const },
+  { code: 'DATA', label: 'Data', type: 'prepaid' as const },
+  { code: 'PLNPRA', label: 'PLN Prabayar', type: 'prepaid' as const },
+  { code: 'PLNPASCA', label: 'PLN Pascabayar', type: 'postpaid' as const },
+  { code: 'TELKOM', label: 'Telkom', type: 'postpaid' as const },
+  { code: 'PDAM', label: 'PDAM', type: 'postpaid' as const },
+  { code: 'BPJS', label: 'BPJS', type: 'postpaid' as const },
+  { code: 'EMONEY', label: 'E-Money', type: 'prepaid' as const },
+  { code: 'GAME', label: 'Voucher Game', type: 'prepaid' as const },
+];
+
+function formatPrice(price: number): string {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price);
 }
 
 export default function PpobPage() {
-   const { hasPermission } = usePermissions();
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState('');
+  const [products, setProducts] = useState<PpobProductLocal[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [activeType, setActiveType] = useState<'prepaid' | 'postpaid'>('prepaid');
+  const [activeGroup, setActiveGroup] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState<PpobProductLocal | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [brands, setBrands] = useState<string[]>([]);
+  const [activeBrand, setActiveBrand] = useState('');
+  const [balance, setBalance] = useState<string | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
-   // Sample data
-   const products: PPOBProduct[] = [
-      {
-         id: 1,
-         code: 'PULSA-TSEL-5K',
-         name: 'Pulsa Telkomsel 5.000',
-         category: 'Pulsa',
-         price: 6500,
-         status: 'active',
-      },
-      {
-         id: 2,
-         code: 'PULSA-ISAT-10K',
-         name: 'Pulsa Indosat 10.000',
-         category: 'Pulsa',
-         price: 11000,
-         status: 'active',
-      },
-      {
-         id: 3,
-         code: 'TOKEN-PLN-20K',
-         name: 'Token PLN 20.000',
-         category: 'Listrik',
-         price: 21000,
-         status: 'active',
-      },
-      {
-         id: 4,
-         code: 'EWALLET-GOPAY-25K',
-         name: 'GoPay 25.000',
-         category: 'E-Wallet',
-         price: 26000,
-         status: 'active',
-      },
-      {
-         id: 5,
-         code: 'EWALLET-OVO-50K',
-         name: 'OVO 50.000',
-         category: 'E-Wallet',
-         price: 51000,
-         status: 'active',
-      },
-   ];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [branchesRes, paymentMethodsRes] = await Promise.all([
+          getAllBranches(),
+          getAllPaymentMethods(),
+        ]);
+        if (branchesRes.data) {
+          const branchItems = Array.isArray(branchesRes.data)
+            ? branchesRes.data
+            : (branchesRes.data as { data?: Branch[] })?.data || [];
+          setBranches(branchItems);
+          const mainBranch = branchItems.find(b => b.is_main);
+          if (mainBranch) setSelectedBranch(mainBranch.uuid);
+          else if (branchItems.length === 1) setSelectedBranch(branchItems[0].uuid);
+        }
+        if (paymentMethodsRes.data) {
+          const paymentItems = Array.isArray(paymentMethodsRes.data)
+            ? paymentMethodsRes.data
+            : (paymentMethodsRes.data as { data?: PaymentMethod[] })?.data || [];
+          setPaymentMethods(paymentItems);
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      }
+    };
+    loadData();
+  }, []);
 
-   const columns: Column<PPOBProduct>[] = [
-      {
-         key: 'no',
-         label: 'No',
-         sortable: false,
-         width: '4rem',
-         render: (_, row) => {
-            const index = products.findIndex(p => p.id === row.id);
-            return <span className="text-sm text-gray-600">{index + 1}</span>;
-         },
-      },
-      {
-         key: 'code',
-         label: 'Kode Produk',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-mono text-gray-600">{row.code}</span>
-         ),
-      },
-      {
-         key: 'name',
-         label: 'Nama Produk',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">{row.name}</span>
-         ),
-      },
-      {
-         key: 'category',
-         label: 'Kategori',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-600">{row.category}</span>
-         ),
-      },
-      {
-         key: 'price',
-         label: 'Harga',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">
-               Rp {row.price.toLocaleString('id-ID')}
-            </span>
-         ),
-      },
-      {
-         key: 'status',
-         label: 'Status',
-         sortable: true,
-         render: (_, row) => (
-            row.status === 'active' ? (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                  Aktif
-               </span>
-            ) : (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
-                  Tidak Aktif
-               </span>
-            )
-         ),
-      },
-      {
-         key: 'actions',
-         label: 'Aksi',
-         sortable: false,
-         width: '6rem',
-         className: 'whitespace-nowrap',
-         render: (_, row) => (
-            <div className="flex items-center gap-2">
-               <Link
-                  href={`/admin/pos/ppob/products/${row.id}`}
-                  className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#2a4061] text-white hover:bg-[#1e2f47] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-               >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
-               </Link>
-            </div>
-         ),
-      },
-   ];
+  // Load brands when group changes
+  useEffect(() => {
+    if (!activeGroup) {
+      setBrands([]);
+      setActiveBrand('');
+      return;
+    }
 
-   return (
-      <div className="space-y-6">
-         <div className="flex items-center justify-between">
-            <div>
-               <h1 className="text-2xl font-bold text-gray-900">PPOB</h1>
-               <p className="text-gray-500 mt-1">Pembayaran Online (Pulsa, Token PLN, E-Wallet, dll)</p>
-            </div>
-            {hasPermission('admin.pos.ppob.create') && (
-               <Link
-                  href="/admin/pos/ppob/products/create"
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#2a4061] text-white rounded-lg hover:bg-[#1e2f47] transition-colors font-semibold"
-               >
-                  <Plus className="w-5 h-5" />
-                  <span>Tambah Produk</span>
-               </Link>
-            )}
-         </div>
+    const loadBrands = async () => {
+      try {
+        const result = await getPpobBrandsByCategory(activeGroup);
+        if (result.data) {
+          setBrands(result.data);
+        } else {
+          setBrands([]);
+        }
+      } catch {
+        setBrands([]);
+      }
+    };
+    loadBrands();
+  }, [activeGroup]);
 
-         {/* Summary Cards */}
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-               <p className="text-sm text-gray-600">Total Produk</p>
-               <p className="text-2xl font-bold text-gray-900 mt-1">125</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-               <p className="text-sm text-gray-600">Produk Aktif</p>
-               <p className="text-2xl font-bold text-green-600 mt-1">118</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-               <p className="text-sm text-gray-600">Transaksi Hari Ini</p>
-               <p className="text-2xl font-bold text-blue-600 mt-1">42</p>
-            </div>
-         </div>
+  // Load products from local DB when group or brand changes
+  useEffect(() => {
+    if (!activeGroup) {
+      setProducts([]);
+      return;
+    }
 
-         <DataTable
-            data={products}
-            columns={columns}
-            itemsPerPage={10}
-            searchPlaceholder="Cari produk PPOB..."
-            emptyMessage="Belum ada produk PPOB"
-            emptyIcon={<Smartphone className="w-16 h-16 text-gray-300 mx-auto" />}
-            isLoading={false}
-            getRowId={(row) => row.id}
-         />
+    const loadProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const result = await getPpobProductsByCategory(activeGroup, activeBrand || undefined);
+        if (result.data) {
+          setProducts(result.data);
+        } else {
+          setProducts([]);
+        }
+      } catch (err) {
+        console.error('Failed to load products:', err);
+        setProducts([]);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    loadProducts();
+  }, [activeGroup, activeBrand]);
+
+  const handleCheckBalance = async () => {
+    setIsLoadingBalance(true);
+    try {
+      const result = await getProviderBalance('rajabiller');
+      if (result.STATUS === '00' && result.SALDO !== undefined) {
+        setBalance(String(result.SALDO));
+      }
+    } catch (err) {
+      console.error('Failed to check balance:', err);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  const filteredGroups = useMemo(() => {
+    return PPOB_GROUPS.filter(g => g.type === activeType);
+  }, [activeType]);
+
+  const handleTypeChange = (type: 'prepaid' | 'postpaid') => {
+    setActiveType(type);
+    setActiveGroup('');
+    setActiveBrand('');
+    setSelectedProduct(null);
+    setProductSearch('');
+    setProducts([]);
+  };
+
+  const handleGroupChange = (groupCode: string) => {
+    setActiveGroup(groupCode);
+    setActiveBrand('');
+    setSelectedProduct(null);
+    setProductSearch('');
+  };
+
+  const handleCustomerNumberChange = (number: string) => {
+    if ((activeGroup === 'PULSA' || activeGroup === 'DATA') && brands.length > 0) {
+      const detected = detectBrandFromPhone(number);
+      if (detected && brands.includes(detected)) {
+        setActiveBrand(detected);
+      } else if (!number || number.replace(/\D/g, '').length < 4) {
+        setActiveBrand('');
+      }
+    }
+  };
+
+  const handleTransactionComplete = (transaction: PpobTransaction) => {
+    console.log('Transaction complete:', transaction.transaction_number);
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
+        <div className="flex items-center gap-2">
+          <Zap className="w-5 h-5 text-[#EBC170]" />
+          <h1 className="text-lg font-bold text-[#142D52]">PPOB</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          {balance !== null && (
+            <div className="flex items-center gap-1.5 text-sm">
+              <Wallet className="w-4 h-4 text-gray-400" />
+              <span className="text-gray-500">Saldo:</span>
+              <span className="font-semibold text-[#142D52]">{formatPrice(Number(balance))}</span>
+            </div>
+          )}
+          <button
+            onClick={handleCheckBalance}
+            disabled={isLoadingBalance}
+            className="p-2 text-gray-400 hover:text-[#142D52] rounded-lg hover:bg-gray-100 transition-colors"
+            title="Cek Saldo Provider"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
-   );
+
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Products */}
+        <div className="flex-1 flex flex-col p-4 overflow-hidden bg-gray-50">
+          {/* Type toggle */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => handleTypeChange('prepaid')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                activeType === 'prepaid'
+                  ? 'bg-[#EBC170] text-gray-900'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Prabayar
+            </button>
+            <button
+              onClick={() => handleTypeChange('postpaid')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                activeType === 'postpaid'
+                  ? 'bg-[#EBC170] text-gray-900'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Pascabayar
+            </button>
+          </div>
+
+          {/* Group tabs */}
+          <CategoryTabs
+            categories={filteredGroups.map(g => g.code)}
+            categoryLabels={Object.fromEntries(filteredGroups.map(g => [g.code, g.label]))}
+            activeCategory={activeGroup}
+            onSelect={handleGroupChange}
+          />
+
+          {/* Brand filter */}
+          {brands.length > 0 && (
+            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+              <span className="text-xs text-gray-400 shrink-0">Brand:</span>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setActiveBrand('')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                    !activeBrand
+                      ? 'bg-[#142D52] text-white'
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  Semua
+                </button>
+                {brands.map((brand) => (
+                  <button
+                    key={brand}
+                    onClick={() => setActiveBrand(brand)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                      activeBrand === brand
+                        ? 'bg-[#142D52] text-white'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Product grid */}
+          <div className="flex-1 mt-3 overflow-hidden">
+            <ProductGrid
+              products={products}
+              selectedProduct={selectedProduct}
+              onSelect={setSelectedProduct}
+              searchQuery={productSearch}
+              onSearchChange={setProductSearch}
+              isLoading={isLoadingProducts}
+            />
+          </div>
+        </div>
+
+        {/* Right: Transaction Panel */}
+        <div className="w-[380px] border-l bg-white flex flex-col overflow-y-auto">
+          <div className="p-4 border-b">
+            <h2 className="font-semibold text-[#142D52]">Transaksi</h2>
+          </div>
+          <div className="flex-1 p-4">
+            <TransactionPanel
+              selectedProduct={selectedProduct}
+              activeGroup={activeGroup}
+              activeType={activeType}
+              branches={branches}
+              paymentMethods={paymentMethods}
+              selectedBranch={selectedBranch}
+              onBranchChange={setSelectedBranch}
+              onCustomerNumberChange={handleCustomerNumberChange}
+              onTransactionComplete={handleTransactionComplete}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
