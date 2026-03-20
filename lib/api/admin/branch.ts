@@ -7,8 +7,8 @@ export interface Branch {
   email?: string;
   is_active: boolean;
   is_main: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export async function getAllBranches(): Promise<{ status: string; data: Branch[] }> {

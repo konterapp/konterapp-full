@@ -1,7 +1,8 @@
 export interface ProductImageData {
   uuid: string;
   url: string;
-  order: number;
+  is_primary: boolean;
+  sort_order: number;
 }
 
 export interface Product {
@@ -17,7 +18,7 @@ export interface Product {
   image?: string | null;
   images?: ProductImageData[];
   is_active: boolean;
-  categoryUuid: string;
+  category_uuid: string;
   category?: {
     uuid: string;
     name: string;
@@ -27,8 +28,8 @@ export interface Product {
     stock: number;
   }[];
   total_stock?: number;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ProductsResponse {
@@ -38,9 +39,9 @@ export interface ProductsResponse {
     data: Product[];
     pagination: {
       page: number;
-      perPage: number;
+      per_page: number;
       total: number;
-      totalPages: number;
+      total_pages: number;
     };
   };
 }
@@ -83,7 +84,7 @@ export async function lookupBarcode(barcode: string, branch_uuid?: string): Prom
 }
 
 export async function createProduct(data: {
-  categoryUuid: string;
+  category_uuid: string;
   name: string;
   sku: string;
   selling_price: number;
@@ -93,8 +94,8 @@ export async function createProduct(data: {
   barcode?: string;
   description?: string;
   image?: string;
-  initialStock?: number;
-  branchUuid?: string;
+  initial_stock?: number;
+  branch_uuid?: string;
 }): Promise<{ status: string; data: Product }> {
   const response = await fetch('/api/admin/pos/products', {
     method: 'POST',
@@ -107,7 +108,7 @@ export async function createProduct(data: {
 export async function updateProduct(
   uuid: string,
   data: {
-    categoryUuid?: string;
+    category_uuid?: string;
     name?: string;
     sku?: string;
     selling_price?: number;

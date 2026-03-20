@@ -15,9 +15,9 @@ export interface CustomersResponse {
     data: Customer[];
     pagination: {
       page: number;
-      perPage: number;
+      per_page: number;
       total: number;
-      totalPages: number;
+      total_pages: number;
     };
   };
 }
