@@ -3,7 +3,6 @@ import { successResponse, errorResponse } from '@/lib/response';
 import { prisma } from '@/lib/prisma';
 import { withPermission } from '@/lib/api-middleware';
 
-export const preferredRegion = "sin1";
 // DELETE /api/admin/pos/purchases/[uuid] - Delete purchase
 export const DELETE = withPermission(
   'admin.pos.purchase.delete',

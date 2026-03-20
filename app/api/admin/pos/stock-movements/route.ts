@@ -3,7 +3,6 @@ import { successResponse, errorResponse } from '@/lib/response';
 import { prisma } from '@/lib/prisma';
 import { withPermission } from '@/lib/api-middleware';
 
-export const preferredRegion = "sin1";
 const roundDateEnd = (date: Date) => {
   const copy = new Date(date);
   copy.setHours(23, 59, 59, 999);

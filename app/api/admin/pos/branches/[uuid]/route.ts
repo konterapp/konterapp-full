@@ -5,7 +5,6 @@ import { withPermission } from '@/lib/api-middleware';
 import { validateSchema } from '@/lib/validation';
 import { updateBranchSchema } from '@/lib/validations/branch';
 
-export const preferredRegion = "sin1";
 // GET /api/admin/pos/branches/[uuid] - Get branch detail
 export const GET = withPermission('admin.pos.branch.index', async (req: NextRequest, context) => {
   try {

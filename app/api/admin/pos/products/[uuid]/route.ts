@@ -8,7 +8,6 @@ import { v7 as uuidv7 } from 'uuid';
 import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join } from 'path';
 
-export const preferredRegion = "sin1";
 const uploadDir = join(process.cwd(), 'public', 'uploads', 'products');
 const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
 const maxImageSize = 2 * 1024 * 1024;

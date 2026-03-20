@@ -9,7 +9,6 @@ import { hash } from "bcryptjs";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
-export const preferredRegion = "sin1";
 
 function formatUser(user: any) {
   const roles = user.modelHasRoles?.map((r: any) => r.role.name) ?? [];
