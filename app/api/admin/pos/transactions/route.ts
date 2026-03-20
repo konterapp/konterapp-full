@@ -43,7 +43,9 @@ export const POST = withPermission(
     const body = {
       ...rawBody,
       branchUuid: rawBody.branchUuid ?? rawBody.branch_uuid,
-      customerUuid: rawBody.customerUuid ?? rawBody.customer_uuid,
+      customerUuid: typeof (rawBody.customerUuid ?? rawBody.customer_uuid) === 'string'
+        ? (rawBody.customerUuid ?? rawBody.customer_uuid).trim()
+        : rawBody.customerUuid ?? rawBody.customer_uuid,
       paymentMethodUuid: rawBody.paymentMethodUuid ?? rawBody.payment_method_uuid,
       saleDate: rawBody.saleDate ?? rawBody.sale_date,
       discountAmount: rawBody.discountAmount ?? rawBody.discount_amount,

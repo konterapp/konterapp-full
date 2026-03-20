@@ -146,7 +146,7 @@ export const posTransactionService = {
           branchUuid,
           customerUuid: customerUuid || null,
           paymentMethodUuid,
-          saleDate: saleDate || new Date().toISOString().split('T')[0],
+          saleDate: saleDate ? new Date(saleDate) : new Date(),
           subtotal,
           discountAmount: totalDiscount,
           totalAmount,
