@@ -1,5 +1,6 @@
 import { ApiError } from '@/lib/api-errors';
 import { posPurchaseRepository } from './repository';
+import { mapPurchaseListItem } from './purchase.mapper';
 
 export const posPurchaseService = {
   async listPurchases(params: {
@@ -41,15 +42,7 @@ export const posPurchaseService = {
     ]);
 
     return {
-      data: purchases.map((purchase) => ({
-        uuid: purchase.uuid,
-        purchase_number: purchase.purchaseNumber,
-        purchase_date: purchase.purchaseDate,
-        total_amount: Number(purchase.totalAmount),
-        payment_status: purchase.paymentStatus,
-        branch: purchase.branch,
-        supplier: purchase.supplier,
-      })),
+      data: purchases.map(mapPurchaseListItem),
       pagination: {
         page,
         perPage,

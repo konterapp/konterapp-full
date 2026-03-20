@@ -1,16 +1,6 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posCategoryRepository } from './repository';
-
-function mapCategory(category: any) {
-  return {
-    uuid: category.uuid,
-    name: category.name,
-    description: category.description,
-    product_count: category._count?.products ?? 0,
-    created_at: category.createdAt,
-    updated_at: category.updatedAt,
-  };
-}
+import { mapCategory } from './category.mapper';
 
 export const posCategoryService = {
   async listCategories(params: {

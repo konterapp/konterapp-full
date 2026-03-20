@@ -1,5 +1,6 @@
 import { ApiError } from '@/lib/api-errors';
 import { posCustomerRepository } from './repository';
+import { mapCustomer } from './customer.mapper';
 
 export const posCustomerService = {
   async listCustomers(params: { page: number; perPage: number; search: string }) {
@@ -21,7 +22,7 @@ export const posCustomerService = {
     ]);
 
     return {
-      data: customers,
+      data: customers.map(mapCustomer),
       pagination: {
         page,
         perPage,
@@ -37,16 +38,17 @@ export const posCustomerService = {
       throw new ApiError('Customer not found', 404);
     }
 
-    return customer;
+    return mapCustomer(customer);
   },
 
   async createCustomer(payload: { name: string; phone?: string | null; email?: string | null; address?: string | null }) {
-    return posCustomerRepository.create({
+    const customer = await posCustomerRepository.create({
       name: payload.name,
       phone: payload.phone || null,
       email: payload.email || null,
       address: payload.address || null,
     });
+    return mapCustomer(customer);
   },
 
   async updateCustomer(
@@ -58,12 +60,13 @@ export const posCustomerService = {
       throw new ApiError('Customer not found', 404);
     }
 
-    return posCustomerRepository.updateByUuid(uuid, {
+    const customer = await posCustomerRepository.updateByUuid(uuid, {
       name: payload.name || existingCustomer.name,
       phone: payload.phone ?? existingCustomer.phone,
       email: payload.email ?? existingCustomer.email,
       address: payload.address ?? existingCustomer.address,
     });
+    return mapCustomer(customer);
   },
 
   async deleteCustomer(uuid: string) {

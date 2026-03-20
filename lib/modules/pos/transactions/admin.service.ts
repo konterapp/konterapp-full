@@ -1,5 +1,6 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posTransactionRepository } from './repository';
+import { mapTransaction } from './transaction.mapper';
 
 function generateSaleNumber() {
   const date = new Date();
@@ -60,7 +61,7 @@ export const posTransactionService = {
     ]);
 
     return {
-      data: sales,
+      data: sales.map(mapTransaction),
       pagination: {
         page,
         perPage,
@@ -208,6 +209,6 @@ export const posTransactionService = {
       throw new ApiError('Failed to create sale', 500);
     }
 
-    return sale;
+    return mapTransaction(sale);
   },
 };

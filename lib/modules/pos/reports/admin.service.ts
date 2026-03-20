@@ -1,4 +1,5 @@
 import { posReportRepository } from './repository';
+import { mapProfitLossProduct, mapProfitLossReport } from './report.mapper';
 
 const pad2 = (value: number) => String(value).padStart(2, '0');
 const formatDate = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
@@ -61,18 +62,18 @@ export const posReportService = {
 
       const product = productMap.get(item.productUuid);
 
-      return {
-        product_uuid: item.productUuid,
-        product_name: product ? product.name : 'Produk Dihapus',
+      return mapProfitLossProduct({
+        productUuid: item.productUuid,
+        productName: product ? product.name : 'Produk Dihapus',
         sku: product ? product.sku : '-',
-        qty_sold: qtySold,
-        avg_purchase_price: round2(avgPurchasePrice),
-        avg_selling_price: round2(avgSellingPrice),
-        total_revenue: round2(revenue),
-        total_cogs: round2(cogs),
+        qtySold,
+        avgPurchasePrice: round2(avgPurchasePrice),
+        avgSellingPrice: round2(avgSellingPrice),
+        revenue: round2(revenue),
+        cogs: round2(cogs),
         profit: round2(profit),
-        margin_percentage: marginPct,
-      };
+        marginPct,
+      });
     });
 
     productDetails.sort((a, b) => b.profit - a.profit);
@@ -88,21 +89,17 @@ export const posReportService = {
       }
     }
 
-    return {
-      period: {
-        from: dateFrom,
-        to: dateTo,
-      },
-      branch: branchInfo,
-      summary: {
-        total_revenue: round2(totalRevenue),
-        total_cogs: round2(totalCogs),
-        total_profit: round2(totalProfit),
-        margin_percentage: overallMargin,
-        total_transactions: totalTransactions,
-        total_items_sold: totalItemsSold,
-      },
+    return mapProfitLossReport({
+      dateFrom,
+      dateTo,
+      branchInfo,
+      totalRevenue: round2(totalRevenue),
+      totalCogs: round2(totalCogs),
+      totalProfit: round2(totalProfit),
+      overallMargin,
+      totalTransactions,
+      totalItemsSold,
       products: productDetails,
-    };
+    });
   },
 };

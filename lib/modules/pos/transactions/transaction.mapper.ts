@@ -1,0 +1,25 @@
+export function mapTransaction(sale: any) {
+  return {
+    uuid: sale.uuid,
+    saleNumber: sale.saleNumber,
+    branchUuid: sale.branchUuid,
+    customerUuid: sale.customerUuid,
+    paymentMethodUuid: sale.paymentMethodUuid,
+    saleDate: sale.saleDate,
+    subtotal: sale.subtotal,
+    discountAmount: sale.discountAmount,
+    totalAmount: sale.totalAmount,
+    paidAmount: sale.paidAmount,
+    changeAmount: sale.changeAmount,
+    paymentStatus: sale.paymentStatus,
+    notes: sale.notes,
+    createdBy: sale.createdBy,
+    createdAt: sale.createdAt,
+    updatedAt: sale.updatedAt,
+    branch: sale.branch,
+    customer: sale.customer,
+    paymentMethod: sale.paymentMethod,
+    creator: sale.creator,
+    items: sale.items,
+  };
+}

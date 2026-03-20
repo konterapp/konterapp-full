@@ -1,5 +1,6 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posPaymentMethodRepository } from './repository';
+import { mapPaymentMethod } from './payment-method.mapper';
 
 export const posPaymentMethodService = {
   async listPaymentMethods(params: {
@@ -47,7 +48,7 @@ export const posPaymentMethodService = {
     ]);
 
     return {
-      data: paymentMethods,
+      data: paymentMethods.map(mapPaymentMethod),
       pagination: {
         page,
         perPage,
@@ -63,7 +64,7 @@ export const posPaymentMethodService = {
       throw new ApiError('Payment method not found', 404);
     }
 
-    return paymentMethod;
+    return mapPaymentMethod(paymentMethod);
   },
 
   async createPaymentMethod(payload: {
@@ -80,7 +81,7 @@ export const posPaymentMethodService = {
       throw new ValidationApiError({ code: ['Kode metode sudah digunakan'] });
     }
 
-    return posPaymentMethodRepository.create({
+    const paymentMethod = await posPaymentMethodRepository.create({
       code: payload.code,
       name: payload.name,
       type: payload.type || 'cash',
@@ -89,6 +90,7 @@ export const posPaymentMethodService = {
       description: payload.description || null,
       isActive: payload.isActive ?? true,
     });
+    return mapPaymentMethod(paymentMethod);
   },
 
   async updatePaymentMethod(
@@ -115,7 +117,7 @@ export const posPaymentMethodService = {
       }
     }
 
-    return posPaymentMethodRepository.updateByUuid(uuid, {
+    const paymentMethod = await posPaymentMethodRepository.updateByUuid(uuid, {
       code: payload.code || existingMethod.code,
       name: payload.name || existingMethod.name,
       type: payload.type || existingMethod.type,
@@ -124,6 +126,7 @@ export const posPaymentMethodService = {
       description: payload.description ?? existingMethod.description,
       isActive: payload.isActive ?? existingMethod.isActive,
     });
+    return mapPaymentMethod(paymentMethod);
   },
 
   async deletePaymentMethod(uuid: string) {

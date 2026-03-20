@@ -1,5 +1,6 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posBranchRepository } from './repository';
+import { mapBranch, mapBranchListSimple } from './branch.mapper';
 
 export const posBranchService = {
   async listBranches(params: {
@@ -30,7 +31,7 @@ export const posBranchService = {
     ]);
 
     return {
-      data: branches,
+      data: branches.map(mapBranch),
       pagination: {
         page,
         perPage,
@@ -41,7 +42,8 @@ export const posBranchService = {
   },
 
   async listBranchesSimple() {
-    return posBranchRepository.listSimple();
+    const branches = await posBranchRepository.listSimple();
+    return branches.map(mapBranchListSimple);
   },
 
   async getBranchDetail(uuid: string) {
@@ -50,7 +52,7 @@ export const posBranchService = {
       throw new ApiError('Branch not found', 404);
     }
 
-    return branch;
+    return mapBranch(branch);
   },
 
   async createBranch(payload: {
@@ -71,7 +73,7 @@ export const posBranchService = {
       await posBranchRepository.unsetOtherMainBranches();
     }
 
-    return posBranchRepository.create({
+    const branch = await posBranchRepository.create({
       code: payload.code,
       name: payload.name,
       address: payload.address || null,
@@ -80,6 +82,7 @@ export const posBranchService = {
       isActive: payload.isActive ?? true,
       isMain: payload.isMain ?? false,
     });
+    return mapBranch(branch);
   },
 
   async updateBranch(
@@ -110,7 +113,7 @@ export const posBranchService = {
       await posBranchRepository.unsetOtherMainBranches(uuid);
     }
 
-    return posBranchRepository.updateByUuid(uuid, {
+    const branch = await posBranchRepository.updateByUuid(uuid, {
       code: payload.code || existing.code,
       name: payload.name || existing.name,
       address: payload.address ?? existing.address,
@@ -119,6 +122,7 @@ export const posBranchService = {
       isActive: payload.isActive ?? existing.isActive,
       isMain: payload.isMain ?? existing.isMain,
     });
+    return mapBranch(branch);
   },
 
   async deleteBranch(uuid: string) {

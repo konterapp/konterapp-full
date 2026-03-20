@@ -1,4 +1,5 @@
 import { posStockMovementRepository } from './repository';
+import { mapStockMovementListItem } from './stock-movement.mapper';
 
 const roundDateEnd = (date: Date) => {
   const copy = new Date(date);
@@ -58,19 +59,7 @@ export const posStockMovementService = {
     ]);
 
     return {
-      data: movements.map((movement) => ({
-        uuid: movement.uuid,
-        created_at: movement.createdAt,
-        movement_type: movement.movementType,
-        quantity_change: movement.quantity,
-        quantity_before: movement.previousStock,
-        quantity_after: movement.newStock,
-        reference_type: movement.referenceType,
-        reference_uuid: movement.referenceUuid,
-        notes: movement.notes,
-        product: movement.product,
-        branch: movement.branch,
-      })),
+      data: movements.map(mapStockMovementListItem),
       pagination: {
         page,
         perPage,
