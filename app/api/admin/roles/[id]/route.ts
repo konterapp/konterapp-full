@@ -1,44 +1,31 @@
-import { prisma } from "@/lib/prisma";
-import { successResponse, errorResponse, validationError } from "@/lib/response";
+import { errorResponse, successResponse, validationError } from "@/lib/response";
 import { withPermission } from "@/lib/api-middleware";
 import { validateSchema } from "@/lib/validation";
 import { updateRoleSchema } from "@/lib/validations/role";
+import { roleService } from "@/lib/modules/roles/admin.service";
 
-function formatRole(role: any) {
-  return {
-    id: role.id,
-    name: role.name,
-    guard_name: role.guardName,
-    permissions: role.roleHasPermissions?.map((rp: any) => rp.permission.name) ?? [],
-    permissions_count: role.roleHasPermissions?.length ?? 0,
-    users_count: role._count?.modelHasRoles ?? 0,
-    created_at: role.createdAt,
-    updated_at: role.updatedAt,
-  };
+function parseRoleId(rawId?: string) {
+  if (!rawId) return null;
+  const id = Number(rawId);
+  if (Number.isNaN(id)) return null;
+  return id;
 }
 
-export const GET = withPermission("admin.role.index", async (req, context) => {
+export const GET = withPermission("admin.role.index", async (_req, context) => {
   try {
     const params = await context.params;
-    const id = Number(params.id);
+    const id = parseRoleId(params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return errorResponse("Invalid role ID", 400);
     }
 
-    const role = await prisma.role.findUnique({
-      where: { id },
-      include: {
-        roleHasPermissions: { include: { permission: true } },
-        _count: { select: { modelHasRoles: true } },
-      },
-    });
-
-    if (!role) {
-      return errorResponse("Role tidak ditemukan", 404);
+    const result = await roleService.getRoleDetail(id);
+    if (!result.ok) {
+      return errorResponse(result.message ?? "Failed to fetch role", result.statusCode);
     }
 
-    return successResponse("Role retrieved successfully", formatRole(role));
+    return successResponse("Role retrieved successfully", result.data);
   } catch (e: any) {
     return errorResponse(e.message ?? "Internal server error", 500);
   }
@@ -47,99 +34,52 @@ export const GET = withPermission("admin.role.index", async (req, context) => {
 export const PATCH = withPermission("admin.role.update", async (req, context) => {
   try {
     const params = await context.params;
-    const id = Number(params.id);
+    const id = parseRoleId(params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return errorResponse("Invalid role ID", 400);
-    }
-
-    const role = await prisma.role.findUnique({ where: { id } });
-    if (!role) {
-      return errorResponse("Role tidak ditemukan", 404);
     }
 
     const body = await req.json();
 
-    // Validation
-    const result = validateSchema(updateRoleSchema, body);
-    if (!("data" in result)) return result;
-    const validated = result.data;
+    const validated = validateSchema(updateRoleSchema, body);
+    if (!("data" in validated)) return validated;
 
-    // Check name uniqueness
-    const existing = await prisma.role.findFirst({
-      where: { name: validated.name, guardName: "web", NOT: { id } },
+    const result = await roleService.updateRole({
+      id,
+      name: validated.data.name,
+      permissions: validated.data.permissions,
     });
-    if (existing) {
-      return validationError({ name: ["Nama role sudah ada"] });
+
+    if (!result.ok && result.statusCode === 422) {
+      return validationError(result.errors);
     }
 
-    const updatedRole = await prisma.$transaction(async (tx) => {
-      await tx.role.update({
-        where: { id },
-        data: { name: validated.name },
-      });
+    if (!result.ok) {
+      return errorResponse(result.message, result.statusCode);
+    }
 
-      // Sync permissions
-      if (validated.permissions) {
-        await tx.roleHasPermission.deleteMany({
-          where: { roleId: id },
-        });
-
-        if (validated.permissions.length > 0) {
-          const permissions = await tx.permission.findMany({
-            where: { name: { in: validated.permissions }, guardName: "web" },
-          });
-
-          if (permissions.length > 0) {
-            await tx.roleHasPermission.createMany({
-              data: permissions.map((p) => ({
-                roleId: id,
-                permissionId: p.id,
-              })),
-            });
-          }
-        }
-      }
-
-      return tx.role.findUnique({
-        where: { id },
-        include: {
-          roleHasPermissions: { include: { permission: true } },
-          _count: { select: { modelHasRoles: true } },
-        },
-      });
-    });
-
-    return successResponse("Role updated successfully", formatRole(updatedRole));
+    return successResponse(result.message ?? "Role updated successfully", result.data);
   } catch (e: any) {
     return errorResponse(e.message ?? "Internal server error", 500);
   }
 });
 
-export const DELETE = withPermission("admin.role.delete", async (req, context) => {
+export const DELETE = withPermission("admin.role.delete", async (_req, context) => {
   try {
     const params = await context.params;
-    const id = Number(params.id);
+    const id = parseRoleId(params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return errorResponse("Invalid role ID", 400);
     }
 
-    const role = await prisma.role.findUnique({ where: { id } });
-    if (!role) {
-      return errorResponse("Role tidak ditemukan", 404);
+    const result = await roleService.deleteRole(id);
+    if (!result.ok) {
+      return errorResponse(result.message ?? "Failed to delete role", result.statusCode);
     }
 
-    await prisma.$transaction(async (tx) => {
-      // Delete role permissions
-      await tx.roleHasPermission.deleteMany({ where: { roleId: id } });
-      // Delete model_has_roles for this role
-      await tx.modelHasRole.deleteMany({ where: { roleId: id } });
-      // Delete role
-      await tx.role.delete({ where: { id } });
-    });
-
-    return successResponse("Role deleted successfully");
+    return successResponse(result.message ?? "Role deleted successfully");
   } catch (e: any) {
     return errorResponse(e.message ?? "Internal server error", 500);
   }
