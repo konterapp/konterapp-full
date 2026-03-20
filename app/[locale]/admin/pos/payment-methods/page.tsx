@@ -13,9 +13,9 @@ interface PaymentMethod {
   code: string;
   name: string;
   type: string;
-  accountNumber?: string | null;
-  accountName?: string | null;
-  isActive: boolean;
+  account_number?: string | null;
+  account_name?: string | null;
+  is_active: boolean;
 }
 
 export default function PaymentMethodsPage() {
@@ -182,7 +182,7 @@ export default function PaymentMethodsPage() {
       label: 'No. Rekening/Akun',
       sortable: false,
       render: (_, row) => (
-        <span className="text-sm text-gray-600">{row.accountNumber || '-'}</span>
+        <span className="text-sm text-gray-600">{row.account_number || '-'}</span>
       ),
     },
     {
@@ -190,16 +190,16 @@ export default function PaymentMethodsPage() {
       label: 'Nama Akun',
       sortable: false,
       render: (_, row) => (
-        <span className="text-sm text-gray-600">{row.accountName || '-'}</span>
+        <span className="text-sm text-gray-600">{row.account_name || '-'}</span>
       ),
     },
     {
       key: 'is_active',
       label: 'Status',
       sortable: true,
-      sortValue: (row) => row.isActive ? 'Active' : 'Inactive',
+      sortValue: (row) => row.is_active ? 'Active' : 'Inactive',
       render: (_, row) => (
-        row.isActive ? (
+        row.is_active ? (
           <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
             Aktif
           </span>

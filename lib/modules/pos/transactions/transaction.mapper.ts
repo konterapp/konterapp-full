@@ -1,25 +1,45 @@
 export function mapTransaction(sale: any) {
   return {
     uuid: sale.uuid,
-    saleNumber: sale.saleNumber,
-    branchUuid: sale.branchUuid,
-    customerUuid: sale.customerUuid,
-    paymentMethodUuid: sale.paymentMethodUuid,
-    saleDate: sale.saleDate,
+    sale_number: sale.saleNumber,
+    branch_uuid: sale.branchUuid,
+    customer_uuid: sale.customerUuid,
+    payment_method_uuid: sale.paymentMethodUuid,
+    sale_date: sale.saleDate,
     subtotal: sale.subtotal,
-    discountAmount: sale.discountAmount,
-    totalAmount: sale.totalAmount,
-    paidAmount: sale.paidAmount,
-    changeAmount: sale.changeAmount,
-    paymentStatus: sale.paymentStatus,
+    discount_amount: sale.discountAmount,
+    total_amount: sale.totalAmount,
+    paid_amount: sale.paidAmount,
+    change_amount: sale.changeAmount,
+    payment_status: sale.paymentStatus,
     notes: sale.notes,
-    createdBy: sale.createdBy,
-    createdAt: sale.createdAt,
-    updatedAt: sale.updatedAt,
-    branch: sale.branch,
-    customer: sale.customer,
-    paymentMethod: sale.paymentMethod,
-    creator: sale.creator,
-    items: sale.items,
+    created_by: sale.createdBy,
+    created_at: sale.createdAt,
+    updated_at: sale.updatedAt,
+    branch: sale.branch
+      ? { uuid: sale.branch.uuid, name: sale.branch.name, code: sale.branch.code }
+      : null,
+    customer: sale.customer
+      ? { uuid: sale.customer.uuid, name: sale.customer.name, phone: sale.customer.phone }
+      : null,
+    payment_method: sale.paymentMethod
+      ? { uuid: sale.paymentMethod.uuid, name: sale.paymentMethod.name, code: sale.paymentMethod.code }
+      : null,
+    creator: sale.creator
+      ? { id: sale.creator.id, name: sale.creator.name, email: sale.creator.email }
+      : null,
+    items: Array.isArray(sale.items)
+      ? sale.items.map((item: any) => ({
+          uuid: item.uuid,
+          product_uuid: item.productUuid ?? item.product?.uuid,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          discount: item.discount,
+          subtotal: item.subtotal,
+          product: item.product
+            ? { uuid: item.product.uuid, name: item.product.name, sku: item.product.sku, image: item.product.image }
+            : null,
+        }))
+      : [],
   };
 }

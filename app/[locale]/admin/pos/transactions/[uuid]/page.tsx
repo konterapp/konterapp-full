@@ -8,7 +8,7 @@ import ReceiptModal from '../../_components/ReceiptModal';
 interface SaleItem {
   uuid: string;
   quantity: number;
-  unitPrice: number;
+  unit_price: number;
   discount: number;
   subtotal: number;
   product?: {
@@ -20,20 +20,20 @@ interface SaleItem {
 
 interface Sale {
   uuid: string;
-  saleNumber: string;
-  saleDate: string;
+  sale_number: string;
+  sale_date: string;
   subtotal: number;
-  discountAmount: number;
-  totalAmount: number;
-  paidAmount: number;
-  changeAmount: number;
-  paymentStatus: string;
+  discount_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  change_amount: number;
+  payment_status: string;
   notes?: string | null;
   branch?: { uuid: string; name: string };
   customer?: { uuid: string; name: string; phone?: string | null };
-  paymentMethod?: { uuid: string; name: string };
+  payment_method?: { uuid: string; name: string };
   creator?: { id: number; name: string; email: string };
-  createdAt?: string;
+  created_at?: string;
   items?: SaleItem[];
 }
 
@@ -135,7 +135,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
           </Link>
           <div>
             <h1 className="text-2xl font-bold text-[#142D52]">Detail Transaksi</h1>
-            <p className="mt-1 text-gray-600">{sale.saleNumber}</p>
+            <p className="mt-1 text-gray-600">{sale.sale_number}</p>
           </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -146,7 +146,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
             <Printer className="h-4 w-4" />
             <span>Cetak Ulang</span>
           </button>
-          {getStatusBadge(sale.paymentStatus)}
+          {getStatusBadge(sale.payment_status)}
         </div>
       </div>
 
@@ -159,7 +159,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
                 <Calendar className="mt-0.5 h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Tanggal Transaksi</p>
-                  <p className="text-sm font-medium text-gray-900">{formatDate(sale.saleDate)}</p>
+                  <p className="text-sm font-medium text-gray-900">{formatDate(sale.sale_date)}</p>
                 </div>
               </div>
 
@@ -184,7 +184,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
                 <CreditCard className="mt-0.5 h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Metode Pembayaran</p>
-                  <p className="text-sm font-medium text-gray-900">{sale.paymentMethod?.name || '-'}</p>
+                  <p className="text-sm font-medium text-gray-900">{sale.payment_method?.name || '-'}</p>
                 </div>
               </div>
 
@@ -234,7 +234,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
                         <p className="text-xs text-gray-500">{item.product?.sku || ''}</p>
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-900">{formatCurrency(Number(item.unitPrice))}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-900">{formatCurrency(Number(item.unit_price))}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
                         {Number(item.discount) > 0 ? formatCurrency(Number(item.discount)) : '-'}
                       </td>
@@ -256,36 +256,36 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
                 <span className="text-sm font-medium text-gray-900">{formatCurrency(Number(sale.subtotal))}</span>
               </div>
 
-              {Number(sale.discountAmount) > 0 && (
+              {Number(sale.discount_amount) > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Diskon</span>
-                  <span className="text-sm font-medium text-red-600">-{formatCurrency(Number(sale.discountAmount))}</span>
+                  <span className="text-sm font-medium text-red-600">-{formatCurrency(Number(sale.discount_amount))}</span>
                 </div>
               )}
 
               <div className="flex items-center justify-between border-b border-gray-200 pb-3">
                 <span className="text-sm font-semibold text-gray-900">Total</span>
-                <span className="text-lg font-bold text-gray-900">{formatCurrency(Number(sale.totalAmount))}</span>
+                <span className="text-lg font-bold text-gray-900">{formatCurrency(Number(sale.total_amount))}</span>
               </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Dibayar</span>
-                <span className="text-sm font-semibold text-green-600">{formatCurrency(Number(sale.paidAmount))}</span>
+                <span className="text-sm font-semibold text-green-600">{formatCurrency(Number(sale.paid_amount))}</span>
               </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Kembalian</span>
-                <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(sale.changeAmount))}</span>
+                <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(sale.change_amount))}</span>
               </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Status</span>
-                {getStatusBadge(sale.paymentStatus)}
+                {getStatusBadge(sale.payment_status)}
               </div>
 
               <div className="border-t border-gray-200 pt-3">
                 <p className="text-xs text-gray-500">
-                  Dibuat: {sale.createdAt ? new Date(sale.createdAt).toLocaleString('id-ID') : '-'}
+                  Dibuat: {sale.created_at ? new Date(sale.created_at).toLocaleString('id-ID') : '-'}
                 </p>
               </div>
             </div>

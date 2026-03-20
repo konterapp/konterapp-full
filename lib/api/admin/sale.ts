@@ -6,48 +6,48 @@ export interface SaleItem {
     image?: string | null;
   };
   quantity: number;
-  unitPrice: number;
+  unit_price: number;
   discount: number;
   subtotal: number;
 }
 
 export interface Sale {
   uuid: string;
-  saleNumber: string;
-  branchUuid: string;
+  sale_number: string;
+  branch_uuid: string;
   branch?: {
     uuid: string;
     name: string;
     code: string;
   };
-  customerUuid?: string;
+  customer_uuid?: string;
   customer?: {
     uuid: string;
     name: string;
     phone?: string;
   };
-  paymentMethodUuid: string;
-  paymentMethod?: {
+  payment_method_uuid: string;
+  payment_method?: {
     uuid: string;
     name: string;
     code: string;
   };
-  saleDate: string;
+  sale_date: string;
   subtotal: number;
-  discountAmount: number;
-  totalAmount: number;
-  paidAmount: number;
-  changeAmount: number;
-  paymentStatus: string;
+  discount_amount: number;
+  total_amount: number;
+  paid_amount: number;
+  change_amount: number;
+  payment_status: string;
   notes?: string;
-  createdBy: number;
+  created_by: number;
   creator?: {
     id: number;
     name: string;
     email: string;
   };
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   items: SaleItem[];
 }
 

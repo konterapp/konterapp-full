@@ -17,13 +17,13 @@ interface PaymentMethod {
 
 interface Sale {
   uuid: string;
-  saleNumber: string;
-  saleDate: string;
-  totalAmount: number;
-  paymentStatus: string;
+  sale_number: string;
+  sale_date: string;
+  total_amount: number;
+  payment_status: string;
   branch?: { uuid: string; name: string };
   customer?: { uuid: string; name: string };
-  paymentMethod?: { uuid: string; name: string };
+  payment_method?: { uuid: string; name: string };
 }
 
 export default function TransactionsPage() {
@@ -187,17 +187,17 @@ export default function TransactionsPage() {
       key: 'sale_number',
       label: 'No. Transaksi',
       sortable: true,
-      sortValue: (row) => row.saleNumber,
+      sortValue: (row) => row.sale_number,
       width: '12rem',
-      render: (_, row) => <p className="text-sm font-medium text-gray-900">{row.saleNumber}</p>,
+      render: (_, row) => <p className="text-sm font-medium text-gray-900">{row.sale_number}</p>,
     },
     {
       key: 'sale_date',
       label: 'Tanggal',
       sortable: true,
-      sortValue: (row) => row.saleDate,
+      sortValue: (row) => row.sale_date,
       width: '10rem',
-      render: (_, row) => <p className="text-sm text-gray-600">{formatDate(row.saleDate)}</p>,
+      render: (_, row) => <p className="text-sm text-gray-600">{formatDate(row.sale_date)}</p>,
     },
     {
       key: 'branch',
@@ -217,22 +217,22 @@ export default function TransactionsPage() {
       label: 'Metode Bayar',
       sortable: false,
       width: '10rem',
-      render: (_, row) => <p className="text-sm text-gray-900">{row.paymentMethod?.name || '-'}</p>,
+      render: (_, row) => <p className="text-sm text-gray-900">{row.payment_method?.name || '-'}</p>,
     },
     {
       key: 'total_amount',
       label: 'Total',
       sortable: true,
-      sortValue: (row) => row.totalAmount,
+      sortValue: (row) => row.total_amount,
       width: '12rem',
-      render: (_, row) => <p className="text-sm font-semibold text-gray-900">{formatCurrency(row.totalAmount)}</p>,
+      render: (_, row) => <p className="text-sm font-semibold text-gray-900">{formatCurrency(row.total_amount)}</p>,
     },
     {
       key: 'payment_status',
       label: 'Status',
       sortable: false,
       width: '10rem',
-      render: (_, row) => getStatusBadge(row.paymentStatus),
+      render: (_, row) => getStatusBadge(row.payment_status),
     },
     {
       key: 'actions',

@@ -59,13 +59,20 @@ const PAYMENT_METHODS_DATA = [
 ];
 
 export async function seedPaymentMethods(prisma: PrismaClient) {
-  for (const data of PAYMENT_METHODS_DATA) {
+  const baseDate = new Date();
+  for (let index = 0; index < PAYMENT_METHODS_DATA.length; index += 1) {
+    const data = PAYMENT_METHODS_DATA[index];
+    const createdAt = new Date(baseDate.getTime() + (PAYMENT_METHODS_DATA.length - index) * 1000);
     await prisma.posPaymentMethod.upsert({
       where: { code: data.code },
-      update: data,
+      update: {
+        ...data,
+        createdAt,
+      },
       create: {
         uuid: uuidv7(),
         ...data,
+        createdAt,
       },
     });
   }

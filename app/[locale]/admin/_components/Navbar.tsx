@@ -36,7 +36,7 @@ const tMenu = (key: string): string => menuTranslations[key] || key;
 
 const Navbar = () => {
   const { permissions } = usePermissions();
-  const { isMobileOpen, setIsMobileOpen } = useSidebar();
+  const { isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed } = useSidebar();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,7 +109,17 @@ const Navbar = () => {
       </button>
 
       {/* Search Bar - Desktop */}
-      <div className="flex-1 max-w-xl mr-2 lg:mr-6 hidden sm:block">
+      <div className="hidden sm:flex flex-1 max-w-xl mr-2 lg:mr-6 items-center">
+        {isCollapsed && (
+          <button
+            type="button"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2 cursor-pointer"
+            title="Buka sidebar"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input

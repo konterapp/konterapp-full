@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import PermissionGuard from './PermissionGuard';
@@ -12,7 +13,9 @@ interface DashboardWrapperProps {
 }
 
 export default function DashboardWrapper({ children }: DashboardWrapperProps) {
-  const { isCollapsed, sidebarWidth, collapsedWidth } = useSidebar();
+  const { isCollapsed, setIsCollapsed, sidebarWidth, collapsedWidth } = useSidebar();
+  const pathname = usePathname();
+  const prevCollapsedRef = useRef<boolean | null>(null);
   const currentWidth = isCollapsed ? collapsedWidth : sidebarWidth;
   const [isMobile, setIsMobile] = useState(false);
 
@@ -23,6 +26,23 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
   }, []);
+
+  useEffect(() => {
+    const isPosRoot = /\/admin\/pos$/.test(pathname || '');
+    if (isPosRoot) {
+      if (prevCollapsedRef.current === null) {
+        prevCollapsedRef.current = isCollapsed;
+        if (!isCollapsed) {
+          setIsCollapsed(true);
+        }
+      }
+      return;
+    }
+    if (prevCollapsedRef.current !== null) {
+      setIsCollapsed(prevCollapsedRef.current);
+      prevCollapsedRef.current = null;
+    }
+  }, [pathname, setIsCollapsed]);
 
   return (
     <UserProvider>
@@ -36,11 +56,6 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
             <PermissionGuard>{children}</PermissionGuard>
           </main>
-          <footer className="shrink-0 flex items-center justify-between px-4 lg:px-6 py-2 bg-white border-t border-gray-200">
-            <span className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} KonterApp
-            </span>
-          </footer>
         </div>
       </div>
     </UserProvider>

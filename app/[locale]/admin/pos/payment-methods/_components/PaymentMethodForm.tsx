@@ -59,10 +59,10 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
           code: result.data.code || '',
           name: result.data.name || '',
           type: result.data.type || 'cash',
-          account_number: result.data.accountNumber || '',
-          account_name: result.data.accountName || '',
+          account_number: result.data.account_number || '',
+          account_name: result.data.account_name || '',
           description: result.data.description || '',
-          is_active: result.data.isActive ?? true,
+          is_active: result.data.is_active ?? true,
         });
       } else {
         setError(result.message || 'Gagal memuat data metode pembayaran');

@@ -209,16 +209,14 @@ export default function Sidebar() {
             </div>
           )}
           {/* Desktop collapse toggle */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer hidden lg:block"
-          >
-            {effectiveCollapsed ? (
-              <ChevronRight className="w-5 h-5 text-white" />
-            ) : (
+          {!effectiveCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer hidden lg:block"
+            >
               <ChevronLeft className="w-5 h-5 text-white" />
-            )}
-          </button>
+            </button>
+          )}
           {/* Mobile close button */}
           <button
             onClick={() => setIsMobileOpen(false)}

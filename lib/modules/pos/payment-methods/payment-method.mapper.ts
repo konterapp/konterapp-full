@@ -4,11 +4,11 @@ export function mapPaymentMethod(paymentMethod: any) {
     code: paymentMethod.code,
     name: paymentMethod.name,
     type: paymentMethod.type,
-    accountNumber: paymentMethod.accountNumber,
-    accountName: paymentMethod.accountName,
+    account_number: paymentMethod.accountNumber,
+    account_name: paymentMethod.accountName,
     description: paymentMethod.description,
-    isActive: paymentMethod.isActive,
-    createdAt: paymentMethod.createdAt,
-    updatedAt: paymentMethod.updatedAt,
+    is_active: paymentMethod.isActive,
+    created_at: paymentMethod.createdAt,
+    updated_at: paymentMethod.updatedAt,
   };
 }

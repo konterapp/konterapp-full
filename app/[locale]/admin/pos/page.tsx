@@ -50,6 +50,7 @@ export default function KasirPage() {
   const [imageGallery, setImageGallery] = useState<{ images: string[]; name: string; index: number } | null>(null);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
 
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -115,9 +116,18 @@ export default function KasirPage() {
   const changeAmount = paidAmount - totalAmount;
 
   const getStockForBranch = (product: Product): number => {
-    if (!product.stocks || !selectedBranch) return 0;
-    const stock = product.stocks.find(s => s.branch_uuid === selectedBranch);
-    return stock ? stock.stock : 0;
+    if (selectedBranch && Array.isArray(product.stocks) && product.stocks.length > 0) {
+      const stock = product.stocks.find(s => s.branch_uuid === selectedBranch);
+      return stock ? Number(stock.stock) : 0;
+    }
+    if (typeof product.total_stock === 'number') {
+      return product.total_stock;
+    }
+    if (typeof product.total_stock === 'string') {
+      const parsed = Number(product.total_stock);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
   };
 
   const addToCart = (product: Product) => {
@@ -318,7 +328,7 @@ export default function KasirPage() {
         {/* Left: Products + Cart (scrollable together) */}
         <div className="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
           {/* Search */}
-          <div className="px-4 py-2.5 border-b border-gray-200 bg-white">
+          <div className="px-4 py-2.5 border-b border-gray-200 bg-white relative">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -341,108 +351,103 @@ export default function KasirPage() {
                 <Camera className="w-4 h-4" />
               </button>
             </div>
-          </div>
 
-          {/* Product grid (scrollable) */}
-          <div className="flex-1 overflow-y-auto p-3 bg-gray-50">
-            {!selectedBranch ? (
-              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                <Package className="w-12 h-12 mb-2" />
-                <p className="text-sm font-medium">Pilih cabang terlebih dahulu</p>
-              </div>
-            ) : isSearching ? (
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="bg-white border border-gray-200 rounded-lg overflow-hidden animate-pulse">
-                    <div className="h-24 bg-gray-200" />
-                    <div className="p-2 space-y-1.5">
-                      <div className="h-3 bg-gray-200 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : productResults.length > 0 ? (
-              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
-                {productResults.map(product => {
-                  const stock = getStockForBranch(product);
-                  const inCart = cart.find(item => item.product_uuid === product.uuid);
-                  return (
-                    <button
-                      key={product.uuid}
-                      type="button"
-                      onClick={() => addToCart(product)}
-                      disabled={stock <= 0}
-                      className={`bg-white border rounded-lg overflow-hidden text-left transition-all hover:shadow-md cursor-pointer ${
-                        stock <= 0 ? 'opacity-50 cursor-not-allowed border-gray-200' : 'border-gray-200 hover:border-[#EBC170]'
-                      } ${inCart ? 'ring-2 ring-[#EBC170]' : ''}`}
-                    >
-                      <div className="relative w-full h-24 bg-gray-100">
-                        {product.image ? (
-                          <Image
-                            src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-300" />
+            {selectedBranch && (productSearch.trim().length > 0 || isSearching) && (
+              <div className="absolute left-4 right-4 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
+                {isSearching ? (
+                  <div className="p-3 text-xs text-gray-500">Mencari produk...</div>
+                ) : productResults.length > 0 ? (
+                  <div className="divide-y divide-gray-100">
+                    {productResults.map(product => {
+                      const stock = getStockForBranch(product);
+                      return (
+                        <button
+                          key={product.uuid}
+                          type="button"
+                          onClick={() => {
+                            addToCart(product);
+                            setProductSearch('');
+                          }}
+                          disabled={stock <= 0}
+                          className={`w-full px-3 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                            stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                            {product.image ? (
+                              <Image
+                                src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
+                                alt={product.name}
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="w-4 h-4 text-gray-300" />
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {inCart && (
-                          <span className="absolute top-1 right-1 bg-[#EBC170] text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                            {inCart.quantity}
-                          </span>
-                        )}
-                      </div>
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-gray-900 truncate">{product.name}</p>
-                        <p className="text-xs font-bold text-[#142D52] mt-0.5">{formatCurrency(Number(product.selling_price))}</p>
-                        <p className={`text-[10px] mt-0.5 ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-                          Stok: {stock}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                <Search className="w-10 h-10 mb-2" />
-                <p className="text-sm">Ketik untuk mencari produk</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                            <p className="text-xs text-gray-500">{product.sku}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-[#142D52]">{formatCurrency(Number(product.selling_price))}</p>
+                            <p className={`text-[10px] ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                              Stok: {stock}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-3 text-xs text-gray-500">Produk tidak ditemukan</div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Cart (sticky/floating at bottom) */}
-          {cart.length > 0 && (
-            <div className="border-t border-gray-200 bg-white flex flex-col max-h-[45%] shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
-              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <ShoppingCart className="w-4 h-4 text-[#142D52]" />
-                  <span className="text-sm font-semibold text-[#142D52]">
-                    Keranjang
-                    <span className="ml-1 text-[#EBC170] bg-[#142D52] px-1.5 py-0.5 rounded-full text-[10px]">{cart.length}</span>
-                  </span>
-                </div>
-                <button type="button" onClick={clearCart} className="text-[11px] text-red-500 hover:text-red-700 font-medium cursor-pointer">
-                  Kosongkan
-                </button>
+          {/* Cart (full height under search) */}
+          <div className="flex-1 border-t border-gray-200 bg-white flex flex-col shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center space-x-2">
+                <ShoppingCart className="w-4 h-4 text-[#142D52]" />
+                <span className="text-sm font-semibold text-[#142D52]">
+                  Keranjang
+                  <span className="ml-1 text-[#EBC170] bg-[#142D52] px-1.5 py-0.5 rounded-full text-[10px]">{cart.length}</span>
+                </span>
               </div>
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full">
-                  <thead className="sticky top-0 bg-white">
-                    <tr className="border-b border-gray-100 text-xs text-gray-500">
-                      <th className="text-left py-2 px-4 font-medium">Produk</th>
-                      <th className="text-center py-2 px-2 font-medium w-28">Qty</th>
-                      <th className="text-right py-2 px-4 font-medium w-32">Subtotal</th>
-                      <th className="w-10"></th>
+              <button
+                type="button"
+                onClick={clearCart}
+                className="text-[11px] text-red-500 hover:text-red-700 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={cart.length === 0}
+              >
+                Kosongkan
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="border-b border-gray-100 text-xs text-gray-500">
+                    <th className="text-left py-2 px-4 font-medium">Produk</th>
+                    <th className="text-center py-2 px-2 font-medium w-28">Qty</th>
+                    <th className="text-right py-2 px-4 font-medium w-32">Subtotal</th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-10 text-center text-sm text-gray-400">
+                        Keranjang masih kosong
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {cart.map(item => (
+                  ) : (
+                    cart.map(item => (
                       <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="py-2 px-4">
                           <div className="flex items-center gap-2.5">
@@ -518,12 +523,12 @@ export default function KasirPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Right: Payment panel */}
@@ -603,7 +608,7 @@ export default function KasirPage() {
                   <button type="button" onClick={() => setPaidAmount(totalAmount)} className="px-3 py-1.5 text-xs bg-[#EBC170]/10 border border-[#EBC170]/30 text-[#142D52] hover:bg-[#EBC170]/20 rounded-lg transition-colors cursor-pointer font-medium">
                     Uang Pas
                   </button>
-                  {[50000, 100000, 200000].map(amount => (
+                  {[20000, 50000, 100000, 200000].map(amount => (
                     amount >= totalAmount && (
                       <button key={amount} type="button" onClick={() => setPaidAmount(amount)} className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-gray-600">
                         {formatCurrency(amount)}

@@ -39,7 +39,23 @@ export const GET = withPermission(
 export const POST = withPermission(
   'admin.pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
-    const body = await req.json();
+    const rawBody = await req.json();
+    const body = {
+      ...rawBody,
+      branchUuid: rawBody.branchUuid ?? rawBody.branch_uuid,
+      customerUuid: rawBody.customerUuid ?? rawBody.customer_uuid,
+      paymentMethodUuid: rawBody.paymentMethodUuid ?? rawBody.payment_method_uuid,
+      saleDate: rawBody.saleDate ?? rawBody.sale_date,
+      discountAmount: rawBody.discountAmount ?? rawBody.discount_amount,
+      paidAmount: rawBody.paidAmount ?? rawBody.paid_amount,
+      items: Array.isArray(rawBody.items)
+        ? rawBody.items.map((item: any) => ({
+            ...item,
+            productUuid: item.productUuid ?? item.product_uuid,
+            unit_price: item.unit_price ?? item.unitPrice,
+          }))
+        : rawBody.items,
+    };
     const sale = await posTransactionService.createSale(body, context.userId);
     return successResponse('Sale created successfully', sale);
   })

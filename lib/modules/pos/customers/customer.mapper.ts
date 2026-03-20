@@ -5,7 +5,7 @@ export function mapCustomer(customer: any) {
     phone: customer.phone,
     email: customer.email,
     address: customer.address,
-    createdAt: customer.createdAt,
-    updatedAt: customer.updatedAt,
+    created_at: customer.createdAt,
+    updated_at: customer.updatedAt,
   };
 }

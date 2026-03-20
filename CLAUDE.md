@@ -26,3 +26,4 @@
   - `service`: business rule + orkestrasi,
   - `repository`: akses data (Prisma),
   - `mapper`: kontrak output API.
+- API response/request gunakan `snake_case` (best practice untuk API publik/lintas bahasa), mapping ke `camelCase` dilakukan di boundary (route <-> service).

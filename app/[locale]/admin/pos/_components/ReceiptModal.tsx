@@ -4,24 +4,24 @@ import { X, Printer } from 'lucide-react';
 
 interface ReceiptSaleItem {
   quantity: number;
-  unitPrice: number;
+  unit_price: number;
   discount: number;
   subtotal: number;
   product?: { uuid?: string; name?: string };
 }
 
 interface ReceiptSale {
-  saleNumber?: string;
-  saleDate?: string;
+  sale_number?: string;
+  sale_date?: string;
   branch?: { name?: string };
   customer?: { name?: string };
-  paymentMethod?: { name?: string };
+  payment_method?: { name?: string };
   items?: ReceiptSaleItem[];
   subtotal?: number;
-  discountAmount?: number;
-  totalAmount?: number;
-  paidAmount?: number;
-  changeAmount?: number;
+  discount_amount?: number;
+  total_amount?: number;
+  paid_amount?: number;
+  change_amount?: number;
 }
 
 interface ReceiptModalProps {
@@ -77,11 +77,11 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
           <div className="text-sm space-y-1 mb-4">
             <div className="flex justify-between">
               <span className="text-gray-600">No. Transaksi:</span>
-              <span className="font-medium">{sale.saleNumber || '-'}</span>
+              <span className="font-medium">{sale.sale_number || '-'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Tanggal:</span>
-              <span>{formatDate(sale.saleDate)}</span>
+              <span>{formatDate(sale.sale_date)}</span>
             </div>
             {sale.customer && (
               <div className="flex justify-between">
@@ -89,10 +89,10 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
                 <span>{sale.customer.name}</span>
               </div>
             )}
-            {sale.paymentMethod && (
+            {sale.payment_method && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Pembayaran:</span>
-                <span>{sale.paymentMethod.name}</span>
+                <span>{sale.payment_method.name}</span>
               </div>
             )}
           </div>
@@ -105,7 +105,7 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
               <div key={item.product?.uuid || index} className="text-sm">
                 <p className="font-medium">{item.product?.name || 'Produk'}</p>
                 <div className="flex justify-between text-gray-600">
-                  <span>{item.quantity} x {formatCurrency(Number(item.unitPrice))}</span>
+                  <span>{item.quantity} x {formatCurrency(Number(item.unit_price))}</span>
                   <span>{formatCurrency(Number(item.subtotal))}</span>
                 </div>
                 {Number(item.discount) > 0 && (
@@ -126,23 +126,23 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
               <span className="text-gray-600">Subtotal:</span>
               <span>{formatCurrency(Number(sale.subtotal))}</span>
             </div>
-            {Number(sale.discountAmount) > 0 && (
+            {Number(sale.discount_amount) > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Diskon:</span>
-                <span>-{formatCurrency(Number(sale.discountAmount))}</span>
+                <span>-{formatCurrency(Number(sale.discount_amount))}</span>
               </div>
             )}
             <div className="flex justify-between font-bold text-base pt-1 border-t border-gray-200">
               <span>Total:</span>
-              <span>{formatCurrency(Number(sale.totalAmount))}</span>
+              <span>{formatCurrency(Number(sale.total_amount))}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Bayar:</span>
-              <span>{formatCurrency(Number(sale.paidAmount))}</span>
+              <span>{formatCurrency(Number(sale.paid_amount))}</span>
             </div>
             <div className="flex justify-between font-medium">
               <span className="text-gray-600">Kembalian:</span>
-              <span>{formatCurrency(Number(sale.changeAmount))}</span>
+              <span>{formatCurrency(Number(sale.change_amount))}</span>
             </div>
           </div>
 

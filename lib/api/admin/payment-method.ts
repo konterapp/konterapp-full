@@ -3,12 +3,12 @@ export interface PaymentMethod {
   code: string;
   name: string;
   type: string;
-  accountNumber?: string;
-  accountName?: string;
+  account_number?: string;
+  account_name?: string;
   description?: string;
   is_active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export async function getAllPaymentMethods(): Promise<{ status: string; data: PaymentMethod[] }> {
@@ -25,8 +25,8 @@ export async function createPaymentMethod(data: {
   code: string;
   name: string;
   type: string;
-  accountNumber?: string;
-  accountName?: string;
+  account_number?: string;
+  account_name?: string;
   description?: string;
   is_active?: boolean;
 }): Promise<{ status: string; data: PaymentMethod }> {
@@ -44,8 +44,8 @@ export async function updatePaymentMethod(
     code?: string;
     name?: string;
     type?: string;
-    accountNumber?: string;
-    accountName?: string;
+    account_number?: string;
+    account_name?: string;
     description?: string;
     is_active?: boolean;
   }
