@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Konterapp Full (Next.js + Prisma)
 
-## Getting Started
+Ringkas developer setup untuk `konterapp-full` (port `3002`).
 
-First, run the development server:
+## Prasyarat
+- Node.js (LTS)
+- PostgreSQL 16
+- Redis
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Disarankan pakai Homebrew services (lebih ringan dari Docker/Colima):
+```
+brew install postgresql@16 redis
+brew services start postgresql@16
+brew services start redis
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Database (PostgreSQL lokal)
+```
+psql postgres
+CREATE ROLE postgres WITH LOGIN SUPERUSER PASSWORD 'postgres';
+CREATE DATABASE konterapp_full OWNER postgres;
+\q
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
+Buat `.env` dari `.env.example` lalu sesuaikan:
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/konterapp_full"
+DIRECT_URL="postgresql://postgres:postgres@localhost:5432/konterapp_full"
+AUTH_SECRET="konterapp-full-secret-key-change-in-production"
+AUTH_URL="http://localhost:3002"
+NEXT_PUBLIC_APP_URL="http://localhost:3002"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# PPOB Providers (isi jika ingin sync dari provider)
+DIGIFLAZZ_USERNAME=""
+DIGIFLAZZ_API_KEY=""
+DIGIFLAZZ_BASE_URL="https://api.digiflazz.com/v1"
+RAJABILLER_UID=""
+RAJABILLER_PIN=""
+RAJABILLER_BASE_URL="https://rajabiller.fastpay.co.id/transaksi/json_devel.php"
+```
 
-## Learn More
+## Install & Run
+```
+npm install
+npm run dev
+```
+App: `http://localhost:3002`
 
-To learn more about Next.js, take a look at the following resources:
+## Prisma
+```
+npx prisma generate
+npx prisma migrate deploy
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Reset DB (sesuai rule project):
+```
+npx prisma migrate reset --force
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Seed
+Seed utama:
+```
+npm run seed
+```
+Seed dummy:
+```
+for f in prisma/seeders/dummy/*.ts; do npm run seed:dummy "$f"; done
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Build / Test
+```
+npm run build
+npm run test
+```
