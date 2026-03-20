@@ -20,6 +20,20 @@ export const posPpobProductRepository = {
     });
   },
 
+  findManyByFilter(params: { where: any; orderBy?: any }) {
+    const { where, orderBy } = params;
+    return prisma.posPpobProduct.findMany({ where, orderBy });
+  },
+
+  findDistinctBrandsByCategory(category: string) {
+    return prisma.posPpobProduct.findMany({
+      where: { category, isActive: true, brand: { not: null } },
+      distinct: ['brand'],
+      select: { brand: true },
+      orderBy: { brand: 'asc' },
+    });
+  },
+
   create(data: Record<string, unknown>) {
     return prisma.posPpobProduct.create({ data: data as any });
   },
@@ -30,5 +44,9 @@ export const posPpobProductRepository = {
 
   deleteByUuid(uuid: string) {
     return prisma.posPpobProduct.delete({ where: { uuid } });
+  },
+
+  deleteManyByUuids(uuids: string[]) {
+    return prisma.posPpobProduct.deleteMany({ where: { uuid: { in: uuids } } });
   },
 };

@@ -7,7 +7,7 @@ export type SortOrder = 'asc' | 'desc';
 
 export interface Column<T> {
    key: string;
-   label: string;
+   label: ReactNode;
    sortable?: boolean;
 
    render?: (value: any, row: T) => ReactNode;

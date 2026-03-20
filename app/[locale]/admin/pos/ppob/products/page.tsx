@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Package, Plus, RefreshCw, Pencil, Trash2, X } from 'lucide-react';
 import DataTable, { Column } from '../../../_components/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/components/toast/ToastContainer';
+import { getPpobProductsList, deletePpobProduct, PpobProductLocal } from '@/lib/api/admin/ppob';
 import ProductFormModal from './_components/ProductFormModal';
 import SyncModal from './_components/SyncModal';
-import { PpobProductLocal } from './_components/types';
+import ConfirmModal from '../../../_components/ConfirmModal';
 
 const CATEGORIES = ['PULSA', 'DATA', 'PLNPRA', 'PLNPASCA', 'TELKOM', 'PDAM', 'BPJS', 'EMONEY', 'GAME'];
 
@@ -32,6 +33,12 @@ export default function PpobProductsPage() {
   const [showFormModal, setShowFormModal] = useState(false);
   const [editProduct, setEditProduct] = useState<PpobProductLocal | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const [selectedUuids, setSelectedUuids] = useState<string[]>([]);
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PpobProductLocal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,28 +52,31 @@ export default function PpobProductsPage() {
     fetchProducts();
   }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder, filterProvider, filterCategory]);
 
+  useEffect(() => {
+    setSelectedUuids((prev) => prev.filter((uuid) => products.some((p) => p.uuid === uuid)));
+  }, [products]);
+
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        per_page: itemsPerPage.toString(),
+      const result = await getPpobProductsList({
+        page: currentPage,
+        per_page: itemsPerPage,
+        search: debouncedSearch || undefined,
+        provider: filterProvider || undefined,
+        category: filterCategory || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       });
 
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      if (filterProvider) params.set('provider', filterProvider);
-      if (filterCategory) params.set('category', filterCategory);
-
-      const response = await fetch(`/api/admin/pos/ppob-products?${params.toString()}`);
-      const result = await response.json();
-
       if (result.status === 'success' && result.data) {
-        setProducts(result.data.data || []);
-        if (result.data.pagination) {
-          setTotalPages(result.data.pagination.totalPages || 1);
-          setTotalItems(result.data.pagination.total || 0);
+        const payload = Array.isArray(result.data)
+          ? { data: result.data, pagination: undefined }
+          : (result.data as { data?: PpobProductLocal[]; pagination?: { totalPages?: number; total?: number } });
+        setProducts(payload.data || []);
+        if (payload.pagination) {
+          setTotalPages(payload.pagination.totalPages || 1);
+          setTotalItems(payload.pagination.total || 0);
         }
       } else {
         toast.error(result.message || 'Gagal memuat produk PPOB');
@@ -78,19 +88,48 @@ export default function PpobProductsPage() {
     }
   };
 
-  const handleDelete = async (product: PpobProductLocal) => {
-    if (!confirm(`Hapus produk "${product.product_name}"?`)) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
     try {
-      const response = await fetch(`/api/admin/pos/ppob-products/${product.uuid}`, { method: 'DELETE' });
-      const result = await response.json();
+      const result = await deletePpobProduct(deleteTarget.uuid);
       if (result.status === 'success') {
         toast.success('Produk PPOB berhasil dihapus');
+        setShowDeleteModal(false);
+        setDeleteTarget(null);
         fetchProducts();
       } else {
         toast.error(result.message || 'Gagal menghapus produk PPOB');
       }
     } catch {
       toast.error('Terjadi kesalahan saat menghapus produk PPOB');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedUuids.length) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/admin/pos/ppob-products/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuids: selectedUuids }),
+      });
+      const result = await response.json();
+      if (result.status === 'success') {
+        toast.success('Produk PPOB berhasil dihapus');
+        setSelectedUuids([]);
+        setShowBulkDeleteModal(false);
+        fetchProducts();
+      } else {
+        toast.error(result.message || 'Gagal menghapus produk PPOB');
+      }
+    } catch {
+      toast.error('Terjadi kesalahan saat menghapus produk PPOB');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -116,7 +155,55 @@ export default function PpobProductsPage() {
     }).format(amount);
   };
 
+  const selectionState = useMemo(() => {
+    const ids = products.map((p) => p.uuid);
+    const selectedInPage = ids.filter((id) => selectedUuids.includes(id));
+    const allSelected = ids.length > 0 && selectedInPage.length === ids.length;
+    const isIndeterminate = selectedInPage.length > 0 && !allSelected;
+    return { ids, allSelected, isIndeterminate };
+  }, [products, selectedUuids]);
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = selectionState.isIndeterminate;
+    }
+  }, [selectionState.isIndeterminate]);
+
   const columns: Column<PpobProductLocal>[] = [
+    {
+      key: 'select',
+      label: (
+        <input
+          ref={selectAllRef}
+          type="checkbox"
+          checked={selectionState.allSelected}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedUuids((prev) => Array.from(new Set([...prev, ...selectionState.ids])));
+            } else {
+              setSelectedUuids((prev) => prev.filter((id) => !selectionState.ids.includes(id)));
+            }
+          }}
+          className="cursor-pointer rounded border-gray-300"
+        />
+      ),
+      sortable: false,
+      width: '2.5rem',
+      render: (_, row) => (
+        <input
+          type="checkbox"
+          checked={selectedUuids.includes(row.uuid)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedUuids((prev) => Array.from(new Set([...prev, row.uuid])));
+            } else {
+              setSelectedUuids((prev) => prev.filter((id) => id !== row.uuid));
+            }
+          }}
+          className="cursor-pointer rounded border-gray-300"
+        />
+      ),
+    },
     {
       key: 'no',
       label: 'No',
@@ -226,7 +313,10 @@ export default function PpobProductsPage() {
           )}
           {hasPermission('admin.pos.ppob.create') && (
             <button
-              onClick={() => handleDelete(row)}
+              onClick={() => {
+                setDeleteTarget(row);
+                setShowDeleteModal(true);
+              }}
               className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-red-50"
               title="Hapus"
             >
@@ -246,11 +336,20 @@ export default function PpobProductsPage() {
           <p className="mt-1 text-gray-600">Kelola produk PPOB dan mapping provider.</p>
         </div>
         {hasPermission('admin.pos.ppob.create') && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {selectedUuids.length > 0 && hasPermission('admin.pos.ppob.create') && (
             <button
-              onClick={() => setShowSyncModal(true)}
-              className="flex cursor-pointer items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex cursor-pointer items-center space-x-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"
             >
+              <Trash2 className="h-4 w-4" />
+              <span>Hapus ({selectedUuids.length})</span>
+            </button>
+          )}
+          <button
+            onClick={() => setShowSyncModal(true)}
+            className="flex cursor-pointer items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
               <RefreshCw className="h-4 w-4" />
               <span>Sync Provider</span>
             </button>
@@ -352,6 +451,35 @@ export default function PpobProductsPage() {
       )}
 
       {showSyncModal && <SyncModal onClose={() => setShowSyncModal(false)} onSynced={() => fetchProducts()} />}
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          if (isDeleting) return;
+          setShowDeleteModal(false);
+          setDeleteTarget(null);
+        }}
+        onConfirm={handleDelete}
+        title="Hapus Produk PPOB"
+        message={deleteTarget ? `Hapus produk "${deleteTarget.product_name}"?` : 'Hapus produk ini?'}
+        confirmText="Ya, Hapus"
+        type="danger"
+        isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        onClose={() => {
+          if (isDeleting) return;
+          setShowBulkDeleteModal(false);
+        }}
+        onConfirm={handleBulkDelete}
+        title="Hapus Produk PPOB"
+        message={`Hapus ${selectedUuids.length} produk PPOB?`}
+        confirmText="Ya, Hapus"
+        type="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

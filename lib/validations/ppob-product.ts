@@ -26,3 +26,16 @@ export const updatePpobProductSchema = z.object({
   selling_price: z.number().min(0, 'Harga jual minimal 0').optional(),
   is_active: z.boolean().optional(),
 });
+
+export const bulkDeletePpobProductSchema = z.object({
+  uuids: z.array(z.string().min(1)).min(1, 'Pilih minimal 1 produk untuk dihapus'),
+});
+
+export const getPpobProductsByCategorySchema = z.object({
+  category: z.string().min(1, 'Kategori wajib diisi'),
+  brand: z.string().optional(),
+});
+
+export const getPpobBrandsByCategorySchema = z.object({
+  category: z.string().min(1, 'Kategori wajib diisi'),
+});
