@@ -1,76 +1,32 @@
 import { NextRequest } from 'next/server';
-import { successResponse, errorResponse } from '@/lib/response';
-import { prisma } from '@/lib/prisma';
+import { successResponse } from '@/lib/response';
 import { withPermission } from '@/lib/api-middleware';
+import { withApiErrorHandling } from '@/lib/api-error-handler';
+import { validateSchema } from '@/lib/validation';
+import { createCustomerSchema } from '@/lib/validations/customer';
+import { posCustomerService } from '@/lib/modules/pos/customers/admin.service';
 
-// GET /api/admin/pos/customers - List all customers
-export const GET = withPermission('admin.pos.sale.create', async (req: NextRequest) => {
-  try {
+export const GET = withPermission(
+  'admin.pos.sale.create',
+  withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
     const search = searchParams.get('search') || '';
 
-    const skip = (page - 1) * perPage;
+    const result = await posCustomerService.listCustomers({ page, perPage, search });
+    return successResponse('Customers retrieved successfully', result);
+  })
+);
 
-    const where: any = {};
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { phone: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    const [customers, total] = await Promise.all([
-      prisma.posCustomer.findMany({
-        where,
-        skip,
-        take: perPage,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.posCustomer.count({ where }),
-    ]);
-
-    return successResponse('Customers retrieved successfully', {
-      data: customers,
-      pagination: {
-        page,
-        perPage,
-        total,
-        totalPages: Math.ceil(total / perPage),
-      },
-    });
-  } catch (error: any) {
-    console.error('Error fetching customers:', error);
-    return errorResponse('Failed to fetch customers', 500);
-  }
-});
-
-// POST /api/admin/pos/customers - Create new customer
-export const POST = withPermission('admin.pos.sale.create', async (req: NextRequest) => {
-  try {
+export const POST = withPermission(
+  'admin.pos.sale.create',
+  withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
-    const { name, phone, email, address } = body;
+    const result = validateSchema(createCustomerSchema, body);
+    if (!('data' in result)) return result;
 
-    // Validation
-    if (!name) {
-      return errorResponse('Name is required', 400);
-    }
-
-    const customer = await prisma.posCustomer.create({
-      data: {
-        name,
-        phone: phone || null,
-        email: email || null,
-        address: address || null,
-      },
-    });
-
+    const customer = await posCustomerService.createCustomer(result.data);
     return successResponse('Customer created successfully', customer);
-  } catch (error: any) {
-    console.error('Error creating customer:', error);
-    return errorResponse('Failed to create customer', 500);
-  }
-});
+  })
+);
