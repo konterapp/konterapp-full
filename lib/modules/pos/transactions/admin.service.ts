@@ -20,11 +20,14 @@ export const posTransactionService = {
     perPage: number;
     search: string;
     branchUuid: string | null;
+    paymentMethodUuid: string | null;
     startDate: string | null;
     endDate: string | null;
     paymentStatus: string | null;
+    sortBy?: string | null;
+    sortOrder?: 'asc' | 'desc' | null;
   }) {
-    const { page, perPage, search, branchUuid, startDate, endDate, paymentStatus } = params;
+    const { page, perPage, search, branchUuid, paymentMethodUuid, startDate, endDate, paymentStatus, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
 
     const where: any = {};
@@ -38,6 +41,10 @@ export const posTransactionService = {
 
     if (branchUuid) {
       where.branchUuid = branchUuid;
+    }
+
+    if (paymentMethodUuid) {
+      where.paymentMethodUuid = paymentMethodUuid;
     }
 
     if (startDate && endDate) {
@@ -55,8 +62,18 @@ export const posTransactionService = {
       where.paymentStatus = paymentStatus;
     }
 
+    const sortMap: Record<string, any> = {
+      sale_number: { saleNumber: sortOrder || 'desc' },
+      sale_date: { saleDate: sortOrder || 'desc' },
+      total_amount: { totalAmount: sortOrder || 'desc' },
+      payment_status: { paymentStatus: sortOrder || 'desc' },
+      created_at: { createdAt: sortOrder || 'desc' },
+    };
+
+    const orderBy = sortMap[sortBy || 'created_at'] || sortMap.created_at;
+
     const [sales, total] = await Promise.all([
-      posTransactionRepository.findMany({ where, skip, take: perPage }),
+      posTransactionRepository.findMany({ where, skip, take: perPage, orderBy }),
       posTransactionRepository.count(where),
     ]);
 
@@ -207,6 +224,15 @@ export const posTransactionService = {
 
     if (!sale) {
       throw new ApiError('Failed to create sale', 500);
+    }
+
+    return mapTransaction(sale);
+  },
+
+  async getTransactionDetail(uuid: string) {
+    const sale = await posTransactionRepository.findByUuid(uuid);
+    if (!sale) {
+      throw new ApiError('Transaksi tidak ditemukan', 404);
     }
 
     return mapTransaction(sale);

@@ -35,6 +35,14 @@ export async function getCustomers(
   return response.json();
 }
 
+export async function searchCustomers(search: string): Promise<{ status: string; data: Customer[] }> {
+  const response = await getCustomers(1, 10, search);
+  return {
+    status: response.status,
+    data: response.data?.data || [],
+  };
+}
+
 export async function getCustomer(uuid: string): Promise<{ status: string; data: Customer }> {
   const response = await fetch(`/api/admin/pos/customers/${uuid}`);
   return response.json();

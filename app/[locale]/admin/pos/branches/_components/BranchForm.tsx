@@ -61,8 +61,8 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
           address: result.data.address || '',
           phone: result.data.phone || '',
           email: result.data.email || '',
-          is_active: result.data.is_active,
-          is_main: result.data.is_main,
+          is_active: result.data.is_active ?? true,
+          is_main: result.data.is_main ?? false,
         });
       } else {
         setError(result.message || 'Gagal memuat data cabang');
@@ -252,7 +252,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
                 name="is_active"
                 checked={formData.is_active}
                 onChange={handleChange}
-                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
+                className="w-4 h-4 cursor-pointer text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
               />
               <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
                 Cabang Aktif
@@ -266,7 +266,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
                 name="is_main"
                 checked={formData.is_main}
                 onChange={handleChange}
-                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
+                className="w-4 h-4 cursor-pointer text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
               />
               <label htmlFor="is_main" className="ml-2 text-sm font-medium text-gray-700">
                 Cabang Utama

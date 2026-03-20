@@ -2,36 +2,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getAllBranches, Branch } from '@/lib/api/admin/branch';
+import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/admin/product';
+import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/admin/payment-method';
+import { Customer } from '@/lib/api/admin/customer';
+import { createSale, Sale, SaleItemCreateData } from '@/lib/api/admin/sale';
 import CustomerSelect from './_components/CustomerSelect';
 import ReceiptModal from './_components/ReceiptModal';
-
-interface Branch {
-  uuid: string;
-  code: string;
-  name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  is_active: boolean;
-  is_main: boolean;
-}
-
-interface Product {
-  uuid: string;
-  name: string;
-  sku: string;
-  selling_price: number;
-  image?: string | null;
-  stocks?: { branch_uuid: string; stock: number }[];
-}
-
-interface PaymentMethod {
-  uuid: string;
-  code: string;
-  name: string;
-  type: string;
-}
+import BarcodeScanner from './_components/BarcodeScanner';
 
 interface CartItem {
   id: number;
@@ -39,37 +18,12 @@ interface CartItem {
   product_name: string;
   product_sku: string;
   product_image: string | null;
+  product_images: ProductImageData[];
   unit_price: number;
   quantity: number;
   discount: number;
   subtotal: number;
   available_stock: number;
-}
-
-interface Customer {
-  uuid: string;
-  name: string;
-  phone?: string;
-  email?: string;
-}
-
-interface Sale {
-  uuid: string;
-  saleNumber: string;
-  customer?: Customer;
-  totalAmount: number;
-  paidAmount: number;
-  changeAmount: number;
-  createdAt: string;
-  creator?: { name: string };
-  paymentMethod?: { name: string };
-  items: Array<{
-    product: { name: string };
-    quantity: number;
-    unitPrice: number;
-    discount: number;
-    subtotal: number;
-  }>;
 }
 
 export default function KasirPage() {
@@ -88,31 +42,36 @@ export default function KasirPage() {
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [scanNotification, setScanNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const barcodeBufferRef = useRef('');
+  const barcodeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [lastSale, setLastSale] = useState<Partial<Sale> | null>(null);
   const [imageGallery, setImageGallery] = useState<{ images: string[]; name: string; index: number } | null>(null);
+  const [lastSale, setLastSale] = useState<Sale | null>(null);
 
-  // Load branches and payment methods
   useEffect(() => {
     const loadData = async () => {
       try {
         const [branchesRes, paymentMethodsRes] = await Promise.all([
-          fetch('/api/admin/pos/branches').then(r => r.json()),
-          fetch('/api/admin/pos/payment-methods').then(r => r.json()),
+          getAllBranches(),
+          getAllPaymentMethods(),
         ]);
-        
-        if (branchesRes.status === 'success' && branchesRes.data) {
-          setBranches(branchesRes.data.data || branchesRes.data);
-          const mainBranch = (branchesRes.data.data || branchesRes.data).find((b: Branch) => b.is_main);
+        if (branchesRes.data) {
+          const branchItems = Array.isArray(branchesRes.data)
+            ? branchesRes.data
+            : (branchesRes.data as { data?: Branch[] }).data || [];
+          setBranches(branchItems);
+          const mainBranch = branchItems.find(b => b.is_main);
           if (mainBranch) setSelectedBranch(mainBranch.uuid);
-          else if (Array.isArray(branchesRes.data.data || branchesRes.data) && branchesRes.data.length === 1) {
-            setSelectedBranch(branchesRes.data[0].uuid);
-          }
+          else if (branchItems.length === 1) setSelectedBranch(branchItems[0].uuid);
         }
-        
-        if (paymentMethodsRes.status === 'success' && paymentMethodsRes.data) {
-          setPaymentMethods(paymentMethodsRes.data.data || paymentMethodsRes.data);
-          const cashMethod = (paymentMethodsRes.data.data || paymentMethodsRes.data).find((pm: PaymentMethod) => pm.type === 'cash');
+        if (paymentMethodsRes.data) {
+          const paymentItems = Array.isArray(paymentMethodsRes.data)
+            ? paymentMethodsRes.data
+            : (paymentMethodsRes.data as { data?: PaymentMethod[] }).data || [];
+          setPaymentMethods(paymentItems);
+          const cashMethod = paymentItems.find(pm => pm.type === 'cash');
           if (cashMethod) setSelectedPaymentMethod(cashMethod.uuid);
         }
       } catch (err) {
@@ -122,23 +81,16 @@ export default function KasirPage() {
     loadData();
   }, []);
 
-  // Search products
   const searchProducts = useCallback(async (query: string) => {
     if (!selectedBranch) return;
     setIsSearching(true);
     try {
-      const params = new URLSearchParams({
-        page: '1',
-        per_page: '20',
-        search: query,
-        branch_uuid: selectedBranch,
-      });
-      
-      const response = await fetch(`/api/admin/pos/products?${params}`);
-      const data = await response.json();
-      
-      if (data.status === 'success') {
-        setProductResults(data.data.data || data.data);
+      const response = await getProducts(1, 20, query, 'name', 'asc', selectedBranch, undefined, true);
+      if (response.data) {
+        const items = Array.isArray(response.data)
+          ? response.data
+          : (response.data as { data?: Product[] }).data || [];
+        setProductResults(items);
       }
     } catch (err) {
       console.error('Failed to search products:', err);
@@ -171,7 +123,6 @@ export default function KasirPage() {
   const addToCart = (product: Product) => {
     const stock = getStockForBranch(product);
     const existingItem = cart.find(item => item.product_uuid === product.uuid);
-    
     if (existingItem) {
       if (existingItem.quantity >= stock) {
         setError(`Stok ${product.name} tidak cukup (tersedia: ${stock})`);
@@ -192,18 +143,7 @@ export default function KasirPage() {
       const price = Number(product.selling_price);
       setCart(prev => [
         ...prev,
-        {
-          id: nextCartId,
-          product_uuid: product.uuid,
-          product_name: product.name,
-          product_sku: product.sku,
-          product_image: product.image || null,
-          unit_price: price,
-          quantity: 1,
-          discount: 0,
-          subtotal: price,
-          available_stock: stock,
-        },
+        { id: nextCartId, product_uuid: product.uuid, product_name: product.name, product_sku: product.sku, product_image: product.image || null, product_images: product.images || [], unit_price: price, quantity: 1, discount: 0, subtotal: price, available_stock: stock },
       ]);
       setNextCartId(prev => prev + 1);
     }
@@ -249,11 +189,7 @@ export default function KasirPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
   const canProcess = cart.length > 0 && selectedBranch && selectedPaymentMethod && paidAmount >= totalAmount && totalAmount > 0;
@@ -262,40 +198,32 @@ export default function KasirPage() {
     if (!canProcess) return;
     setIsProcessing(true);
     setError('');
-    
     try {
-      const items = cart.map(item => ({
+      const items: SaleItemCreateData[] = cart.map(item => ({
         product_uuid: item.product_uuid,
         quantity: item.quantity,
         unit_price: item.unit_price,
         discount: item.discount > 0 ? item.discount : undefined,
       }));
-
-      const response = await fetch('/api/admin/pos/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          branch_uuid: selectedBranch,
-          customer_uuid: selectedCustomer?.uuid,
-          payment_method_uuid: selectedPaymentMethod,
-          sale_date: new Date().toISOString().split('T')[0],
-          items,
-          discount_amount: discountAmount > 0 ? discountAmount : undefined,
-          paid_amount: paidAmount,
-          notes: notes || undefined,
-        }),
+      const response = await createSale({
+        branch_uuid: selectedBranch,
+        customer_uuid: selectedCustomer?.uuid,
+        payment_method_uuid: selectedPaymentMethod,
+        sale_date: new Date().toISOString().split('T')[0],
+        discount_amount: discountAmount > 0 ? discountAmount : undefined,
+        paid_amount: paidAmount,
+        notes: notes || undefined,
+        items,
       });
-
-      const result = await response.json();
-
-      if (result.status === 'success' && result.data) {
-        setLastSale(result.data);
+      if (response.status === 'success' && response.data) {
+        setLastSale(response.data);
         setShowReceipt(true);
       } else {
-        setError(result.message || 'Gagal memproses transaksi');
+        const message = (response as { message?: string }).message;
+        setError(message || 'Gagal memproses transaksi');
       }
     } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan');
+      setError(err.response?.data?.message || 'Terjadi kesalahan');
     } finally {
       setIsProcessing(false);
     }
@@ -305,11 +233,54 @@ export default function KasirPage() {
     setShowReceipt(false);
     setLastSale(null);
     clearCart();
-    setPaidAmount(0);
-    setDiscountAmount(0);
-    setNotes('');
+    setSelectedPaymentMethod('');
     searchProducts(productSearch);
   };
+
+  const handleBarcodeScan = useCallback(async (code: string) => {
+    if (!selectedBranch || !code.trim()) return;
+    try {
+      const response = await lookupBarcode(code.trim());
+      if (response.status === 'success' && response.data) {
+        addToCart(response.data);
+        setScanNotification({ type: 'success', message: `${response.data.name} ditambahkan` });
+      } else {
+        setScanNotification({ type: 'error', message: `Produk dengan barcode "${code}" tidak ditemukan` });
+      }
+    } catch {
+      setScanNotification({ type: 'error', message: `Produk dengan barcode "${code}" tidak ditemukan` });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranch, cart]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (showCameraScanner) return;
+      if (e.key === 'Enter') {
+        const code = barcodeBufferRef.current;
+        barcodeBufferRef.current = '';
+        if (barcodeTimerRef.current) clearTimeout(barcodeTimerRef.current);
+        if (code.length >= 3) { e.preventDefault(); handleBarcodeScan(code); }
+        return;
+      }
+      if (e.key.length === 1) {
+        barcodeBufferRef.current += e.key;
+        if (barcodeTimerRef.current) clearTimeout(barcodeTimerRef.current);
+        barcodeTimerRef.current = setTimeout(() => { barcodeBufferRef.current = ''; }, 100);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleBarcodeScan, showCameraScanner]);
+
+  useEffect(() => {
+    if (scanNotification) {
+      const timer = setTimeout(() => setScanNotification(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [scanNotification]);
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col -m-6">
@@ -321,30 +292,30 @@ export default function KasirPage() {
           </div>
           <h1 className="text-base font-bold text-[#142D52]">Kasir</h1>
         </div>
-        <select
-          value={selectedBranch}
-          onChange={(e) => { setSelectedBranch(e.target.value); setCart([]); }}
-          className="px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-        >
-          <option value="">Pilih Cabang</option>
-          {branches.map(branch => (
-            <option key={branch.uuid} value={branch.uuid}>{branch.name}</option>
-          ))}
-        </select>
+        <div className="flex items-center space-x-2">
+          <select
+            value={selectedBranch}
+            onChange={(e) => { setSelectedBranch(e.target.value); setCart([]); }}
+            className="px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
+          >
+            <option value="">Pilih Cabang</option>
+            {branches.map(branch => (
+              <option key={branch.uuid} value={branch.uuid}>{branch.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error && (
         <div className="mx-4 mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs flex items-center justify-between">
           <span>{error}</span>
-          <button type="button" onClick={() => setError('')} className="ml-2 cursor-pointer">
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <button type="button" onClick={() => setError('')} className="ml-2 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Products + Cart */}
+        {/* Left: Products + Cart (scrollable together) */}
         <div className="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
           {/* Search */}
           <div className="px-4 py-2.5 border-b border-gray-200 bg-white">
@@ -357,13 +328,22 @@ export default function KasirPage() {
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   disabled={!selectedBranch}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-50"
+                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
+              <button
+                type="button"
+                onClick={() => setShowCameraScanner(true)}
+                disabled={!selectedBranch}
+                className="px-3 py-2 bg-[#142D52] text-white rounded-lg hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Scan barcode dengan kamera"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
-          {/* Product grid */}
+          {/* Product grid (scrollable) */}
           <div className="flex-1 overflow-y-auto p-3 bg-gray-50">
             {!selectedBranch ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400">
@@ -400,7 +380,7 @@ export default function KasirPage() {
                       <div className="relative w-full h-24 bg-gray-100">
                         {product.image ? (
                           <Image
-                            src={`${process.env.NEXT_PUBLIC_API_URL || ''}${product.image}`}
+                            src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
                             alt={product.name}
                             fill
                             className="object-cover"
@@ -420,7 +400,7 @@ export default function KasirPage() {
                       <div className="p-2">
                         <p className="text-xs font-medium text-gray-900 truncate">{product.name}</p>
                         <p className="text-xs font-bold text-[#142D52] mt-0.5">{formatCurrency(Number(product.selling_price))}</p>
-                        <p className={`text-[10px] mt-0.5 ${stock <= 0 ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                        <p className={`text-[10px] mt-0.5 ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
                           Stok: {stock}
                         </p>
                       </div>
@@ -436,7 +416,7 @@ export default function KasirPage() {
             )}
           </div>
 
-          {/* Cart */}
+          {/* Cart (sticky/floating at bottom) */}
           {cart.length > 0 && (
             <div className="border-t border-gray-200 bg-white flex flex-col max-h-[45%] shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
               <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
@@ -466,10 +446,21 @@ export default function KasirPage() {
                       <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                         <td className="py-2 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                            <div
+                              className={`w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${item.product_images.length > 0 || item.product_image ? 'cursor-pointer hover:ring-2 hover:ring-[#EBC170] transition-all' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const urls = item.product_images.length > 0
+                                  ? item.product_images.map(img => `${process.env.NEXT_PUBLIC_API_URL}${img.url}`)
+                                  : item.product_image ? [`${process.env.NEXT_PUBLIC_API_URL}${item.product_image}`] : [];
+                                if (urls.length > 0) {
+                                  setImageGallery({ images: urls, name: item.product_name, index: 0 });
+                                }
+                              }}
+                            >
                               {item.product_image ? (
                                 <Image
-                                  src={`${process.env.NEXT_PUBLIC_API_URL || ''}${item.product_image}`}
+                                  src={`${process.env.NEXT_PUBLIC_API_URL}${item.product_image}`}
                                   alt={item.product_name}
                                   width={36}
                                   height={36}
@@ -537,11 +528,14 @@ export default function KasirPage() {
 
         {/* Right: Payment panel */}
         <div className="w-[340px] flex flex-col bg-white">
+          {/* Payment header */}
           <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-[#142D52]">Pembayaran</h2>
           </div>
 
+          {/* Payment section */}
           <div className="flex-1 overflow-y-auto">
+            {/* Customer & Payment method */}
             <div className="px-4 py-3 space-y-3 border-b border-gray-200">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Pelanggan</label>
@@ -557,8 +551,8 @@ export default function KasirPage() {
                       onClick={() => setSelectedPaymentMethod(pm.uuid)}
                       className={`px-3 py-1.5 text-xs rounded-lg border transition-all cursor-pointer ${
                         selectedPaymentMethod === pm.uuid
-                          ? 'border-[#142D52] bg-[#142D52] text-white'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          ? 'border-[#142D52] bg-[#142D52] text-white font-semibold'
+                          : 'border-gray-200 bg-white hover:border-gray-300 text-gray-600'
                       }`}
                     >
                       {pm.name}
@@ -568,82 +562,192 @@ export default function KasirPage() {
               </div>
             </div>
 
-            <div className="px-4 py-3 space-y-3">
-              <div>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(cartSubtotal)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-600">Diskon</span>
-                  <input
-                    type="number"
-                    value={discountAmount}
-                    onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                    className="w-24 text-right text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                    placeholder="0"
-                    min="0"
-                  />
-                </div>
+            {/* Summary */}
+            <div className="px-4 py-3 space-y-2 border-b border-gray-200">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-700 font-medium">{formatCurrency(cartSubtotal)}</span>
               </div>
-
-              <div className="border-t border-gray-200 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-[#142D52]">Total</span>
-                  <span className="text-xl font-bold text-[#142D52]">{formatCurrency(totalAmount)}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-gray-600">Jumlah Bayar</label>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-500">Diskon</span>
                 <input
                   type="number"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(Number(e.target.value))}
-                  className="w-full text-lg font-bold text-right border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  value={discountAmount || ''}
+                  onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
                   placeholder="0"
+                  className="w-28 text-right px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
                   min="0"
                 />
-                {paidAmount > 0 && (
-                  <div className={`text-sm ${changeAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    Kembalian: {formatCurrency(changeAmount)}
-                  </div>
-                )}
               </div>
+              <div className="flex justify-between items-baseline pt-2 border-t border-gray-200">
+                <span className="text-sm font-bold text-[#142D52]">Total</span>
+                <span className="text-xl font-bold text-[#142D52]">{formatCurrency(totalAmount)}</span>
+              </div>
+            </div>
 
+            {/* Bayar */}
+            <div className="px-4 py-3 space-y-2 border-b border-gray-200">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Catatan (Opsional)</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#EBC170] resize-none"
-                  rows={2}
-                  placeholder="Catatan transaksi..."
+                <label className="block text-xs font-medium text-gray-600 mb-1">Bayar</label>
+                <input
+                  type="number"
+                  value={paidAmount || ''}
+                  onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
+                  placeholder="0"
+                  className="w-full px-3 py-2.5 text-lg font-bold text-right border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
+                  min="0"
                 />
               </div>
+              {totalAmount > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => setPaidAmount(totalAmount)} className="px-3 py-1.5 text-xs bg-[#EBC170]/10 border border-[#EBC170]/30 text-[#142D52] hover:bg-[#EBC170]/20 rounded-lg transition-colors cursor-pointer font-medium">
+                    Uang Pas
+                  </button>
+                  {[50000, 100000, 200000].map(amount => (
+                    amount >= totalAmount && (
+                      <button key={amount} type="button" onClick={() => setPaidAmount(amount)} className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-gray-600">
+                        {formatCurrency(amount)}
+                      </button>
+                    )
+                  ))}
+                </div>
+              )}
+              {paidAmount > 0 && totalAmount > 0 && (
+                <div className={`flex justify-between text-sm p-2.5 rounded-lg font-medium ${changeAmount >= 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                  <span>Kembalian</span>
+                  <span className="font-bold">{formatCurrency(Math.max(0, changeAmount))}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="px-4 py-3">
+              <label className="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Catatan transaksi (opsional)"
+                rows={2}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] resize-none"
+              />
             </div>
           </div>
 
-          <div className="p-4 border-t border-gray-200 bg-gray-50">
+          {/* Process button (sticky bottom) */}
+          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
             <button
               type="button"
               onClick={handleProcess}
               disabled={!canProcess || isProcessing}
-              className="w-full py-3 px-4 bg-[#142D52] text-white font-bold rounded-lg hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-[#142D52] text-white rounded-lg font-bold text-sm hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing ? 'Memproses...' : 'Proses Transaksi'}
+              {isProcessing ? 'Memproses...' : `Proses Pembayaran${cart.length > 0 ? ` (${cart.length})` : ''}`}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Receipt Modal */}
-      {showReceipt && lastSale && (
-        <ReceiptModal
-          isOpen={showReceipt}
-          onClose={handleNewTransaction}
-          sale={lastSale}
-        />
+      {/* Scan notification toast */}
+      {scanNotification && (
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium transition-all ${
+          scanNotification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        }`}>
+          {scanNotification.message}
+        </div>
+      )}
+
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onScan={(code) => { setShowCameraScanner(false); handleBarcodeScan(code); }}
+        onClose={() => setShowCameraScanner(false)}
+      />
+
+      <ReceiptModal
+        isOpen={showReceipt}
+        sale={lastSale}
+        onClose={() => setShowReceipt(false)}
+        onNewTransaction={handleNewTransaction}
+      />
+
+      {/* Fullscreen image gallery lightbox */}
+      {imageGallery && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col"
+          onClick={() => setImageGallery(null)}
+        >
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+            <div className="text-white">
+              <p className="text-sm font-medium">{imageGallery.name}</p>
+              {imageGallery.images.length > 1 && (
+                <p className="text-xs text-white/60">{imageGallery.index + 1} / {imageGallery.images.length}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setImageGallery(null)}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* Main image area */}
+          <div className="flex-1 flex items-center justify-center relative min-h-0 px-16" onClick={(e) => e.stopPropagation()}>
+            {/* Prev button */}
+            {imageGallery.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setImageGallery(prev => prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null)}
+                className="absolute left-3 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-10"
+              >
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+            )}
+
+            {/* Image */}
+            <div className="relative w-full h-full max-w-2xl mx-auto">
+              <Image
+                src={imageGallery.images[imageGallery.index]}
+                alt={imageGallery.name}
+                fill
+                className="object-contain"
+                unoptimized
+              />
+            </div>
+
+            {/* Next button */}
+            {imageGallery.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setImageGallery(prev => prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null)}
+                className="absolute right-3 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors cursor-pointer z-10"
+              >
+                <ChevronRight className="w-6 h-6 text-white" />
+              </button>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {imageGallery.images.length > 1 && (
+            <div className="flex items-center justify-center gap-2 px-5 py-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              {imageGallery.images.map((url, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setImageGallery(prev => prev ? { ...prev, index: i } : null)}
+                  className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all cursor-pointer flex-shrink-0 ${
+                    i === imageGallery.index ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-80'
+                  }`}
+                >
+                  <div className="relative w-full h-full">
+                    <Image src={url} alt="" fill className="object-cover" unoptimized />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

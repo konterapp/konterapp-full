@@ -1,55 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Printer, Share2 } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 
-interface SaleItem {
-  product: {
-    name: string;
-  };
+interface ReceiptSaleItem {
   quantity: number;
   unitPrice: number;
   discount: number;
   subtotal: number;
+  product?: { uuid?: string; name?: string };
 }
 
-interface Sale {
-  saleNumber: string;
-  createdAt?: string;
-  creator?: {
-    name: string;
-  };
-  customer?: {
-    name: string;
-  };
-  paymentMethod?: {
-    name: string;
-  };
+interface ReceiptSale {
+  saleNumber?: string;
+  saleDate?: string;
+  branch?: { name?: string };
+  customer?: { name?: string };
+  paymentMethod?: { name?: string };
+  items?: ReceiptSaleItem[];
   subtotal?: number;
   discountAmount?: number;
   totalAmount?: number;
   paidAmount?: number;
   changeAmount?: number;
-  notes?: string;
-  items?: SaleItem[];
 }
 
 interface ReceiptModalProps {
   isOpen: boolean;
+  sale: ReceiptSale | null;
   onClose: () => void;
-  sale: Partial<Sale> | null;
+  onNewTransaction: () => void;
 }
 
-export default function ReceiptModal({ isOpen, onClose, sale }: ReceiptModalProps) {
-  const [isPrinting, setIsPrinting] = useState(false);
-
+export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }: ReceiptModalProps) {
   if (!isOpen || !sale) return null;
-
-  const handlePrint = () => {
-    setIsPrinting(true);
-    window.print();
-    setTimeout(() => setIsPrinting(false), 1000);
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -59,142 +42,131 @@ export default function ReceiptModal({ isOpen, onClose, sale }: ReceiptModalProp
     }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('id-ID', {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
       year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Struk Transaksi</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5 text-gray-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header - hide on print */}
+        <div className="flex items-center justify-between p-4 border-b print:hidden">
+          <h2 className="text-lg font-semibold text-gray-900">Struk Transaksi</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer">
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Receipt Content */}
-        <div className="p-6">
-          <div className="text-center mb-6">
-            <h4 className="text-xl font-bold text-gray-900">KonterApp</h4>
-            <p className="text-sm text-gray-500 mt-1">Solusi Kasir & PPOB Terlengkap</p>
+        <div className="p-6" id="receipt-content">
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-bold">KONTERAPP</h3>
+            {sale.branch && <p className="text-sm text-gray-600">{sale.branch.name}</p>}
+            <div className="border-b border-dashed border-gray-300 mt-3" />
           </div>
 
-          <div className="border-t border-dashed border-gray-300 my-4"></div>
-
-          <div className="space-y-2 text-sm">
+          <div className="text-sm space-y-1 mb-4">
             <div className="flex justify-between">
-              <span className="text-gray-500">No. Invoice</span>
-              <span className="font-medium text-gray-900">{sale.saleNumber}</span>
+              <span className="text-gray-600">No. Transaksi:</span>
+              <span className="font-medium">{sale.saleNumber || '-'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Tanggal</span>
-              <span className="text-gray-900">{sale.createdAt ? formatDate(sale.createdAt) : '-'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Kasir</span>
-              <span className="text-gray-900">{sale.creator?.name || '-'}</span>
+              <span className="text-gray-600">Tanggal:</span>
+              <span>{formatDate(sale.saleDate)}</span>
             </div>
             {sale.customer && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Pelanggan</span>
-                <span className="text-gray-900">{sale.customer.name}</span>
+                <span className="text-gray-600">Pelanggan:</span>
+                <span>{sale.customer.name}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-500">Metode Bayar</span>
-              <span className="text-gray-900">{sale.paymentMethod?.name || '-'}</span>
-            </div>
+            {sale.paymentMethod && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Pembayaran:</span>
+                <span>{sale.paymentMethod.name}</span>
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-dashed border-gray-300 my-4"></div>
+          <div className="border-b border-dashed border-gray-300 mb-3" />
 
           {/* Items */}
-          <div className="space-y-3">
+          <div className="space-y-2 mb-3">
             {sale.items?.map((item, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <div className="flex-1">
-                  <p className="text-gray-900">{item.product.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {item.quantity} x {formatCurrency(item.unitPrice)}
-                  </p>
+              <div key={item.product?.uuid || index} className="text-sm">
+                <p className="font-medium">{item.product?.name || 'Produk'}</p>
+                <div className="flex justify-between text-gray-600">
+                  <span>{item.quantity} x {formatCurrency(Number(item.unitPrice))}</span>
+                  <span>{formatCurrency(Number(item.subtotal))}</span>
                 </div>
-                <div className="text-right">
-                  {item.discount > 0 && (
-                    <p className="text-xs text-red-500">-{formatCurrency(item.discount)}</p>
-                  )}
-                  <p className="font-medium text-gray-900">{formatCurrency(item.subtotal)}</p>
-                </div>
+                {Number(item.discount) > 0 && (
+                  <div className="flex justify-between text-gray-500 text-xs">
+                    <span>Diskon:</span>
+                    <span>-{formatCurrency(Number(item.discount))}</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          <div className="border-t border-dashed border-gray-300 my-4"></div>
+          <div className="border-b border-dashed border-gray-300 mb-3" />
 
-          {/* Totals */}
-          <div className="space-y-2 text-sm">
+          {/* Summary */}
+          <div className="text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal</span>
-              <span className="text-gray-900">{formatCurrency(sale.subtotal || 0)}</span>
+              <span className="text-gray-600">Subtotal:</span>
+              <span>{formatCurrency(Number(sale.subtotal))}</span>
             </div>
-            {sale.discountAmount && sale.discountAmount > 0 && (
+            {Number(sale.discountAmount) > 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Diskon</span>
-                <span className="text-red-500">-{formatCurrency(sale.discountAmount)}</span>
+                <span className="text-gray-600">Diskon:</span>
+                <span>-{formatCurrency(Number(sale.discountAmount))}</span>
               </div>
             )}
-            <div className="flex justify-between text-base font-bold">
-              <span className="text-gray-900">Total</span>
-              <span className="text-gray-900">{formatCurrency(sale.totalAmount || 0)}</span>
+            <div className="flex justify-between font-bold text-base pt-1 border-t border-gray-200">
+              <span>Total:</span>
+              <span>{formatCurrency(Number(sale.totalAmount))}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Bayar</span>
-              <span className="text-gray-900">{formatCurrency(sale.paidAmount || 0)}</span>
+              <span className="text-gray-600">Bayar:</span>
+              <span>{formatCurrency(Number(sale.paidAmount))}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Kembali</span>
-              <span className="text-green-600 font-medium">{formatCurrency(sale.changeAmount || 0)}</span>
+            <div className="flex justify-between font-medium">
+              <span className="text-gray-600">Kembalian:</span>
+              <span>{formatCurrency(Number(sale.changeAmount))}</span>
             </div>
           </div>
 
-          <div className="border-t border-dashed border-gray-300 my-4"></div>
+          <div className="border-b border-dashed border-gray-300 mt-4 mb-3" />
 
-          {sale.notes && (
-            <div className="text-sm">
-              <span className="text-gray-500">Catatan: </span>
-              <span className="text-gray-900">{sale.notes}</span>
-            </div>
-          )}
+          <p className="text-center text-xs text-gray-500">Terima kasih atas kunjungan Anda!</p>
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3 no-print">
+        {/* Actions - hide on print */}
+        <div className="flex space-x-3 p-4 border-t print:hidden">
           <button
             type="button"
             onClick={handlePrint}
-            disabled={isPrinting}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#142D52] text-white rounded-lg hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50"
+            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Cetak</span>
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="flex-1 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={onNewTransaction}
+            className="flex-1 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            Tutup
+            Transaksi Baru
           </button>
         </div>
       </div>

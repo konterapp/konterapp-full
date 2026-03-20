@@ -12,18 +12,24 @@ export const GET = withPermission(
     const perPage = parseInt(searchParams.get('per_page') || '10');
     const search = searchParams.get('search') || '';
     const branchUuid = searchParams.get('branch_uuid');
+    const paymentMethodUuid = searchParams.get('payment_method_uuid');
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const paymentStatus = searchParams.get('payment_status');
+    const sortBy = searchParams.get('sort_by');
+    const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
 
     const result = await posTransactionService.listTransactions({
       page,
       perPage,
       search,
       branchUuid,
+      paymentMethodUuid,
       startDate,
       endDate,
       paymentStatus,
+      sortBy,
+      sortOrder,
     });
 
     return successResponse('Transactions retrieved successfully', result);
