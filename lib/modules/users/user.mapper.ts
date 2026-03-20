@@ -1,3 +1,5 @@
+import { buildUploadFileUrl } from "@/lib/utils/file-upload";
+
 export function formatUser(user: any, permissions?: string[]) {
   const roles = user.modelHasRoles?.map((r: any) => r.role.name) ?? [];
   const result: any = {
@@ -15,7 +17,7 @@ export function formatUser(user: any, permissions?: string[]) {
     company: user.profile?.company ?? null,
     work_unit: user.profile?.workUnit ?? null,
     admin_scope: user.profile?.adminScope ?? null,
-    avatar_url: user.profile?.avatar ? `/uploads/avatars/${user.profile.avatar}` : null,
+    avatar_url: buildUploadFileUrl("avatars", user.profile?.avatar),
     province_id: user.profile?.provinceId ?? null,
     city_id: user.profile?.cityId ?? null,
     wilayah_kode: user.profile?.wilayahKode ?? null,

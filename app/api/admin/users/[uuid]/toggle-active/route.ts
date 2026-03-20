@@ -1,18 +1,17 @@
-import { errorResponse, successResponse } from "@/lib/response";
+import { successResponse } from "@/lib/response";
 import { withPermission } from "@/lib/api-middleware";
+import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { userService } from "@/lib/modules/users/admin.service";
 
-export const PATCH = withPermission("admin.user.update", async (_req, context) => {
-  try {
+export const PATCH = withPermission(
+  "admin.user.update",
+  withApiErrorHandling(async (_req, context) => {
     const params = await context.params;
-    const result = await userService.toggleUserActive(params.uuid);
+    const uuid = params.uuid;
 
-    if (!result.ok) {
-      return errorResponse(result.message ?? "Internal server error", result.statusCode);
-    }
+    const result = await userService.toggleUserActive(uuid);
+    const message = result.is_active ? "User activated successfully" : "User deactivated successfully";
 
-    return successResponse(result.message ?? "User updated successfully", result.data);
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
+    return successResponse(message, result);
+  })
+);

@@ -1,18 +1,13 @@
 import { hash } from "bcryptjs";
-import { mkdir, unlink, writeFile } from "fs/promises";
-import { join } from "path";
 import { v7 as uuidv7 } from "uuid";
+import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { getUserPermissions } from "@/lib/permissions";
+import { removeFileIfExists, saveUploadedFile } from "@/lib/utils/file-upload";
 import { formatUser } from "./user.mapper";
 import { userRepository } from "./repository";
 
-const avatarUploadDir = join(process.cwd(), "public", "uploads", "avatars");
-
-type ValidationErr = { ok: false; statusCode: 422; errors: Record<string, string[]>; message?: string };
-type NotFoundErr = { ok: false; statusCode: 404; message: string };
-type ServiceErr = ValidationErr | NotFoundErr;
-type ServiceOk<T> = { ok: true; data: T; message?: string };
-type ServiceResult<T> = ServiceOk<T> | ServiceErr;
+const avatarUploadFolder = "avatars";
+const allowedAvatarTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp"];
 
 function getSortConfig(sortBy: string, sortOrder: string) {
   const allowedSorts = ["id", "name", "email", "created_at"];
@@ -25,7 +20,6 @@ function getSortConfig(sortBy: string, sortOrder: string) {
     created_at: "createdAt",
   };
   return {
-    sortDir,
     orderBy: { [sortFieldMap[sortField]]: sortDir as "asc" | "desc" },
   };
 }
@@ -39,34 +33,28 @@ function getSourceFilter(source: string) {
 }
 
 async function saveAvatar(file: File) {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const avatarFilename = `${uuidv7()}_${file.name}`;
-  await mkdir(avatarUploadDir, { recursive: true });
-  await writeFile(join(avatarUploadDir, avatarFilename), buffer);
-  return avatarFilename;
+  return saveUploadedFile(file, {
+    folder: avatarUploadFolder,
+    allowedTypes: allowedAvatarTypes,
+    maxSizeBytes: 2 * 1024 * 1024,
+    fieldName: "image",
+  });
 }
 
 async function removeAvatarIfExists(filename?: string | null) {
-  if (!filename) return;
-  try {
-    await unlink(join(avatarUploadDir, filename));
-  } catch {
-    // ignore missing file
-  }
+  return removeFileIfExists(avatarUploadFolder, filename);
 }
 
-function validateRoleSpecificFields(roleName: string, payload: any): ServiceErr | null {
+function validateRoleSpecificFields(roleName: string, payload: any) {
   if (roleName === "pemda" && !payload.wilayah_kode) {
-    return { ok: false, statusCode: 422, errors: { wilayah_kode: ["Wilayah wajib dipilih"] } };
+    throw new ValidationApiError({ wilayah_kode: ["Wilayah wajib dipilih"] });
   }
   if (roleName === "pemprov" && !payload.province_id) {
-    return { ok: false, statusCode: 422, errors: { province_id: ["Provinsi wajib dipilih"] } };
+    throw new ValidationApiError({ province_id: ["Provinsi wajib dipilih"] });
   }
   if ((roleName === "curator" || roleName === "verifikator") && !payload.admin_scope) {
-    return { ok: false, statusCode: 422, errors: { admin_scope: ["Admin scope wajib dipilih"] } };
+    throw new ValidationApiError({ admin_scope: ["Admin scope wajib dipilih"] });
   }
-  return null;
 }
 
 export const userService = {
@@ -83,10 +71,7 @@ export const userService = {
     const where: any = { deletedAt: null };
 
     if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { email: { contains: search } },
-      ];
+      where.OR = [{ name: { contains: search } }, { email: { contains: search } }];
     }
 
     if (role) {
@@ -122,29 +107,28 @@ export const userService = {
     return userRepository.listRoles();
   },
 
-  async getUserDetail(uuid: string): Promise<ServiceResult<any>> {
+  async getUserDetail(uuid: string) {
     const user = await userRepository.findByUuid(uuid);
     if (!user) {
-      return { ok: false, statusCode: 404, message: "User tidak ditemukan" };
+      throw new ApiError("User tidak ditemukan", 404);
     }
 
     const permissions = await getUserPermissions(user.id);
-    return { ok: true, data: formatUser(user, permissions) };
+    return formatUser(user, permissions);
   },
 
-  async createUser(payload: any, profilePhotoFile: File | null): Promise<ServiceResult<any>> {
+  async createUser(payload: any, profilePhotoFile: File | null) {
     const existingEmail = await userRepository.findByEmail(payload.email);
     if (existingEmail) {
-      return { ok: false, statusCode: 422, errors: { email: ["Email sudah terdaftar"] } };
+      throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
     }
 
     const role = await userRepository.findRoleById(payload.roles);
     if (!role) {
-      return { ok: false, statusCode: 422, errors: { roles: ["Role tidak valid"] } };
+      throw new ValidationApiError({ roles: ["Role tidak valid"] });
     }
 
-    const roleValidationError = validateRoleSpecificFields(role.name, payload);
-    if (roleValidationError) return roleValidationError;
+    validateRoleSpecificFields(role.name, payload);
 
     let avatarFilename: string | null = null;
     if (profilePhotoFile && profilePhotoFile.size > 0) {
@@ -152,9 +136,7 @@ export const userService = {
     }
 
     const adminScope =
-      role.name === "curator" || role.name === "verifikator"
-        ? payload.admin_scope ?? null
-        : null;
+      role.name === "curator" || role.name === "verifikator" ? payload.admin_scope ?? null : null;
 
     const dcClean = (payload.dc ?? "").replace("+", "");
     const hashedPassword = await hash(payload.password, 10);
@@ -184,27 +166,26 @@ export const userService = {
       roleId: role.id,
     });
 
-    return { ok: true, data: formatUser(user), message: "User created successfully" };
+    return formatUser(user);
   },
 
-  async updateUser(uuid: string, payload: any, profilePhotoFile: File | null): Promise<ServiceResult<any>> {
+  async updateUser(uuid: string, payload: any, profilePhotoFile: File | null) {
     const user = await userRepository.findByUuidBasic(uuid);
     if (!user) {
-      return { ok: false, statusCode: 404, message: "User tidak ditemukan" };
+      throw new ApiError("User tidak ditemukan", 404);
     }
 
     const existingEmail = await userRepository.findByEmail(payload.email, uuid);
     if (existingEmail) {
-      return { ok: false, statusCode: 422, errors: { email: ["Email sudah terdaftar"] } };
+      throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
     }
 
     const role = await userRepository.findRoleById(payload.roles);
     if (!role) {
-      return { ok: false, statusCode: 422, errors: { roles: ["Role tidak valid"] } };
+      throw new ValidationApiError({ roles: ["Role tidak valid"] });
     }
 
-    const roleValidationError = validateRoleSpecificFields(role.name, payload);
-    if (roleValidationError) return roleValidationError;
+    validateRoleSpecificFields(role.name, payload);
 
     let avatarFilename: string | undefined;
     if (profilePhotoFile && profilePhotoFile.size > 0) {
@@ -213,9 +194,7 @@ export const userService = {
     }
 
     const adminScope =
-      role.name === "curator" || role.name === "verifikator"
-        ? payload.admin_scope ?? null
-        : null;
+      role.name === "curator" || role.name === "verifikator" ? payload.admin_scope ?? null : null;
 
     const dcClean = (payload.dc ?? "").replace("+", "");
     const userData: Record<string, unknown> = {
@@ -252,30 +231,25 @@ export const userService = {
       profileData,
     });
 
-    return { ok: true, data: formatUser(updated), message: "User updated successfully" };
+    return formatUser(updated);
   },
 
-  async deleteUser(uuid: string): Promise<ServiceResult<null>> {
+  async deleteUser(uuid: string) {
     const user = await userRepository.findByUuidBasic(uuid);
     if (!user) {
-      return { ok: false, statusCode: 404, message: "User tidak ditemukan" };
+      throw new ApiError("User tidak ditemukan", 404);
     }
 
     await userRepository.softDeleteById(user.id);
-    return { ok: true, data: null, message: "User deleted successfully" };
   },
 
-  async toggleUserActive(uuid: string): Promise<ServiceResult<any>> {
+  async toggleUserActive(uuid: string) {
     const user = await userRepository.findByUuidBasic(uuid);
     if (!user) {
-      return { ok: false, statusCode: 404, message: "User tidak ditemukan" };
+      throw new ApiError("User tidak ditemukan", 404);
     }
 
     const updated = await userRepository.toggleActiveById(user.id, !user.isActive);
-    const message = updated.isActive
-      ? "User activated successfully"
-      : "User deactivated successfully";
-
-    return { ok: true, data: formatUser(updated), message };
+    return formatUser(updated);
   },
 };

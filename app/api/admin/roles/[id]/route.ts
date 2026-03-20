@@ -1,47 +1,42 @@
-import { errorResponse, successResponse, validationError } from "@/lib/response";
+import { successResponse } from "@/lib/response";
 import { withPermission } from "@/lib/api-middleware";
+import { withApiErrorHandling } from "@/lib/api-error-handler";
+import { ApiError } from "@/lib/api-errors";
 import { validateSchema } from "@/lib/validation";
 import { updateRoleSchema } from "@/lib/validations/role";
 import { roleService } from "@/lib/modules/roles/admin.service";
 
 function parseRoleId(rawId?: string) {
-  if (!rawId) return null;
+  if (!rawId) {
+    throw new ApiError("Invalid role ID", 400);
+  }
+
   const id = Number(rawId);
-  if (Number.isNaN(id)) return null;
+  if (Number.isNaN(id)) {
+    throw new ApiError("Invalid role ID", 400);
+  }
+
   return id;
 }
 
-export const GET = withPermission("admin.role.index", async (_req, context) => {
-  try {
+export const GET = withPermission(
+  "admin.role.index",
+  withApiErrorHandling(async (_req, context) => {
     const params = await context.params;
     const id = parseRoleId(params.id);
-
-    if (id === null) {
-      return errorResponse("Invalid role ID", 400);
-    }
 
     const result = await roleService.getRoleDetail(id);
-    if (!result.ok) {
-      return errorResponse(result.message ?? "Failed to fetch role", result.statusCode);
-    }
+    return successResponse("Role retrieved successfully", result);
+  })
+);
 
-    return successResponse("Role retrieved successfully", result.data);
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
-
-export const PATCH = withPermission("admin.role.update", async (req, context) => {
-  try {
+export const PATCH = withPermission(
+  "admin.role.update",
+  withApiErrorHandling(async (req, context) => {
     const params = await context.params;
     const id = parseRoleId(params.id);
 
-    if (id === null) {
-      return errorResponse("Invalid role ID", 400);
-    }
-
     const body = await req.json();
-
     const validated = validateSchema(updateRoleSchema, body);
     if (!("data" in validated)) return validated;
 
@@ -51,36 +46,17 @@ export const PATCH = withPermission("admin.role.update", async (req, context) =>
       permissions: validated.data.permissions,
     });
 
-    if (!result.ok && result.statusCode === 422) {
-      return validationError(result.errors);
-    }
+    return successResponse("Role updated successfully", result);
+  })
+);
 
-    if (!result.ok) {
-      return errorResponse(result.message, result.statusCode);
-    }
-
-    return successResponse(result.message ?? "Role updated successfully", result.data);
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
-
-export const DELETE = withPermission("admin.role.delete", async (_req, context) => {
-  try {
+export const DELETE = withPermission(
+  "admin.role.delete",
+  withApiErrorHandling(async (_req, context) => {
     const params = await context.params;
     const id = parseRoleId(params.id);
 
-    if (id === null) {
-      return errorResponse("Invalid role ID", 400);
-    }
-
-    const result = await roleService.deleteRole(id);
-    if (!result.ok) {
-      return errorResponse(result.message ?? "Failed to delete role", result.statusCode);
-    }
-
-    return successResponse(result.message ?? "Role deleted successfully");
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
+    await roleService.deleteRole(id);
+    return successResponse("Role deleted successfully");
+  })
+);

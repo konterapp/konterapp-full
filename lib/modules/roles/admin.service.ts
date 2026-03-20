@@ -1,11 +1,6 @@
+import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { roleRepository } from "./repository";
 import { formatRole } from "./role.mapper";
-
-type ValidationErr = { ok: false; statusCode: 422; errors: Record<string, string[]>; message?: string };
-type NotFoundErr = { ok: false; statusCode: 404; message: string };
-type ServiceErr = ValidationErr | NotFoundErr;
-type ServiceOk<T> = { ok: true; data: T; message?: string };
-type ServiceResult<T> = ServiceOk<T> | ServiceErr;
 
 function getSortConfig(sortBy: string, sortOrder: string) {
   const allowedSorts = ["id", "name", "created_at"];
@@ -18,7 +13,6 @@ function getSortConfig(sortBy: string, sortOrder: string) {
   };
 
   return {
-    sortDir,
     orderBy: { [sortFieldMap[sortField]]: sortDir as "asc" | "desc" },
   };
 }
@@ -32,8 +26,8 @@ export const roleService = {
     sortOrder: string;
   }) {
     const { page, perPage, search, sortBy, sortOrder } = params;
-
     const where: any = {};
+
     if (search) {
       where.name = { contains: search };
     }
@@ -54,48 +48,47 @@ export const roleService = {
     };
   },
 
-  async getRoleDetail(id: number): Promise<ServiceResult<any>> {
+  async getRoleDetail(id: number) {
     const role = await roleRepository.findById(id);
     if (!role) {
-      return { ok: false, statusCode: 404, message: "Role tidak ditemukan" };
+      throw new ApiError("Role tidak ditemukan", 404);
     }
 
-    return { ok: true, data: formatRole(role) };
+    return formatRole(role);
   },
 
-  async createRole(payload: { name: string; permissions?: string[] }): Promise<ServiceResult<any>> {
+  async createRole(payload: { name: string; permissions?: string[] }) {
     const existing = await roleRepository.findByName(payload.name);
     if (existing) {
-      return { ok: false, statusCode: 422, errors: { name: ["Nama role sudah ada"] } };
+      throw new ValidationApiError({ name: ["Nama role sudah ada"] });
     }
 
     const role = await roleRepository.createRole(payload);
-    return { ok: true, data: formatRole(role), message: "Role created successfully" };
+    return formatRole(role);
   },
 
-  async updateRole(payload: { id: number; name: string; permissions?: string[] }): Promise<ServiceResult<any>> {
+  async updateRole(payload: { id: number; name: string; permissions?: string[] }) {
     const existingRole = await roleRepository.findById(payload.id);
     if (!existingRole) {
-      return { ok: false, statusCode: 404, message: "Role tidak ditemukan" };
+      throw new ApiError("Role tidak ditemukan", 404);
     }
 
     const existingName = await roleRepository.findByName(payload.name, payload.id);
     if (existingName) {
-      return { ok: false, statusCode: 422, errors: { name: ["Nama role sudah ada"] } };
+      throw new ValidationApiError({ name: ["Nama role sudah ada"] });
     }
 
     const updatedRole = await roleRepository.updateRole(payload);
-    return { ok: true, data: formatRole(updatedRole), message: "Role updated successfully" };
+    return formatRole(updatedRole);
   },
 
-  async deleteRole(id: number): Promise<ServiceResult<null>> {
+  async deleteRole(id: number) {
     const existingRole = await roleRepository.findById(id);
     if (!existingRole) {
-      return { ok: false, statusCode: 404, message: "Role tidak ditemukan" };
+      throw new ApiError("Role tidak ditemukan", 404);
     }
 
     await roleRepository.deleteRole(id);
-    return { ok: true, data: null, message: "Role deleted successfully" };
   },
 
   async listPermissions() {

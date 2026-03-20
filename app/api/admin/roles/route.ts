@@ -1,11 +1,13 @@
-import { paginatedResponse, errorResponse, successResponse, validationError } from "@/lib/response";
+import { paginatedResponse, successResponse } from "@/lib/response";
 import { validateSchema } from "@/lib/validation";
 import { createRoleSchema } from "@/lib/validations/role";
 import { withPermission } from "@/lib/api-middleware";
+import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { roleService } from "@/lib/modules/roles/admin.service";
 
-export const GET = withPermission("admin.role.index", async (req) => {
-  try {
+export const GET = withPermission(
+  "admin.role.index",
+  withApiErrorHandling(async (req) => {
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
     const perPage = Math.max(1, Math.min(100, Number(url.searchParams.get("per_page") ?? 10)));
@@ -27,30 +29,18 @@ export const GET = withPermission("admin.role.index", async (req) => {
       total: result.total,
       path: url.pathname,
     });
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
+  })
+);
 
-export const POST = withPermission("admin.role.create", async (req) => {
-  try {
+export const POST = withPermission(
+  "admin.role.create",
+  withApiErrorHandling(async (req) => {
     const body = await req.json();
 
     const result = validateSchema(createRoleSchema, body);
     if (!("data" in result)) return result;
 
     const created = await roleService.createRole(result.data);
-
-    if (!created.ok && created.statusCode === 422) {
-      return validationError(created.errors);
-    }
-
-    if (!created.ok) {
-      return errorResponse(created.message, created.statusCode);
-    }
-
-    return successResponse(created.message ?? "Role created successfully", created.data, 201);
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
-  }
-});
+    return successResponse("Role created successfully", created, 201);
+  })
+);

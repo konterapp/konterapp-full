@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { successResponse, errorResponse, paginatedResponse } from "@/lib/response";
+import { buildUploadFileUrl } from "@/lib/utils/file-upload";
 import { NextRequest } from "next/server";
 
 function formatBerita(berita: any) {
@@ -14,7 +15,7 @@ function formatBerita(berita: any) {
     title: berita.title,
     slug: berita.slug,
     content: berita.content,
-    image_url: berita.image ? `/uploads/berita/${berita.image}` : null,
+    image_url: buildUploadFileUrl("berita", berita.image),
     tags,
     news_type: berita.newsType,
     category: berita.category,
