@@ -2,6 +2,7 @@
 - setiap buat fitur, sediakan data dummy /Users/didikabdulmukmin/projects/www/konterapp/konterapp-be/database/seeders/Dummy/DummyDataSeeder.php
 - validasi form harus di API (pakai zod + validationError), client hanya menampilkan message/errors dari API (jangan bikin validasi manual di client)
 - semua seeder WAJIB set `uuid` secara eksplisit pakai `uuidv7()` (jangan default `cuid`)
+- semua elemen UI yang bisa di-click (button, icon action, select, checkbox, clickable row/card) WAJIB pakai `cursor-pointer` agar konsisten UX.
 
 ## Architecture Rules (Backend Next.js)
 - Gunakan pola modular: `route.ts -> service -> (repository jika perlu)`.

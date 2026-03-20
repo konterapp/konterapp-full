@@ -1,307 +1,357 @@
 'use client';
 
-import { useState } from 'react';
-import { Link } from '@/i18n/navigation';
-import { Smartphone, Plus, Edit, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, Plus, RefreshCw, Pencil, Trash2, X } from 'lucide-react';
 import DataTable, { Column } from '../../../_components/DataTable';
-import ConfirmModal from '../../../_components/ConfirmModal';
-import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
+import { useToast } from '@/components/toast/ToastContainer';
+import ProductFormModal from './_components/ProductFormModal';
+import SyncModal from './_components/SyncModal';
+import { PpobProductLocal } from './_components/types';
 
-interface PPOBProduct {
-   id: number;
-   code: string;
-   name: string;
-   category: string;
-   provider: string;
-   nominal: number;
-   price: number;
-   status: string;
-}
+const CATEGORIES = ['PULSA', 'DATA', 'PLNPRA', 'PLNPASCA', 'TELKOM', 'PDAM', 'BPJS', 'EMONEY', 'GAME'];
 
 export default function PpobProductsPage() {
-   const toast = useToast();
-   const { hasPermission } = usePermissions();
-   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: PPOBProduct | null; isLoading: boolean }>({
-      isOpen: false,
-      product: null,
-      isLoading: false,
-   });
+  const toast = useToast();
+  const { hasPermission } = usePermissions();
 
-   // Sample data
-   const products: PPOBProduct[] = [
-      {
-         id: 1,
-         code: 'PULSA-TSEL-5K',
-         name: 'Pulsa Telkomsel 5.000',
-         category: 'Pulsa',
-         provider: 'Telkomsel',
-         nominal: 5000,
-         price: 6500,
-         status: 'active',
-      },
-      {
-         id: 2,
-         code: 'PULSA-TSEL-10K',
-         name: 'Pulsa Telkomsel 10.000',
-         category: 'Pulsa',
-         provider: 'Telkomsel',
-         nominal: 10000,
-         price: 11500,
-         status: 'active',
-      },
-      {
-         id: 3,
-         code: 'PULSA-ISAT-5K',
-         name: 'Pulsa Indosat 5.000',
-         category: 'Pulsa',
-         provider: 'Indosat',
-         nominal: 5000,
-         price: 6000,
-         status: 'active',
-      },
-      {
-         id: 4,
-         code: 'PULSA-XL-10K',
-         name: 'Pulsa XL 10.000',
-         category: 'Pulsa',
-         provider: 'XL',
-         nominal: 10000,
-         price: 11000,
-         status: 'active',
-      },
-      {
-         id: 5,
-         code: 'TOKEN-PLN-20K',
-         name: 'Token PLN 20.000',
-         category: 'Listrik',
-         provider: 'PLN',
-         nominal: 20000,
-         price: 21000,
-         status: 'active',
-      },
-      {
-         id: 6,
-         code: 'TOKEN-PLN-50K',
-         name: 'Token PLN 50.000',
-         category: 'Listrik',
-         provider: 'PLN',
-         nominal: 50000,
-         price: 51000,
-         status: 'active',
-      },
-      {
-         id: 7,
-         code: 'EWALLET-GOPAY-25K',
-         name: 'GoPay 25.000',
-         category: 'E-Wallet',
-         provider: 'GoPay',
-         nominal: 25000,
-         price: 26000,
-         status: 'active',
-      },
-      {
-         id: 8,
-         code: 'EWALLET-OVO-50K',
-         name: 'OVO 50.000',
-         category: 'E-Wallet',
-         provider: 'OVO',
-         nominal: 50000,
-         price: 51000,
-         status: 'active',
-      },
-      {
-         id: 9,
-         code: 'EWALLET-DANA-20K',
-         name: 'DANA 20.000',
-         category: 'E-Wallet',
-         provider: 'DANA',
-         nominal: 20000,
-         price: 21000,
-         status: 'active',
-      },
-      {
-         id: 10,
-         code: 'PAKET-DATA-TSEL-1GB',
-         name: 'Paket Data Telkomsel 1GB',
-         category: 'Data',
-         provider: 'Telkomsel',
-         nominal: 1,
-         price: 15000,
-         status: 'active',
-      },
-   ];
+  const [products, setProducts] = useState<PpobProductLocal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState('product_name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-   const handleDeleteClick = (product: PPOBProduct) => {
-      setDeleteModal({
-         isOpen: true,
-         product,
-         isLoading: false,
+  const [filterProvider, setFilterProvider] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+
+  const [showFormModal, setShowFormModal] = useState(false);
+  const [editProduct, setEditProduct] = useState<PpobProductLocal | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder, filterProvider, filterCategory]);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        per_page: itemsPerPage.toString(),
+        sort_by: sortBy,
+        sort_order: sortOrder,
       });
-   };
 
-   const handleDeleteConfirm = async () => {
-      setDeleteModal(prev => ({ ...prev, isLoading: true }));
-      // Simulate delete
-      setTimeout(() => {
-         toast.success('Produk PPOB berhasil dihapus');
-         setDeleteModal({ isOpen: false, product: null, isLoading: false });
-      }, 500);
-   };
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (filterProvider) params.set('provider', filterProvider);
+      if (filterCategory) params.set('category', filterCategory);
 
-   const handleDeleteCancel = () => {
-      setDeleteModal({ isOpen: false, product: null, isLoading: false });
-   };
+      const response = await fetch(`/api/admin/pos/ppob-products?${params.toString()}`);
+      const result = await response.json();
 
-   const columns: Column<PPOBProduct>[] = [
-      {
-         key: 'no',
-         label: 'No',
-         sortable: false,
-         width: '4rem',
-         render: (_, row) => {
-            const index = products.findIndex(p => p.id === row.id);
-            return <span className="text-sm text-gray-600">{index + 1}</span>;
-         },
-      },
-      {
-         key: 'code',
-         label: 'Kode',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-mono text-gray-600">{row.code}</span>
-         ),
-      },
-      {
-         key: 'name',
-         label: 'Nama Produk',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">{row.name}</span>
-         ),
-      },
-      {
-         key: 'category',
-         label: 'Kategori',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-600">{row.category}</span>
-         ),
-      },
-      {
-         key: 'provider',
-         label: 'Provider',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-600">{row.provider}</span>
-         ),
-      },
-      {
-         key: 'nominal',
-         label: 'Nominal',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm text-gray-900">
-               {row.category === 'Data' ? `${row.nominal}GB` : `Rp ${row.nominal.toLocaleString('id-ID')}`}
-            </span>
-         ),
-      },
-      {
-         key: 'price',
-         label: 'Harga',
-         sortable: true,
-         render: (_, row) => (
-            <span className="text-sm font-medium text-gray-900">
-               Rp {row.price.toLocaleString('id-ID')}
-            </span>
-         ),
-      },
-      {
-         key: 'status',
-         label: 'Status',
-         sortable: true,
-         render: (_, row) => (
-            row.status === 'active' ? (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                  Aktif
-               </span>
-            ) : (
-               <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
-                  Tidak Aktif
-               </span>
-            )
-         ),
-      },
-      {
-         key: 'actions',
-         label: 'Aksi',
-         sortable: false,
-         width: '8rem',
-         className: 'whitespace-nowrap',
-         render: (_, row) => (
-            <div className="flex items-center gap-2">
-               {hasPermission('admin.pos.ppob.products.update') && (
-                  <button
-                     className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-                  >
-                     <Edit className="w-3.5 h-3.5" />
-                     <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
-                  </button>
-               )}
-               {hasPermission('admin.pos.ppob.products.delete') && (
-                  <button
-                     onClick={() => handleDeleteClick(row)}
-                     className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-                  >
-                     <Trash2 className="w-3.5 h-3.5" />
-                     <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
-                  </button>
-               )}
-            </div>
-         ),
-      },
-   ];
+      if (result.status === 'success' && result.data) {
+        setProducts(result.data.data || []);
+        if (result.data.pagination) {
+          setTotalPages(result.data.pagination.totalPages || 1);
+          setTotalItems(result.data.pagination.total || 0);
+        }
+      } else {
+        toast.error(result.message || 'Gagal memuat produk PPOB');
+      }
+    } catch {
+      toast.error('Terjadi kesalahan saat memuat produk PPOB');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-   return (
-      <div className="space-y-6">
-         <div className="flex items-center justify-between">
-            <div>
-               <h1 className="text-2xl font-bold text-gray-900">Produk PPOB</h1>
-               <p className="text-gray-500 mt-1">Manajemen produk PPOB</p>
-            </div>
-            {hasPermission('admin.pos.ppob.products.create') && (
-               <Link
-                  href="/admin/pos/ppob/products/create"
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#2a4061] text-white rounded-lg hover:bg-[#1e2f47] transition-colors font-semibold"
-               >
-                  <Plus className="w-5 h-5" />
-                  <span>Tambah Produk</span>
-               </Link>
-            )}
-         </div>
+  const handleDelete = async (product: PpobProductLocal) => {
+    if (!confirm(`Hapus produk "${product.product_name}"?`)) return;
+    try {
+      const response = await fetch(`/api/admin/pos/ppob-products/${product.uuid}`, { method: 'DELETE' });
+      const result = await response.json();
+      if (result.status === 'success') {
+        toast.success('Produk PPOB berhasil dihapus');
+        fetchProducts();
+      } else {
+        toast.error(result.message || 'Gagal menghapus produk PPOB');
+      }
+    } catch {
+      toast.error('Terjadi kesalahan saat menghapus produk PPOB');
+    }
+  };
 
-         <DataTable
-            data={products}
-            columns={columns}
-            itemsPerPage={10}
-            searchPlaceholder="Cari produk PPOB..."
-            emptyMessage="Belum ada produk PPOB"
-            emptyIcon={<Smartphone className="w-16 h-16 text-gray-300 mx-auto" />}
-            isLoading={false}
-            getRowId={(row) => row.id}
-         />
+  const handleSortChange = (field: string, order: 'asc' | 'desc') => {
+    setSortBy(field);
+    setSortOrder(order);
+    setCurrentPage(1);
+  };
 
-         <ConfirmModal
-            isOpen={deleteModal.isOpen}
-            onClose={handleDeleteCancel}
-            onConfirm={handleDeleteConfirm}
-            title="Hapus Produk PPOB"
-            message={`Apakah Anda yakin ingin menghapus produk "${deleteModal.product?.name || ''}"?`}
-            confirmText="Ya, Hapus"
-            cancelText="Batal"
-            type="danger"
-            isLoading={deleteModal.isLoading}
-         />
+  const clearFilters = () => {
+    setFilterProvider('');
+    setFilterCategory('');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = !!(filterProvider || filterCategory);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const columns: Column<PpobProductLocal>[] = [
+    {
+      key: 'no',
+      label: 'No',
+      sortable: false,
+      width: '3rem',
+      render: (_, row) => {
+        const index = products.findIndex((p) => p.uuid === row.uuid);
+        return <span className="text-sm text-gray-600">{(currentPage - 1) * itemsPerPage + index + 1}</span>;
+      },
+    },
+    {
+      key: 'product_name',
+      label: 'Produk',
+      sortable: true,
+      sortValue: (row) => row.product_name,
+      render: (_, row) => (
+        <div>
+          <p className="text-sm font-medium text-gray-900">{row.product_name}</p>
+          <p className="text-xs text-gray-500">{row.provider_product_code}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'brand',
+      label: 'Brand',
+      sortable: true,
+      sortValue: (row) => row.brand || '',
+      width: '8rem',
+      render: (_, row) => <span className="text-sm text-gray-700">{row.brand || '-'}</span>,
+    },
+    {
+      key: 'provider',
+      label: 'Provider',
+      sortable: true,
+      sortValue: (row) => row.provider,
+      width: '8rem',
+      render: (_, row) => (
+        <span
+          className={`rounded px-2 py-1 text-xs font-medium ${
+            row.provider === 'rajabiller' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+          }`}
+        >
+          {row.provider_label || (row.provider === 'rajabiller' ? 'RajaBiller' : 'Digiflazz')}
+        </span>
+      ),
+    },
+    {
+      key: 'category',
+      label: 'Kategori',
+      sortable: true,
+      sortValue: (row) => row.category,
+      width: '7rem',
+      render: (_, row) => <span className="text-sm text-gray-700">{row.category}</span>,
+    },
+    {
+      key: 'type',
+      label: 'Tipe',
+      sortable: false,
+      width: '7rem',
+      render: (_, row) => <span className="text-sm text-gray-700">{row.type === 'prepaid' ? 'Prabayar' : 'Pascabayar'}</span>,
+    },
+    {
+      key: 'base_price',
+      label: 'Harga Dasar',
+      sortable: true,
+      sortValue: (row) => row.base_price,
+      width: '9rem',
+      render: (_, row) => <span className="text-sm text-gray-700">{formatCurrency(Number(row.base_price))}</span>,
+    },
+    {
+      key: 'selling_price',
+      label: 'Harga Jual',
+      sortable: true,
+      sortValue: (row) => row.selling_price,
+      width: '9rem',
+      render: (_, row) => <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(row.selling_price))}</span>,
+    },
+    {
+      key: 'is_active',
+      label: 'Status',
+      sortable: false,
+      width: '6rem',
+      render: (_, row) => (
+        <span className={`rounded-full px-2 py-1 text-xs font-medium ${row.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+          {row.is_active ? 'Aktif' : 'Nonaktif'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '6rem',
+      render: (_, row) => (
+        <div className="flex items-center gap-1">
+          {hasPermission('admin.pos.ppob.create') && (
+            <button
+              onClick={() => {
+                setEditProduct(row);
+                setShowFormModal(true);
+              }}
+              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4 text-gray-600" />
+            </button>
+          )}
+          {hasPermission('admin.pos.ppob.create') && (
+            <button
+              onClick={() => handleDelete(row)}
+              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-red-50"
+              title="Hapus"
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-[#142D52]">Produk PPOB</h1>
+          <p className="mt-1 text-gray-600">Kelola produk PPOB dan mapping provider.</p>
+        </div>
+        {hasPermission('admin.pos.ppob.create') && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSyncModal(true)}
+              className="flex cursor-pointer items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Sync Provider</span>
+            </button>
+            <button
+              onClick={() => {
+                setEditProduct(null);
+                setShowFormModal(true);
+              }}
+              className="flex cursor-pointer items-center space-x-2 rounded-lg bg-[#142D52] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#142D52]/90"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Tambah Produk</span>
+            </button>
+          </div>
+        )}
       </div>
-   );
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">Filter Produk PPOB</h3>
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="flex cursor-pointer items-center space-x-1 text-xs text-red-600 hover:text-red-700">
+              <X className="h-3 w-3" />
+              <span>Reset Filter</span>
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Provider</label>
+            <select
+              value={filterProvider}
+              onChange={(e) => {
+                setFilterProvider(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+            >
+              <option value="">Semua Provider</option>
+              <option value="rajabiller">RajaBiller</option>
+              <option value="digiflazz">Digiflazz</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Kategori</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => {
+                setFilterCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+            >
+              <option value="">Semua Kategori</option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <DataTable
+        data={products}
+        columns={columns}
+        itemsPerPage={itemsPerPage}
+        searchPlaceholder="Cari produk..."
+        emptyMessage="Tidak ada produk PPOB ditemukan"
+        emptyIcon={<Package className="mx-auto h-16 w-16 text-gray-300" />}
+        serverSide={true}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        onPageChange={setCurrentPage}
+        onItemsPerPageChange={setItemsPerPage}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSortChange={handleSortChange}
+        isLoading={isLoading}
+      />
+
+      {showFormModal && (
+        <ProductFormModal
+          product={editProduct}
+          onClose={() => {
+            setShowFormModal(false);
+            setEditProduct(null);
+          }}
+          onSaved={() => {
+            setShowFormModal(false);
+            setEditProduct(null);
+            fetchProducts();
+          }}
+        />
+      )}
+
+      {showSyncModal && <SyncModal onClose={() => setShowSyncModal(false)} onSynced={() => fetchProducts()} />}
+    </div>
+  );
 }
