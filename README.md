@@ -73,3 +73,39 @@ for f in prisma/seeders/dummy/*.ts; do npm run seed:dummy "$f"; done
 npm run build
 npm run test
 ```
+
+## DB Keepalive Scheduler (GitHub Actions)
+
+Untuk project yang memakai Supabase free tier, database bisa auto-pause saat lama tidak ada aktivitas.
+Repo ini menyediakan endpoint keepalive dan workflow scheduler:
+
+- Endpoint: `GET /api/health/db`
+- Workflow: `.github/workflows/db-keepalive.yml`
+
+### 1. Set environment variable di app
+
+Tambahkan env berikut (lihat juga `.env.example`):
+
+```env
+KEEPALIVE_CRON_KEY="your-random-secret"
+```
+
+`KEEPALIVE_CRON_KEY` dipakai untuk melindungi endpoint keepalive.
+
+### 2. Set GitHub Secret
+
+Di GitHub repo settings -> Secrets and variables -> Actions, buat secret:
+
+- `KEEPALIVE_URL`
+
+Contoh value:
+
+```txt
+https://your-domain.com/api/health/db?key=your-random-secret
+```
+
+### 3. Jalankan scheduler
+
+Workflow `DB Keepalive` otomatis jalan tiap hari (cron) dan bisa dijalankan manual via `workflow_dispatch`.
+
+Endpoint menjalankan query ringan `SELECT 1` untuk memastikan koneksi database tetap aktif.

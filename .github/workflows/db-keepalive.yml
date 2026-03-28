@@ -1,0 +1,23 @@
+name: DB Keepalive
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.KEEPALIVE_URL }}" ]; then
+            echo "Missing required secret: KEEPALIVE_URL"
+            exit 1
+          fi
+
+      - name: Ping keepalive endpoint
+        run: |
+          set -euo pipefail
+          curl -fsS --retry 3 --retry-delay 5 --max-time 20 "${{ secrets.KEEPALIVE_URL }}"
+          echo "Keepalive ping success"
