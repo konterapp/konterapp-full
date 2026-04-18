@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, Link } from '@/i18n/navigation';
 import { Save, X, Upload, Trash2, Star } from 'lucide-react';
@@ -13,6 +13,13 @@ interface Category {
   name: string;
 }
 
+interface BranchSimple {
+  uuid: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+}
+
 interface ProductImageData {
   uuid: string;
   url: string;
@@ -23,12 +30,25 @@ interface ProductFormData {
   category_uuid: string;
   name: string;
   sku: string;
-  description: string;
   barcode: string;
+  additional_barcodes: string;
+  purchase_price: number;
   selling_price: number;
-  min_selling_price: number;
+  wholesale_price: number;
   min_stock: number;
   unit: string;
+  unit_conversions: {
+    unit: string;
+    factor_to_base: string;
+    is_active: boolean;
+  }[];
+  branch_prices: {
+    branch_uuid: string;
+    branch_name: string;
+    branch_code: string;
+    selling_price: number;
+    wholesale_price: number;
+  }[];
   is_active: boolean;
 }
 
@@ -46,6 +66,28 @@ interface ImagePreview {
 }
 
 let previewIdCounter = 0;
+const UNIT_OPTIONS = [
+  { value: 'pcs', label: 'Pcs' },
+  { value: 'box', label: 'Box' },
+  { value: 'pack', label: 'Pack' },
+  { value: 'kg', label: 'Kg' },
+  { value: 'gram', label: 'Gram' },
+  { value: 'liter', label: 'Liter' },
+  { value: 'meter', label: 'Meter' },
+  { value: 'unit', label: 'Unit' },
+  { value: 'bungkus', label: 'Bungkus' },
+  { value: 'strip', label: 'Strip' },
+];
+
+const createEmptyUnitConversion = () => ({
+  unit: '',
+  factor_to_base: '',
+  is_active: false,
+});
+
+const createDefaultUnitConversions = () => (
+  [createEmptyUnitConversion()]
+);
 
 export default function ProductForm({ productId, mode }: ProductFormProps) {
   const router = useRouter();
@@ -55,6 +97,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [categories, setCategories] = useState<Category[]>([]);
+  const [branches, setBranches] = useState<BranchSimple[]>([]);
   const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>([]);
   const [deletedImageUuids, setDeletedImageUuids] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,23 +105,19 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
     category_uuid: '',
     name: '',
     sku: '',
-    description: '',
     barcode: '',
+    additional_barcodes: '',
+    purchase_price: 0,
     selling_price: 0,
-    min_selling_price: 0,
+    wholesale_price: 0,
     min_stock: 0,
-    unit: 'pcs',
+    unit: '',
+    unit_conversions: createDefaultUnitConversions(),
+    branch_prices: [],
     is_active: true,
   });
 
-  useEffect(() => {
-    fetchCategories();
-    if (mode === 'edit' && productId) {
-      fetchProduct();
-    }
-  }, [mode, productId]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: '1',
@@ -95,9 +134,9 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
     } catch (err) {
       console.error('Failed to fetch categories:', err);
     }
-  };
+  }, []);
 
-  const fetchProduct = async () => {
+  const fetchProduct = useCallback(async () => {
     if (!productId) return;
 
     try {
@@ -110,12 +149,37 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           category_uuid: result.data.category_uuid,
           name: result.data.name,
           sku: result.data.sku,
-          description: result.data.description || '',
           barcode: result.data.barcode || '',
-          selling_price: result.data.selling_price,
-          min_selling_price: result.data.min_selling_price || 0,
-          min_stock: result.data.min_stock || 0,
-          unit: result.data.unit || 'pcs',
+          additional_barcodes: Array.isArray(result.data.additional_barcodes)
+            ? result.data.additional_barcodes.join(',')
+            : '',
+          purchase_price: Number(result.data.purchase_price || 0),
+          selling_price: Number(result.data.selling_price || 0),
+          wholesale_price: Number(result.data.wholesale_price || 0),
+          min_stock: Number(result.data.min_stock || 0),
+          unit: result.data.unit || '',
+          unit_conversions: Array.isArray(result.data.unit_conversions) && result.data.unit_conversions.length > 0
+            ? result.data.unit_conversions.map((row: { unit?: string; factor_to_base?: number | string; is_active?: boolean }) => ({
+              unit: row.unit || '',
+              factor_to_base: row.factor_to_base !== undefined && row.factor_to_base !== null ? String(row.factor_to_base) : '',
+              is_active: Boolean(row.is_active),
+            }))
+            : createDefaultUnitConversions(),
+          branch_prices: Array.isArray(result.data.branch_prices)
+            ? result.data.branch_prices.map((row: {
+              branch_uuid?: string;
+              branch_name?: string;
+              branch_code?: string;
+              selling_price?: number;
+              wholesale_price?: number;
+            }) => ({
+              branch_uuid: row.branch_uuid || '',
+              branch_name: row.branch_name || '',
+              branch_code: row.branch_code || '',
+              selling_price: Number(row.selling_price || 0),
+              wholesale_price: Number(row.wholesale_price || 0),
+            }))
+            : [],
           is_active: result.data.is_active ?? true,
         });
 
@@ -137,12 +201,51 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
       } else {
         setError(result.message || 'Gagal memuat data produk');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan. Silakan coba lagi.';
+      setError(errorMsg);
     } finally {
       setIsLoadingData(false);
     }
-  };
+  }, [productId]);
+
+  const fetchBranches = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/pos/branches/list');
+      const result = await response.json();
+      if (result.status === 'success' && Array.isArray(result.data)) {
+        const activeBranches: BranchSimple[] = result.data.filter((b: BranchSimple) => b.is_active);
+        setBranches(activeBranches);
+
+        setFormData(prev => {
+          const currentByBranch = new Map(prev.branch_prices.map((row) => [row.branch_uuid, row]));
+          return {
+            ...prev,
+            branch_prices: activeBranches.map(branch => {
+              const existing = currentByBranch.get(branch.uuid);
+              return {
+                branch_uuid: branch.uuid,
+                branch_name: branch.name,
+                branch_code: branch.code,
+                selling_price: existing?.selling_price ?? 0,
+                wholesale_price: existing?.wholesale_price ?? 0,
+              };
+            }),
+          };
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch branches:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+    fetchBranches();
+    if (mode === 'edit' && productId) {
+      fetchProduct();
+    }
+  }, [mode, productId, fetchCategories, fetchBranches, fetchProduct]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -167,6 +270,62 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
         return newErrors;
       });
     }
+  };
+
+  const handleUnitConversionChange = (
+    index: number,
+    field: 'unit' | 'factor_to_base' | 'is_active',
+    value: string | boolean
+  ) => {
+    setFormData(prev => {
+      const rows = [...prev.unit_conversions];
+      rows[index] = {
+        ...rows[index],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        unit_conversions: rows,
+      };
+    });
+  };
+
+  const handleAddUnitConversion = () => {
+    setFormData(prev => ({
+      ...prev,
+      unit_conversions: [...prev.unit_conversions, createEmptyUnitConversion()],
+    }));
+  };
+
+  const handleRemoveUnitConversion = (index: number) => {
+    setFormData(prev => {
+      if (prev.unit_conversions.length <= 1) {
+        return {
+          ...prev,
+          unit_conversions: [createEmptyUnitConversion()],
+        };
+      }
+      return {
+        ...prev,
+        unit_conversions: prev.unit_conversions.filter((_, i) => i !== index),
+      };
+    });
+  };
+
+  const handleBranchPriceChange = (
+    branchUuid: string,
+    field: 'selling_price' | 'wholesale_price',
+    value: string
+  ) => {
+    const nextValue = value === '' ? 0 : parseFloat(value);
+    setFormData(prev => ({
+      ...prev,
+      branch_prices: prev.branch_prices.map(row => (
+        row.branch_uuid === branchUuid
+          ? { ...row, [field]: Number.isNaN(nextValue) ? 0 : nextValue }
+          : row
+      )),
+    }));
   };
 
   const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,12 +387,35 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
       fd.append('category_uuid', formData.category_uuid);
       fd.append('name', formData.name);
       fd.append('sku', formData.sku);
-      fd.append('description', formData.description || '');
       fd.append('barcode', formData.barcode || '');
+      fd.append('additional_barcodes', formData.additional_barcodes || '');
+      fd.append('purchase_price', String(formData.purchase_price || 0));
       fd.append('selling_price', String(formData.selling_price));
-      fd.append('min_selling_price', String(formData.min_selling_price || 0));
+      fd.append('wholesale_price', String(formData.wholesale_price || 0));
       fd.append('min_stock', String(formData.min_stock || 0));
       fd.append('unit', formData.unit || 'pcs');
+      fd.append(
+        'unit_conversions',
+        JSON.stringify(
+          formData.unit_conversions
+            .filter((row) => row.unit && row.factor_to_base !== '')
+            .map((row) => ({
+              unit: row.unit,
+              factor_to_base: Number(row.factor_to_base),
+              is_active: row.is_active,
+            }))
+        )
+      );
+      fd.append(
+        'branch_prices',
+        JSON.stringify(
+          formData.branch_prices.map((row) => ({
+            branch_uuid: row.branch_uuid,
+            selling_price: Number(row.selling_price || 0),
+            wholesale_price: Number(row.wholesale_price || 0),
+          }))
+        )
+      );
       fd.append('is_active', formData.is_active ? '1' : '0');
 
       const newImages = imagePreviews.filter(p => p.file);
@@ -276,17 +458,12 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
         setError(errorMsg);
         toast.error(errorMsg);
       }
-    } catch (err: any) {
-      if (err.response?.status === 422 && err.response?.data?.errors) {
-        setFieldErrors(err.response.data.errors);
-        const errorMsg = err.response?.data?.message || 'Terdapat kesalahan pada form. Silakan periksa kembali.';
-        setError(errorMsg);
-        toast.error(errorMsg);
-      } else {
-        const errorMsg = err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.';
-        setError(errorMsg);
-        toast.error(errorMsg);
-      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error
+        ? err.message
+        : 'Terjadi kesalahan. Silakan coba lagi.';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -307,7 +484,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {mode === 'edit' ? 'Edit Produk' : 'Tambah Produk Baru'}
+        {mode === 'edit' ? 'Edit Produk' : 'Tambah Produk'}
       </h1>
 
       {error && (
@@ -317,33 +494,66 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label htmlFor="category_uuid" className="block text-sm font-medium text-gray-700 mb-2">
-              Kategori <span className="text-red-500">*</span>
+            <label htmlFor="sku" className="block text-sm font-medium text-gray-700 mb-2">
+              Kode Produk <span className="text-red-500">*</span>
             </label>
-            <select
-              id="category_uuid"
-              name="category_uuid"
-              value={formData.category_uuid}
+            <input
+              type="text"
+              id="sku"
+              name="sku"
+              value={formData.sku}
               onChange={handleChange}
               className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.category_uuid
+                fieldErrors.sku
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
               }`}
-            >
-              <option value="">Pilih Kategori</option>
-              {categories.map(category => (
-                <option key={category.uuid} value={category.uuid}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            {fieldErrors.category_uuid && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.category_uuid[0]}</div>
+              placeholder="Masukkan kode produk"
+            />
+            {fieldErrors.sku && (
+              <div className="mt-1 text-sm text-red-600">{fieldErrors.sku[0]}</div>
             )}
           </div>
 
           <div>
+            <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-2">
+              Barcode
+            </label>
+            <input
+              type="text"
+              id="barcode"
+              name="barcode"
+              value={formData.barcode}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                fieldErrors.barcode
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+              }`}
+              placeholder="Masukkan barcode"
+            />
+            {fieldErrors.barcode && (
+              <div className="mt-1 text-sm text-red-600">{fieldErrors.barcode[0]}</div>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label htmlFor="additional_barcodes" className="block text-sm font-medium text-gray-700 mb-2">
+              Barcode Tambahan
+            </label>
+            <input
+              type="text"
+              id="additional_barcodes"
+              name="additional_barcodes"
+              value={formData.additional_barcodes}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+              placeholder="8991...,8992..."
+            />
+            <p className="mt-1 text-xs text-gray-500">Pisahkan dengan koma, contoh: 8991...,8992...</p>
+          </div>
+
+          <div className="md:col-span-2">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
               Nama Produk <span className="text-red-500">*</span>
             </label>
@@ -366,52 +576,35 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
 
           <div>
-            <label htmlFor="sku" className="block text-sm font-medium text-gray-700 mb-2">
-              SKU <span className="text-red-500">*</span>
+            <label htmlFor="category_uuid" className="block text-sm font-medium text-gray-700 mb-2">
+              Kategori <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              id="sku"
-              name="sku"
-              value={formData.sku}
+            <select
+              id="category_uuid"
+              name="category_uuid"
+              value={formData.category_uuid}
               onChange={handleChange}
               className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.sku
+                fieldErrors.category_uuid
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
               }`}
-              placeholder="Masukkan SKU produk"
-            />
-            {fieldErrors.sku && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.sku[0]}</div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="barcode" className="block text-sm font-medium text-gray-700 mb-2">
-              Barcode
-            </label>
-            <input
-              type="text"
-              id="barcode"
-              name="barcode"
-              value={formData.barcode}
-              onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.barcode
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
-              placeholder="Masukkan barcode (opsional)"
-            />
-            {fieldErrors.barcode && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.barcode[0]}</div>
+            >
+              <option value="">-</option>
+              {categories.map(category => (
+                <option key={category.uuid} value={category.uuid}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.category_uuid && (
+              <div className="mt-1 text-sm text-red-600">{fieldErrors.category_uuid[0]}</div>
             )}
           </div>
 
           <div>
             <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-2">
-              Satuan <span className="text-red-500">*</span>
+              Satuan
             </label>
             <select
               id="unit"
@@ -424,20 +617,105 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
               }`}
             >
-              <option value="pcs">Pcs (Pieces)</option>
-              <option value="box">Box</option>
-              <option value="pack">Pack</option>
-              <option value="kg">Kg (Kilogram)</option>
-              <option value="gram">Gram</option>
-              <option value="liter">Liter</option>
-              <option value="meter">Meter</option>
-              <option value="unit">Unit</option>
-              <option value="bungkus">Bungkus</option>
-              <option value="strip">Strip</option>
+              <option value="">-</option>
+              {UNIT_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
             {fieldErrors.unit && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.unit[0]}</div>
             )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-gray-800">Konversi Multi-Satuan (opsional)</h3>
+            <button
+              type="button"
+              onClick={handleAddUnitConversion}
+              className="text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-200 hover:border-[#EBC170] hover:text-[#142D52] transition-colors"
+            >
+              + Tambah Satuan
+            </button>
+          </div>
+          {formData.unit_conversions.map((row, index) => (
+            <div key={`unit-conversion-${index}`} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <div className="md:col-span-5">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Pilih Satuan</label>
+                <select
+                  value={row.unit}
+                  onChange={(e) => handleUnitConversionChange(index, 'unit', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                >
+                  <option value="">Pilih Satuan</option>
+                  {UNIT_OPTIONS.map(option => (
+                    <option key={`${index}-${option.value}`} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-5">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Faktor ke base (x)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.factor_to_base}
+                  onChange={(e) => handleUnitConversionChange(index, 'factor_to_base', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                  placeholder="0"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <div className="flex items-end justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Aktif</label>
+                    <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={row.is_active}
+                        onChange={(e) => handleUnitConversionChange(index, 'is_active', e.target.checked)}
+                        className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
+                      />
+                      Ya
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveUnitConversion(index)}
+                    className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200 transition-colors"
+                    title="Hapus baris"
+                    aria-label="Hapus baris"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <p className="text-xs text-gray-500">Contoh: 1 Dus = 12 Pcs, maka faktor ke base = 12.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="purchase_price" className="block text-sm font-medium text-gray-700 mb-2">
+              Harga Beli
+            </label>
+            <input
+              type="number"
+              id="purchase_price"
+              name="purchase_price"
+              value={formData.purchase_price}
+              onChange={handleChange}
+              min="0"
+              step="0.01"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+              placeholder="0"
+            />
           </div>
 
           <div>
@@ -465,32 +743,25 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
 
           <div>
-            <label htmlFor="min_selling_price" className="block text-sm font-medium text-gray-700 mb-2">
-              Harga Jual Minimum
+            <label htmlFor="wholesale_price" className="block text-sm font-medium text-gray-700 mb-2">
+              Harga Grosir
             </label>
             <input
               type="number"
-              id="min_selling_price"
-              name="min_selling_price"
-              value={formData.min_selling_price}
+              id="wholesale_price"
+              name="wholesale_price"
+              value={formData.wholesale_price}
               onChange={handleChange}
               min="0"
               step="0.01"
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.min_selling_price
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
               placeholder="0"
             />
-            {fieldErrors.min_selling_price && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.min_selling_price[0]}</div>
-            )}
           </div>
 
           <div>
             <label htmlFor="min_stock" className="block text-sm font-medium text-gray-700 mb-2">
-              Minimal Stok
+              Stok Minimum
             </label>
             <input
               type="number"
@@ -510,25 +781,52 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               <div className="mt-1 text-sm text-red-600">{fieldErrors.min_stock[0]}</div>
             )}
           </div>
+        </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_active"
-              name="is_active"
-              checked={formData.is_active}
-              onChange={handleChange}
-              className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
-            />
-            <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
-              Produk Aktif
-            </label>
-          </div>
+        <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-800">Harga Cabang (dinamis)</h3>
+          {branches.length === 0 && (
+            <div className="text-sm text-gray-500">Belum ada data cabang aktif.</div>
+          )}
+          {formData.branch_prices.map((row) => (
+            <div key={row.branch_uuid} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <div className="md:col-span-4">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cabang</label>
+                <div className="h-10 px-3 flex items-center rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700">
+                  {row.branch_name} ({row.branch_code})
+                </div>
+              </div>
+              <div className="md:col-span-4">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Harga Jual Cabang</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.selling_price}
+                  onChange={(e) => handleBranchPriceChange(row.branch_uuid, 'selling_price', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                  placeholder="0"
+                />
+              </div>
+              <div className="md:col-span-4">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Harga Grosir Cabang</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={row.wholesale_price}
+                  onChange={(e) => handleBranchPriceChange(row.branch_uuid, 'wholesale_price', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          ))}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Gambar Produk
+            Foto Produk
           </label>
           <div className="space-y-3">
             {imagePreviews.length > 0 && (
@@ -591,8 +889,8 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                 className="w-full py-8 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#EBC170] transition-colors"
               >
                 <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                <span className="text-sm text-gray-500">Klik untuk upload gambar</span>
-                <span className="text-xs text-gray-400 mt-1">Bisa pilih beberapa gambar sekaligus</span>
+                <span className="text-sm text-gray-500">Klik untuk upload foto produk</span>
+                <span className="text-xs text-gray-400 mt-1">No file chosen</span>
               </div>
             )}
 
@@ -604,9 +902,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               className="hidden"
               multiple
             />
-            <p className="text-xs text-gray-500">
-              Format: JPG, PNG, WebP. Maks 2MB per gambar. Gambar pertama otomatis menjadi gambar utama.
-            </p>
+            <p className="text-xs text-gray-500">JPG, PNG, WebP — maks. 2 MB</p>
             {(fieldErrors.images || fieldErrors['images.0'] || fieldErrors['images.1'] || fieldErrors['images.2']) && (
               <div className="mt-1 text-sm text-red-600">
                 {fieldErrors.images?.[0] || fieldErrors['images.0']?.[0] || fieldErrors['images.1']?.[0] || fieldErrors['images.2']?.[0]}
@@ -615,26 +911,18 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
         </div>
 
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Deskripsi
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="is_active"
+            name="is_active"
+            checked={formData.is_active}
             onChange={handleChange}
-            rows={4}
-            className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white resize-none ${
-              fieldErrors.description
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-            }`}
-            placeholder="Masukkan deskripsi produk (opsional)"
+            className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
           />
-          {fieldErrors.description && (
-            <div className="mt-1 text-sm text-red-600">{fieldErrors.description[0]}</div>
-          )}
+          <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
+            Produk Aktif
+          </label>
         </div>
 
         <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">

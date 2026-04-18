@@ -21,7 +21,6 @@ interface Product {
   description?: string | null;
   barcode?: string | null;
   selling_price: number;
-  min_selling_price?: number | null;
   min_stock: number;
   unit: string;
   is_active: boolean;

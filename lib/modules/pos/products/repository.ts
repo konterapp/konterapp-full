@@ -17,6 +17,16 @@ export const posProductRepository = {
               select: { branchUuid: true, stock: true },
             }
           : true,
+        additionalBarcodes: { select: { barcode: true } },
+        unitConversions: { orderBy: { createdAt: 'asc' } },
+        branchPrices: branchUuid
+          ? {
+              where: { branchUuid },
+              include: { branch: { select: { uuid: true, name: true, code: true } } },
+            }
+          : {
+              include: { branch: { select: { uuid: true, name: true, code: true } } },
+            },
         images: { orderBy: { sortOrder: 'asc' } },
       },
     });
@@ -34,6 +44,11 @@ export const posProductRepository = {
         stockItems: {
           include: { branch: { select: { uuid: true, name: true, code: true } } },
         },
+        additionalBarcodes: { select: { uuid: true, barcode: true } },
+        unitConversions: { orderBy: { createdAt: 'asc' } },
+        branchPrices: {
+          include: { branch: { select: { uuid: true, name: true, code: true } } },
+        },
         images: { orderBy: { sortOrder: 'asc' } },
       },
     });
@@ -44,7 +59,21 @@ export const posProductRepository = {
   },
 
   findByBarcode(barcode: string) {
-    return prisma.posProduct.findFirst({ where: { barcode } });
+    return prisma.posProduct.findFirst({
+      where: {
+        OR: [{ barcode }, { additionalBarcodes: { some: { barcode } } }],
+      },
+    });
+  },
+
+  findByAnyBarcodeExcludingProduct(barcode: string, productUuid: string) {
+    return prisma.posProduct.findFirst({
+      where: {
+        uuid: { not: productUuid },
+        OR: [{ barcode }, { additionalBarcodes: { some: { barcode } } }],
+      },
+      select: { uuid: true },
+    });
   },
 
   create(data: Record<string, unknown>) {
@@ -57,6 +86,55 @@ export const posProductRepository = {
 
   deleteByUuid(uuid: string) {
     return prisma.posProduct.delete({ where: { uuid } });
+  },
+
+  replaceAdditionalBarcodes(productUuid: string, barcodes: string[]) {
+    return prisma.$transaction(async (tx) => {
+      await tx.posProductBarcode.deleteMany({ where: { productUuid } });
+      if (barcodes.length > 0) {
+        await tx.posProductBarcode.createMany({
+          data: barcodes.map((barcode) => ({ productUuid, barcode })),
+        });
+      }
+    });
+  },
+
+  replaceUnitConversions(
+    productUuid: string,
+    rows: Array<{ unit: string; factor_to_base: number; is_active?: boolean }>
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.posProductUnitConversion.deleteMany({ where: { productUuid } });
+      if (rows.length > 0) {
+        await tx.posProductUnitConversion.createMany({
+          data: rows.map((row) => ({
+            productUuid,
+            unit: row.unit,
+            factorToBase: row.factor_to_base,
+            isActive: row.is_active ?? true,
+          })),
+        });
+      }
+    });
+  },
+
+  replaceBranchPrices(
+    productUuid: string,
+    rows: Array<{ branch_uuid: string; selling_price: number; wholesale_price: number }>
+  ) {
+    return prisma.$transaction(async (tx) => {
+      await tx.posProductBranchPrice.deleteMany({ where: { productUuid } });
+      if (rows.length > 0) {
+        await tx.posProductBranchPrice.createMany({
+          data: rows.map((row) => ({
+            productUuid,
+            branchUuid: row.branch_uuid,
+            sellingPrice: row.selling_price,
+            wholesalePrice: row.wholesale_price,
+          })),
+        });
+      }
+    });
   },
 
   createImage(data: { productUuid: string; image: string; isPrimary: boolean; sortOrder: number }) {
@@ -130,13 +208,23 @@ export const posProductRepository = {
   findActiveByBarcodeOrSku(barcode: string, branchUuid?: string | null) {
     return prisma.posProduct.findFirst({
       where: {
-        OR: [{ barcode }, { sku: barcode }],
+        OR: [{ barcode }, { additionalBarcodes: { some: { barcode } } }, { sku: barcode }],
         isActive: true,
       },
       include: {
         category: {
           select: { uuid: true, name: true },
         },
+        additionalBarcodes: { select: { barcode: true } },
+        unitConversions: { where: { isActive: true }, orderBy: { createdAt: 'asc' } },
+        branchPrices: branchUuid
+          ? {
+              where: { branchUuid },
+              include: { branch: { select: { uuid: true, name: true, code: true } } },
+            }
+          : {
+              include: { branch: { select: { uuid: true, name: true, code: true } } },
+            },
         stockItems: branchUuid
           ? {
               where: { branchUuid },

@@ -156,18 +156,54 @@ CREATE TABLE "pos_products" (
     "category_uuid" CHAR(36) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "sku" VARCHAR(100) NOT NULL,
-    "description" TEXT,
     "barcode" VARCHAR(100),
+    "purchase_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "selling_price" DECIMAL(15,2) NOT NULL,
-    "min_selling_price" DECIMAL(15,2),
+    "wholesale_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "min_stock" INTEGER NOT NULL DEFAULT 0,
     "unit" VARCHAR(20) NOT NULL DEFAULT 'pcs',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "image" VARCHAR(255),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "pos_products_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "pos_product_barcodes" (
+    "uuid" CHAR(36) NOT NULL,
+    "product_uuid" CHAR(36) NOT NULL,
+    "barcode" VARCHAR(100) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pos_product_barcodes_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "pos_product_unit_conversions" (
+    "uuid" CHAR(36) NOT NULL,
+    "product_uuid" CHAR(36) NOT NULL,
+    "unit" VARCHAR(20) NOT NULL,
+    "factor_to_base" DECIMAL(12,4) NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pos_product_unit_conversions_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "pos_product_branch_prices" (
+    "uuid" CHAR(36) NOT NULL,
+    "product_uuid" CHAR(36) NOT NULL,
+    "branch_uuid" CHAR(36) NOT NULL,
+    "selling_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "wholesale_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "pos_product_branch_prices_pkey" PRIMARY KEY ("uuid")
 );
 
 -- CreateTable
@@ -454,6 +490,24 @@ CREATE UNIQUE INDEX "pos_branches_code_key" ON "pos_branches"("code");
 CREATE UNIQUE INDEX "pos_products_sku_key" ON "pos_products"("sku");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "pos_product_barcodes_barcode_key" ON "pos_product_barcodes"("barcode");
+
+-- CreateIndex
+CREATE INDEX "pos_product_barcodes_product_uuid_idx" ON "pos_product_barcodes"("product_uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "pos_product_unit_conversions_product_uuid_unit_key" ON "pos_product_unit_conversions"("product_uuid", "unit");
+
+-- CreateIndex
+CREATE INDEX "pos_product_unit_conversions_product_uuid_idx" ON "pos_product_unit_conversions"("product_uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "pos_product_branch_prices_product_uuid_branch_uuid_key" ON "pos_product_branch_prices"("product_uuid", "branch_uuid");
+
+-- CreateIndex
+CREATE INDEX "pos_product_branch_prices_branch_uuid_idx" ON "pos_product_branch_prices"("branch_uuid");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "pos_product_stocks_product_uuid_branch_uuid_key" ON "pos_product_stocks"("product_uuid", "branch_uuid");
 
 -- CreateIndex
@@ -533,6 +587,18 @@ ALTER TABLE "role_has_permissions" ADD CONSTRAINT "role_has_permissions_role_id_
 
 -- AddForeignKey
 ALTER TABLE "pos_products" ADD CONSTRAINT "pos_products_category_uuid_fkey" FOREIGN KEY ("category_uuid") REFERENCES "pos_product_categories"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "pos_product_barcodes" ADD CONSTRAINT "pos_product_barcodes_product_uuid_fkey" FOREIGN KEY ("product_uuid") REFERENCES "pos_products"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "pos_product_unit_conversions" ADD CONSTRAINT "pos_product_unit_conversions_product_uuid_fkey" FOREIGN KEY ("product_uuid") REFERENCES "pos_products"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "pos_product_branch_prices" ADD CONSTRAINT "pos_product_branch_prices_product_uuid_fkey" FOREIGN KEY ("product_uuid") REFERENCES "pos_products"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "pos_product_branch_prices" ADD CONSTRAINT "pos_product_branch_prices_branch_uuid_fkey" FOREIGN KEY ("branch_uuid") REFERENCES "pos_branches"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "pos_product_images" ADD CONSTRAINT "pos_product_images_product_uuid_fkey" FOREIGN KEY ("product_uuid") REFERENCES "pos_products"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

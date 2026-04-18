@@ -9,12 +9,27 @@ export interface Product {
   uuid: string;
   name: string;
   sku: string;
+  purchase_price?: number;
   selling_price: number;
-  min_selling_price?: number;
+  wholesale_price?: number;
   min_stock: number;
   unit: string;
   barcode?: string;
-  description?: string;
+  additional_barcodes?: string[];
+  unit_conversions?: {
+    uuid?: string;
+    unit: string;
+    factor_to_base: number;
+    is_active: boolean;
+  }[];
+  branch_prices?: {
+    uuid?: string;
+    branch_uuid: string;
+    branch_name?: string | null;
+    branch_code?: string | null;
+    selling_price: number;
+    wholesale_price: number;
+  }[];
   image?: string | null;
   images?: ProductImageData[];
   is_active: boolean;
@@ -87,12 +102,23 @@ export async function createProduct(data: {
   category_uuid: string;
   name: string;
   sku: string;
+  purchase_price?: number;
   selling_price: number;
-  min_selling_price?: number;
+  wholesale_price?: number;
   min_stock?: number;
   unit?: string;
   barcode?: string;
-  description?: string;
+  additional_barcodes?: string[];
+  unit_conversions?: {
+    unit: string;
+    factor_to_base: number;
+    is_active?: boolean;
+  }[];
+  branch_prices?: {
+    branch_uuid: string;
+    selling_price: number;
+    wholesale_price: number;
+  }[];
   image?: string;
   initial_stock?: number;
   branch_uuid?: string;
@@ -111,12 +137,23 @@ export async function updateProduct(
     category_uuid?: string;
     name?: string;
     sku?: string;
+    purchase_price?: number;
     selling_price?: number;
-    min_selling_price?: number;
+    wholesale_price?: number;
     min_stock?: number;
     unit?: string;
     barcode?: string;
-    description?: string;
+    additional_barcodes?: string[];
+    unit_conversions?: {
+      unit: string;
+      factor_to_base: number;
+      is_active?: boolean;
+    }[];
+    branch_prices?: {
+      branch_uuid: string;
+      selling_price: number;
+      wholesale_price: number;
+    }[];
     image?: string;
     is_active?: boolean;
   }

@@ -250,7 +250,7 @@ export default function KasirPage() {
   const handleBarcodeScan = useCallback(async (code: string) => {
     if (!selectedBranch || !code.trim()) return;
     try {
-      const response = await lookupBarcode(code.trim());
+      const response = await lookupBarcode(code.trim(), selectedBranch || undefined);
       if (response.status === 'success' && response.data) {
         addToCart(response.data);
         setScanNotification({ type: 'success', message: `${response.data.name} ditambahkan` });

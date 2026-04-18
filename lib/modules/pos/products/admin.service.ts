@@ -21,17 +21,86 @@ function parseNumber(value: any): number | undefined {
   return parsed;
 }
 
+function parseJsonArray<T>(value: any): T[] | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as T[]) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function parseAdditionalBarcodes(value: any): string[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value === '') return [];
+
+  if (Array.isArray(value)) {
+    const result = value.map((item) => String(item).trim()).filter(Boolean);
+    return result;
+  }
+
+  if (typeof value === 'string') {
+    if (value.trim().startsWith('[')) {
+      const parsed = parseJsonArray<string>(value);
+      if (!parsed) return [];
+      return parsed.map((item) => String(item).trim()).filter(Boolean);
+    }
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
+
+  return undefined;
+}
+
 export function normalizeProductBody(raw: Record<string, any>) {
+  const hasUnitConversions = raw.unit_conversions !== undefined || raw.unitConversions !== undefined;
+  const parsedUnitConversions = hasUnitConversions
+    ? (parseJsonArray<{ unit?: string; factor_to_base?: string | number; is_active?: boolean }>(
+      raw.unit_conversions ?? raw.unitConversions
+    ) ?? [])
+    : undefined;
+  const hasBranchPrices = raw.branch_prices !== undefined || raw.branchPrices !== undefined;
+  const parsedBranchPrices = hasBranchPrices
+    ? (parseJsonArray<{ branch_uuid?: string; selling_price?: string | number; wholesale_price?: string | number }>(
+      raw.branch_prices ?? raw.branchPrices
+    ) ?? [])
+    : undefined;
+
   return {
     category_uuid: raw.category_uuid ?? raw.categoryUuid,
     name: raw.name,
     sku: raw.sku,
-    description: raw.description,
     barcode: raw.barcode,
+    additional_barcodes: parseAdditionalBarcodes(raw.additional_barcodes ?? raw.additionalBarcodes),
+    purchase_price: parseNumber(raw.purchase_price ?? raw.purchasePrice),
     selling_price: parseNumber(raw.selling_price ?? raw.sellingPrice),
-    min_selling_price: parseNumber(raw.min_selling_price ?? raw.minSellingPrice),
+    wholesale_price: parseNumber(raw.wholesale_price ?? raw.wholesalePrice),
     min_stock: parseNumber(raw.min_stock ?? raw.minStock),
     unit: raw.unit,
+    unit_conversions: parsedUnitConversions
+      ? parsedUnitConversions
+          .filter((row) => row.unit && row.factor_to_base !== undefined && row.factor_to_base !== null && row.factor_to_base !== '')
+          .map((row) => ({
+            unit: String(row.unit).trim(),
+            factor_to_base: Number(row.factor_to_base),
+            is_active: row.is_active ?? true,
+          }))
+          .filter((row) => row.unit && !Number.isNaN(row.factor_to_base) && row.factor_to_base > 0)
+      : undefined,
+    branch_prices: parsedBranchPrices
+      ? parsedBranchPrices
+          .filter((row) => row.branch_uuid)
+          .map((row) => ({
+            branch_uuid: String(row.branch_uuid),
+            selling_price: Number(row.selling_price ?? 0),
+            wholesale_price: Number(row.wholesale_price ?? 0),
+          }))
+          .filter((row) => !Number.isNaN(row.selling_price) && !Number.isNaN(row.wholesale_price))
+      : undefined,
     is_active: parseBoolean(raw.is_active ?? raw.isActive),
   };
 }
@@ -67,7 +136,7 @@ export const posProductService = {
         { name: { contains: search, mode: 'insensitive' } },
         { sku: { contains: search, mode: 'insensitive' } },
         { barcode: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { additionalBarcodes: { some: { barcode: { contains: search, mode: 'insensitive' } } } },
       ];
     }
 
@@ -137,18 +206,45 @@ export const posProductService = {
       }
     }
 
+    const additionalBarcodes = Array.isArray(payload.additional_barcodes) ? payload.additional_barcodes : [];
+    const dedupedAdditionalBarcodes = [...new Set(additionalBarcodes.map((value: string) => value.trim()).filter(Boolean))];
+    if (dedupedAdditionalBarcodes.length !== additionalBarcodes.length) {
+      throw new ValidationApiError({ additional_barcodes: ['Barcode tambahan tidak boleh duplikat'] });
+    }
+    if (payload.barcode && dedupedAdditionalBarcodes.includes(payload.barcode)) {
+      throw new ValidationApiError({ additional_barcodes: ['Barcode tambahan tidak boleh sama dengan barcode utama'] });
+    }
+    for (const barcode of dedupedAdditionalBarcodes) {
+      const existing = await posProductRepository.findByBarcode(barcode);
+      if (existing) {
+        throw new ValidationApiError({ additional_barcodes: [`Barcode ${barcode} sudah digunakan`] });
+      }
+    }
+
     const product = await posProductRepository.create({
       categoryUuid: payload.category_uuid,
       name: payload.name,
       sku: payload.sku,
-      description: payload.description || null,
       barcode: payload.barcode || null,
+      purchasePrice: payload.purchase_price ?? 0,
       sellingPrice: payload.selling_price,
-      minSellingPrice: payload.min_selling_price ?? null,
+      wholesalePrice: payload.wholesale_price ?? 0,
       minStock: payload.min_stock ?? 0,
       unit: payload.unit || 'pcs',
       isActive: payload.is_active ?? true,
     });
+
+    if (dedupedAdditionalBarcodes.length > 0) {
+      await posProductRepository.replaceAdditionalBarcodes(product.uuid, dedupedAdditionalBarcodes);
+    }
+
+    if (Array.isArray(payload.unit_conversions)) {
+      await posProductRepository.replaceUnitConversions(product.uuid, payload.unit_conversions);
+    }
+
+    if (Array.isArray(payload.branch_prices)) {
+      await posProductRepository.replaceBranchPrices(product.uuid, payload.branch_prices);
+    }
 
     for (let index = 0; index < imageFiles.length; index += 1) {
       const filename = await saveProductImage(imageFiles[index]);
@@ -203,18 +299,51 @@ export const posProductService = {
       }
     }
 
+    const additionalBarcodes = Array.isArray(payload.additional_barcodes)
+      ? payload.additional_barcodes.map((value: string) => value.trim()).filter(Boolean)
+      : undefined;
+    if (additionalBarcodes) {
+      const deduped = [...new Set(additionalBarcodes)];
+      if (deduped.length !== additionalBarcodes.length) {
+        throw new ValidationApiError({ additional_barcodes: ['Barcode tambahan tidak boleh duplikat'] });
+      }
+      const mainBarcode = payload.barcode ?? existingProduct.barcode;
+      if (mainBarcode && deduped.includes(mainBarcode)) {
+        throw new ValidationApiError({ additional_barcodes: ['Barcode tambahan tidak boleh sama dengan barcode utama'] });
+      }
+
+      for (const barcode of deduped) {
+        const existing = await posProductRepository.findByAnyBarcodeExcludingProduct(barcode, uuid);
+        if (existing) {
+          throw new ValidationApiError({ additional_barcodes: [`Barcode ${barcode} sudah digunakan`] });
+        }
+      }
+    }
+
     await posProductRepository.updateByUuid(uuid, {
       categoryUuid: payload.category_uuid ?? existingProduct.categoryUuid,
       name: payload.name ?? existingProduct.name,
       sku: payload.sku ?? existingProduct.sku,
-      description: payload.description ?? existingProduct.description,
       barcode: payload.barcode ?? existingProduct.barcode,
+      purchasePrice: payload.purchase_price ?? existingProduct.purchasePrice,
       sellingPrice: payload.selling_price ?? existingProduct.sellingPrice,
-      minSellingPrice: payload.min_selling_price ?? existingProduct.minSellingPrice,
+      wholesalePrice: payload.wholesale_price ?? existingProduct.wholesalePrice,
       minStock: payload.min_stock ?? existingProduct.minStock,
       unit: payload.unit ?? existingProduct.unit,
       isActive: payload.is_active ?? existingProduct.isActive,
     });
+
+    if (additionalBarcodes) {
+      await posProductRepository.replaceAdditionalBarcodes(uuid, additionalBarcodes);
+    }
+
+    if (Array.isArray(payload.unit_conversions)) {
+      await posProductRepository.replaceUnitConversions(uuid, payload.unit_conversions);
+    }
+
+    if (Array.isArray(payload.branch_prices)) {
+      await posProductRepository.replaceBranchPrices(uuid, payload.branch_prices);
+    }
 
     if (deleteImages.length > 0) {
       const imagesToDelete = await posProductRepository.findImagesByUuids(uuid, deleteImages);

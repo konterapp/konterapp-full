@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -23,48 +23,48 @@ model User {
   password        String    @db.VarChar(255)
   rememberToken   String?   @map("remember_token") @db.VarChar(100)
 
-  profile              UserProfile?
-  modelHasRoles        ModelHasRole[]
-  berita               Berita[]
-  posPurchases         PosPurchase[]
-  posStockMovements    PosStockMovement[]
-  posSales             PosSale[]
-  posPpobTransactions  PosPpobTransaction[]
+  profile             UserProfile?
+  modelHasRoles       ModelHasRole[]
+  berita              Berita[]
+  posPurchases        PosPurchase[]
+  posStockMovements   PosStockMovement[]
+  posSales            PosSale[]
+  posPpobTransactions PosPpobTransaction[]
 
   @@unique([sourceDb, sourceId], name: "users_source_db_source_id_unique")
   @@map("users")
 }
 
 model UserProfile {
-  id              Int       @id @default(autoincrement())
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
-  sourceDb        String?   @map("source_db") @db.VarChar(50)
-  sourceId        String?   @map("source_id") @db.VarChar(50)
-  userId          Int       @unique @map("user_id")
-  userType        Int?      @map("user_type") @db.SmallInt
-  adminScope      String?   @map("admin_scope") @db.VarChar(50)
-  countryId       Int?      @map("country_id")
-  provinceId      Int?      @map("province_id")
-  cityId          Int?      @map("city_id")
-  districtId      Int?      @map("district_id")
-  villageId       Int?      @map("village_id")
-  phone           String?   @db.VarChar(20)
-  address         String?   @db.Text
-  avatar          String?   @db.Text
-  avatarS3Sync    Boolean?  @map("avatar_s3_sync")
-  title           String?   @db.VarChar(255)
-  workUnit        String?   @map("work_unit") @db.VarChar(255)
-  company         String?   @db.VarChar(255)
-  phoneWithoutDc  String?   @map("phone_without_dc") @db.VarChar(255)
-  dc              String?   @db.VarChar(255)
-  iso             String?   @db.VarChar(255)
-  fcm             String?   @db.Text
-  companyLogo     String?   @map("company_logo") @db.Text
-  companyLogoS3Sync Boolean? @map("company_logo_s3_sync")
-  description     String?   @db.Text
-  wilayahKode     String?   @map("wilayah_kode") @db.VarChar(20)
+  id                Int       @id @default(autoincrement())
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  sourceDb          String?   @map("source_db") @db.VarChar(50)
+  sourceId          String?   @map("source_id") @db.VarChar(50)
+  userId            Int       @unique @map("user_id")
+  userType          Int?      @map("user_type") @db.SmallInt
+  adminScope        String?   @map("admin_scope") @db.VarChar(50)
+  countryId         Int?      @map("country_id")
+  provinceId        Int?      @map("province_id")
+  cityId            Int?      @map("city_id")
+  districtId        Int?      @map("district_id")
+  villageId         Int?      @map("village_id")
+  phone             String?   @db.VarChar(20)
+  address           String?   @db.Text
+  avatar            String?   @db.Text
+  avatarS3Sync      Boolean?  @map("avatar_s3_sync")
+  title             String?   @db.VarChar(255)
+  workUnit          String?   @map("work_unit") @db.VarChar(255)
+  company           String?   @db.VarChar(255)
+  phoneWithoutDc    String?   @map("phone_without_dc") @db.VarChar(255)
+  dc                String?   @db.VarChar(255)
+  iso               String?   @db.VarChar(255)
+  fcm               String?   @db.Text
+  companyLogo       String?   @map("company_logo") @db.Text
+  companyLogoS3Sync Boolean?  @map("company_logo_s3_sync")
+  description       String?   @db.Text
+  wilayahKode       String?   @map("wilayah_kode") @db.VarChar(20)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -195,39 +195,88 @@ model PosBranch {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  productStocks   PosProductStock[]
-  purchases       PosPurchase[]
-  stockMovements  PosStockMovement[]
-  sales           PosSale[]
+  productStocks    PosProductStock[]
+  productPrices    PosProductBranchPrice[]
+  purchases        PosPurchase[]
+  stockMovements   PosStockMovement[]
+  sales            PosSale[]
   ppobTransactions PosPpobTransaction[]
 
   @@map("pos_branches")
 }
 
 model PosProduct {
-  uuid            String    @id @default(cuid()) @db.Char(36)
-  categoryUuid    String    @map("category_uuid") @db.Char(36)
-  name            String    @db.VarChar(255)
-  sku             String    @unique @db.VarChar(100)
-  description     String?   @db.Text
-  barcode         String?   @db.VarChar(100)
-  sellingPrice    Decimal   @map("selling_price") @db.Decimal(15, 2)
-  minSellingPrice Decimal?  @map("min_selling_price") @db.Decimal(15, 2)
-  minStock        Int       @default(0) @map("min_stock")
-  unit            String    @default("pcs") @db.VarChar(20)
-  isActive        Boolean   @default(true) @map("is_active")
-  image           String?   @db.VarChar(255)
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  uuid           String   @id @default(cuid()) @db.Char(36)
+  categoryUuid   String   @map("category_uuid") @db.Char(36)
+  name           String   @db.VarChar(255)
+  sku            String   @unique @db.VarChar(100)
+  barcode        String?  @db.VarChar(100)
+  purchasePrice  Decimal  @default(0) @map("purchase_price") @db.Decimal(15, 2)
+  sellingPrice   Decimal  @map("selling_price") @db.Decimal(15, 2)
+  wholesalePrice Decimal  @default(0) @map("wholesale_price") @db.Decimal(15, 2)
+  minStock       Int      @default(0) @map("min_stock")
+  unit           String   @default("pcs") @db.VarChar(20)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  category    PosProductCategory  @relation(fields: [categoryUuid], references: [uuid], onDelete: Cascade)
-  stockItems  PosProductStock[]
-  stockMovements PosStockMovement[]
-  images      PosProductImage[]
-  purchaseItems PosPurchaseItem[]
-  saleItems   PosSaleItem[]
+  category           PosProductCategory         @relation(fields: [categoryUuid], references: [uuid], onDelete: Cascade)
+  stockItems         PosProductStock[]
+  additionalBarcodes PosProductBarcode[]
+  unitConversions    PosProductUnitConversion[]
+  branchPrices       PosProductBranchPrice[]
+  stockMovements     PosStockMovement[]
+  images             PosProductImage[]
+  purchaseItems      PosPurchaseItem[]
+  saleItems          PosSaleItem[]
 
   @@map("pos_products")
+}
+
+model PosProductBarcode {
+  uuid        String   @id @default(cuid()) @db.Char(36)
+  productUuid String   @map("product_uuid") @db.Char(36)
+  barcode     String   @unique @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([productUuid])
+  @@map("pos_product_barcodes")
+}
+
+model PosProductUnitConversion {
+  uuid         String   @id @default(cuid()) @db.Char(36)
+  productUuid  String   @map("product_uuid") @db.Char(36)
+  unit         String   @db.VarChar(20)
+  factorToBase Decimal  @map("factor_to_base") @db.Decimal(12, 4)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([productUuid, unit], name: "product_unit_conversion_unique")
+  @@index([productUuid])
+  @@map("pos_product_unit_conversions")
+}
+
+model PosProductBranchPrice {
+  uuid           String   @id @default(cuid()) @db.Char(36)
+  productUuid    String   @map("product_uuid") @db.Char(36)
+  branchUuid     String   @map("branch_uuid") @db.Char(36)
+  sellingPrice   Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
+  wholesalePrice Decimal  @default(0) @map("wholesale_price") @db.Decimal(15, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
+  branch  PosBranch  @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([productUuid, branchUuid], name: "product_branch_price_unique")
+  @@index([branchUuid])
+  @@map("pos_product_branch_prices")
 }
 
 model PosProductImage {
@@ -253,23 +302,23 @@ model PosProductStock {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
-  branch  PosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  branch  PosBranch  @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
 
   @@unique([productUuid, branchUuid], name: "product_branch_unique")
   @@map("pos_product_stocks")
 }
 
 model PosSupplier {
-  uuid        String   @id @default(cuid()) @db.Char(36)
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(255)
-  contactPerson String? @map("contact_person") @db.VarChar(255)
-  phone       String   @db.VarChar(20)
-  email       String?  @db.VarChar(255)
-  address     String?  @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  uuid          String   @id @default(cuid()) @db.Char(36)
+  code          String   @unique @db.VarChar(50)
+  name          String   @db.VarChar(255)
+  contactPerson String?  @map("contact_person") @db.VarChar(255)
+  phone         String   @db.VarChar(20)
+  email         String?  @db.VarChar(255)
+  address       String?  @db.Text
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   purchases PosPurchase[]
 
@@ -277,39 +326,39 @@ model PosSupplier {
 }
 
 model PosPurchase {
-  uuid          String   @id @default(cuid()) @db.Char(36)
-  purchaseNumber String  @unique @map("purchase_number") @db.VarChar(50)
-  branchUuid    String   @map("branch_uuid") @db.Char(36)
-  supplierUuid  String   @map("supplier_uuid") @db.Char(36)
-  purchaseDate  DateTime @map("purchase_date") @db.Date
-  subtotal      Decimal  @default(0) @db.Decimal(15, 2)
-  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(15, 2)
-  totalAmount   Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
-  paidAmount    Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
-  paymentStatus String   @default("pending") @map("payment_status") @db.VarChar(20)
-  notes         String?  @db.Text
-  createdBy     Int      @map("created_by")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  uuid           String   @id @default(cuid()) @db.Char(36)
+  purchaseNumber String   @unique @map("purchase_number") @db.VarChar(50)
+  branchUuid     String   @map("branch_uuid") @db.Char(36)
+  supplierUuid   String   @map("supplier_uuid") @db.Char(36)
+  purchaseDate   DateTime @map("purchase_date") @db.Date
+  subtotal       Decimal  @default(0) @db.Decimal(15, 2)
+  discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount    Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  paidAmount     Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  paymentStatus  String   @default("pending") @map("payment_status") @db.VarChar(20)
+  notes          String?  @db.Text
+  createdBy      Int      @map("created_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  branch     PosBranch     @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  supplier   PosSupplier   @relation(fields: [supplierUuid], references: [uuid], onDelete: Cascade)
-  creator    User          @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  items      PosPurchaseItem[]
+  branch   PosBranch         @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  supplier PosSupplier       @relation(fields: [supplierUuid], references: [uuid], onDelete: Cascade)
+  creator  User              @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  items    PosPurchaseItem[]
 
   @@map("pos_purchases")
 }
 
 model PosPurchaseItem {
-  uuid        String   @id @default(cuid()) @db.Char(36)
-  purchaseUuid String  @map("purchase_uuid") @db.Char(36)
-  productUuid String   @map("product_uuid") @db.Char(36)
-  quantity    Int
-  unitPrice   Decimal  @map("unit_price") @db.Decimal(15, 2)
-  discount    Decimal  @default(0) @db.Decimal(15, 2)
-  subtotal    Decimal  @db.Decimal(15, 2)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  uuid         String   @id @default(cuid()) @db.Char(36)
+  purchaseUuid String   @map("purchase_uuid") @db.Char(36)
+  productUuid  String   @map("product_uuid") @db.Char(36)
+  quantity     Int
+  unitPrice    Decimal  @map("unit_price") @db.Decimal(15, 2)
+  discount     Decimal  @default(0) @db.Decimal(15, 2)
+  subtotal     Decimal  @db.Decimal(15, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   purchase PosPurchase @relation(fields: [purchaseUuid], references: [uuid], onDelete: Cascade)
   product  PosProduct  @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
@@ -331,9 +380,9 @@ model PosStockMovement {
   createdBy     Int      @map("created_by")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  branch PosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  branch  PosBranch  @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
   product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
-  creator User     @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  creator User       @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@index([branchUuid])
   @@index([productUuid])
@@ -341,31 +390,31 @@ model PosStockMovement {
 }
 
 model PosPaymentMethod {
-  uuid        String   @id @default(cuid()) @db.Char(36)
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(100)
-  type        String   @default("cash") @db.VarChar(20)
-  accountNumber String? @map("account_number") @db.VarChar(100)
-  accountName String?  @map("account_name") @db.VarChar(100)
-  description String?  @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  uuid          String   @id @default(cuid()) @db.Char(36)
+  code          String   @unique @db.VarChar(50)
+  name          String   @db.VarChar(100)
+  type          String   @default("cash") @db.VarChar(20)
+  accountNumber String?  @map("account_number") @db.VarChar(100)
+  accountName   String?  @map("account_name") @db.VarChar(100)
+  description   String?  @db.Text
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  sales           PosSale[]
+  sales            PosSale[]
   ppobTransactions PosPpobTransaction[]
 
   @@map("pos_payment_methods")
 }
 
 model PosCustomer {
-  uuid        String   @id @default(cuid()) @db.Char(36)
-  name        String   @db.VarChar(255)
-  phone       String?  @db.VarChar(20)
-  email       String?  @db.VarChar(255)
-  address     String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  uuid      String   @id @default(cuid()) @db.Char(36)
+  name      String   @db.VarChar(255)
+  phone     String?  @db.VarChar(20)
+  email     String?  @db.VarChar(255)
+  address   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   sales PosSale[]
 
@@ -375,28 +424,28 @@ model PosCustomer {
 }
 
 model PosSale {
-  uuid            String   @id @default(cuid()) @db.Char(36)
-  saleNumber      String   @unique @map("sale_number") @db.VarChar(50)
-  branchUuid      String   @map("branch_uuid") @db.Char(36)
-  customerUuid    String?  @map("customer_uuid") @db.Char(36)
-  paymentMethodUuid String @map("payment_method_uuid") @db.Char(36)
-  saleDate        DateTime @map("sale_date") @db.Date
-  subtotal        Decimal  @default(0) @db.Decimal(15, 2)
-  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
-  totalAmount     Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
-  paidAmount      Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
-  changeAmount    Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
-  paymentStatus   String   @default("paid") @map("payment_status") @db.VarChar(20)
-  notes           String?  @db.Text
-  createdBy       Int      @map("created_by")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  uuid              String   @id @default(cuid()) @db.Char(36)
+  saleNumber        String   @unique @map("sale_number") @db.VarChar(50)
+  branchUuid        String   @map("branch_uuid") @db.Char(36)
+  customerUuid      String?  @map("customer_uuid") @db.Char(36)
+  paymentMethodUuid String   @map("payment_method_uuid") @db.Char(36)
+  saleDate          DateTime @map("sale_date") @db.Date
+  subtotal          Decimal  @default(0) @db.Decimal(15, 2)
+  discountAmount    Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount       Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  paidAmount        Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  changeAmount      Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
+  paymentStatus     String   @default("paid") @map("payment_status") @db.VarChar(20)
+  notes             String?  @db.Text
+  createdBy         Int      @map("created_by")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  branch     PosBranch     @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  customer   PosCustomer?  @relation(fields: [customerUuid], references: [uuid], onDelete: SetNull)
+  branch        PosBranch        @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  customer      PosCustomer?     @relation(fields: [customerUuid], references: [uuid], onDelete: SetNull)
   paymentMethod PosPaymentMethod @relation(fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
-  creator    User          @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  items      PosSaleItem[]
+  creator       User             @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  items         PosSaleItem[]
 
   @@index([saleDate])
   @@index([paymentStatus])
@@ -421,30 +470,30 @@ model PosSaleItem {
 }
 
 model PosPpobProduct {
-  uuid                  String   @id @default(cuid()) @db.Char(36)
-  provider              String   @db.VarChar(20)
-  providerProductCode   String   @map("provider_product_code") @db.VarChar(100)
-  productName           String   @map("product_name") @db.VarChar(255)
-  brand                 String?  @db.VarChar(100)
-  category              String   @db.VarChar(50)
-  type                  String   @db.VarChar(20)
-  sellerName            String?  @map("seller_name") @db.VarChar(255)
-  basePrice             Decimal  @default(0) @map("base_price") @db.Decimal(15, 2)
-  adminFee              Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2)
-  sellingPrice          Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
-  digiflazzType         String?  @map("digiflazz_type") @db.VarChar(50)
-  buyerProductStatus    Boolean  @default(true) @map("buyer_product_status")
-  sellerProductStatus   Boolean  @default(true) @map("seller_product_status")
-  unlimitedStock        Boolean  @default(false) @map("unlimited_stock")
-  stock                 Int      @default(0)
-  multi                 Boolean  @default(false)
-  startCutOff           String?  @map("start_cut_off") @db.VarChar(10)
-  endCutOff             String?  @map("end_cut_off") @db.VarChar(10)
-  desc                  String?  @db.Text
-  isActive              Boolean  @default(true) @map("is_active")
-  providerMetadata      Json?    @map("provider_metadata")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
+  uuid                String   @id @default(cuid()) @db.Char(36)
+  provider            String   @db.VarChar(20)
+  providerProductCode String   @map("provider_product_code") @db.VarChar(100)
+  productName         String   @map("product_name") @db.VarChar(255)
+  brand               String?  @db.VarChar(100)
+  category            String   @db.VarChar(50)
+  type                String   @db.VarChar(20)
+  sellerName          String?  @map("seller_name") @db.VarChar(255)
+  basePrice           Decimal  @default(0) @map("base_price") @db.Decimal(15, 2)
+  adminFee            Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2)
+  sellingPrice        Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
+  digiflazzType       String?  @map("digiflazz_type") @db.VarChar(50)
+  buyerProductStatus  Boolean  @default(true) @map("buyer_product_status")
+  sellerProductStatus Boolean  @default(true) @map("seller_product_status")
+  unlimitedStock      Boolean  @default(false) @map("unlimited_stock")
+  stock               Int      @default(0)
+  multi               Boolean  @default(false)
+  startCutOff         String?  @map("start_cut_off") @db.VarChar(10)
+  endCutOff           String?  @map("end_cut_off") @db.VarChar(10)
+  desc                String?  @db.Text
+  isActive            Boolean  @default(true) @map("is_active")
+  providerMetadata    Json?    @map("provider_metadata")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   @@unique([provider, providerProductCode], name: "provider_product_unique")
   @@index([category])
