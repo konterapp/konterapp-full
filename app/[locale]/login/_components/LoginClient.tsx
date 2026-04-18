@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter, Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
-import { getUser, login } from '@/lib/api/auth';
-import { CheckCircle2, Zap } from 'lucide-react';
+import { login } from '@/lib/api/auth';
+import { CheckCircle2, Eye, EyeOff, Zap } from 'lucide-react';
 
 export default function LoginClient() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [recaptchaChecked, setRecaptchaChecked] = useState(false);
@@ -49,7 +50,7 @@ export default function LoginClient() {
       } else {
         setError(response.message || 'Email atau password salah');
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
@@ -98,15 +99,25 @@ export default function LoginClient() {
                   Lupa Password?
                 </a>
               </div>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             {error && (
