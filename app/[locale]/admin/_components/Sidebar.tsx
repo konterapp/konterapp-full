@@ -7,35 +7,50 @@ import { logout } from '@/lib/api/auth';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import {
   ChevronLeft,
-  ChevronRight,
   LogOut,
   ChevronDown,
   ChevronUp,
   X,
   Zap,
 } from 'lucide-react';
-import { allMenuItems, SubMenuItem } from '../_constants/menuItems';
+import { allMenuItems, MenuSection, SubMenuItem } from '../_constants/menuItems';
 import { useSidebar } from '../contexts/SidebarContext';
 import { filterMenuByAccess } from '@/lib/utils/menuFilter';
 
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
+  "Operasional": "Operasional",
+  "Master Data": "Master Data",
+  "Inventori & Keuangan": "Inventori & Keuangan",
+  "Laporan": "Laporan",
   "Dashboard": "Dashboard",
-  "Kasir": "Kasir",
-  "Riwayat Transaksi": "Riwayat Transaksi",
+  "Point of Sales": "Point of Sales",
+  "Penjualan": "Penjualan",
   "PPOB": "PPOB",
   "Riwayat PPOB": "Riwayat PPOB",
-  "Produk PPOB": "Produk PPOB",
+  "Stok On-Hand": "Stok On-Hand",
   "Produk": "Produk",
-  "Kategori Produk": "Kategori Produk",
+  "Kategori": "Kategori",
   "Supplier": "Supplier",
   "Pembelian": "Pembelian",
-  "Riwayat Stok": "Riwayat Stok",
-  "Laporan Laba/Rugi": "Laporan Laba/Rugi",
+  "Semua Laporan": "Semua Laporan",
+  "Produk PPOB": "Produk PPOB",
   "Metode Pembayaran": "Metode Pembayaran",
   "Cabang/Lokasi": "Cabang/Lokasi",
-  "Manajemen User": "Manajemen User",
-  "Manajemen Role": "Manajemen Role",
+  "User": "User",
+  "Role": "Role",
+  "Shift Kasir": "Shift Kasir",
+  "Cek Harga": "Cek Harga",
+  "Satuan": "Satuan",
+  "Pelanggan": "Pelanggan",
+  "Printer": "Printer",
+  "Mutasi Stok": "Mutasi Stok",
+  "Stok Opname": "Stok Opname",
+  "Piutang": "Piutang",
+  "Hutang": "Hutang",
+  "Accounting": "Accounting",
+  "Audit Log": "Audit Log",
+  "Segera": "Segera",
   "Logout": "Keluar",
 };
 
@@ -135,6 +150,13 @@ export default function Sidebar() {
     roles,
     adminScope
   });
+  const sectionOrder: MenuSection[] = ['Operasional', 'Master Data', 'Inventori & Keuangan', 'Laporan'];
+  const groupedMenuItems = sectionOrder
+    .map(section => ({
+      section,
+      items: menuItems.filter(item => item.section === section),
+    }))
+    .filter(group => group.items.length > 0);
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -244,135 +266,176 @@ export default function Sidebar() {
               </div>
             ))
           ) : (
-            menuItems.map((item, index) => {
-              const hasSubmenu = item.submenu && item.submenu.length > 0;
-              const isExpanded = expandedMenus.has(item.label);
-              const isItemActive = item.href ? isActive(item.href) : hasActiveSubmenu(item.submenu);
+            groupedMenuItems.map((group, sectionIndex) => (
+              <div key={group.section} className="space-y-1">
+                {!effectiveCollapsed ? (
+                  <p className={`px-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/45 ${sectionIndex === 0 ? 'pt-1' : 'pt-3'}`}>
+                    {tMenu(group.section)}
+                  </p>
+                ) : (
+                  sectionIndex > 0 && <div className="my-2 border-t border-white/10" />
+                )}
+                {group.items.map(item => {
+                  const hasSubmenu = item.submenu && item.submenu.length > 0;
+                  const isExpanded = expandedMenus.has(item.label);
+                  const isItemActive = item.href ? isActive(item.href) : hasActiveSubmenu(item.submenu);
 
-              if (hasSubmenu && item.submenu) {
-                return (
-                  <div key={index} className="space-y-1 relative group/menu">
-                    <button
-                      onClick={() => !effectiveCollapsed && toggleMenu(item.label)}
-                      className={`cursor-pointer w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-between'} px-4 py-3 rounded-lg transition-all duration-200 group ${isItemActive
-                        ? 'bg-[#EBC170] text-gray-900'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
-                        }`}
-                    >
-                      <div className={`flex items-center ${effectiveCollapsed ? '' : 'space-x-3 flex-1 min-w-0'}`}>
+                  if (hasSubmenu && item.submenu) {
+                    return (
+                      <div key={item.label} className="space-y-1 relative group/menu">
+                        <button
+                          onClick={() => !effectiveCollapsed && toggleMenu(item.label)}
+                          className={`cursor-pointer w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-between'} px-4 py-3 rounded-lg transition-all duration-200 group ${isItemActive
+                            ? 'bg-[#EBC170] text-gray-900'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            }`}
+                        >
+                          <div className={`flex items-center ${effectiveCollapsed ? '' : 'space-x-3 flex-1 min-w-0'}`}>
+                            <span className={isItemActive ? 'text-gray-900' : 'text-white/80 group-hover:text-white'}>
+                              {item.icon}
+                            </span>
+                            {!effectiveCollapsed && (
+                              <span className="flex-1 font-medium text-left truncate">{tMenu(item.label)}</span>
+                            )}
+                          </div>
+                          {!effectiveCollapsed && (
+                            <span className={isItemActive ? 'text-gray-900' : 'text-white/60'}>
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4" />
+                              )}
+                            </span>
+                          )}
+                        </button>
+                        {/* Popup submenu for collapsed state */}
+                        {effectiveCollapsed && (
+                          <div className="absolute left-full top-0 ml-3 py-2 bg-gradient-to-br from-[#1a3a5c] to-[#142D52] rounded-xl shadow-2xl opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 min-w-[220px] border border-white/20 backdrop-blur-sm">
+                            {/* Header */}
+                            <div className="px-4 py-3 border-b border-white/10 mb-2 bg-gradient-to-r from-[#EBC170]/20 to-transparent">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[#EBC170]">{item.icon}</span>
+                                <span className="text-white font-semibold">{tMenu(item.label)}</span>
+                              </div>
+                            </div>
+                            {/* Arrow */}
+                            <div className="absolute left-0 top-5 -translate-x-full border-8 border-transparent border-r-[#1a3a5c]"></div>
+                            {/* Submenu items */}
+                            <div className="px-2 space-y-1">
+                              {item.submenu?.map(subItem => {
+                                const isSubActive = isActive(subItem.href);
+                                return (
+                                  <Link
+                                    key={`${item.label}-${subItem.label}`}
+                                    href={subItem.href}
+                                    onClick={closeMobileSidebar}
+                                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${isSubActive
+                                      ? 'bg-[#EBC170] text-gray-900 shadow-md'
+                                      : 'text-white/80 hover:bg-white/15 hover:text-white hover:translate-x-1'
+                                      }`}
+                                  >
+                                    <div className="flex items-center space-x-2">
+                                      {subItem.icon && <span className={isSubActive ? 'text-gray-900' : 'opacity-70'}>{subItem.icon}</span>}
+                                      <span className="text-sm font-medium">{tMenu(subItem.label)}</span>
+                                    </div>
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {!effectiveCollapsed && isExpanded && (
+                          <div className="ml-4 space-y-1 border-l-2 border-white/10 pl-2">
+                            {item.submenu?.map(subItem => {
+                              const isSubActive = isActive(subItem.href);
+                              return (
+                                <Link
+                                  key={`${item.label}-expanded-${subItem.label}`}
+                                  href={subItem.href}
+                                  onClick={closeMobileSidebar}
+                                  className={`flex items-center justify-between px-2 py-2.5 rounded-lg transition-all duration-200 group ${isSubActive
+                                    ? 'bg-white/15 text-white font-medium'
+                                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                                    }`}
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    {subItem.icon && <span className="opacity-80">{subItem.icon}</span>}
+                                    <span className="text-sm">{tMenu(subItem.label)}</span>
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  if (!item.href) {
+                    return (
+                      <div key={item.label} className="relative group/menu">
+                        <div
+                          className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg transition-all duration-200 text-white/60 bg-white/[0.03] border border-white/5`}
+                          title={`${tMenu(item.label)} • ${tMenu('Segera')}`}
+                        >
+                          <span className="text-white/60">{item.icon}</span>
+                          {!effectiveCollapsed && (
+                            <>
+                              <span className="flex-1 font-medium">{tMenu(item.label)}</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-white/70">
+                                {tMenu('Segera')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {effectiveCollapsed && (
+                          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-4 py-2.5 bg-gradient-to-br from-[#1a3a5c] to-[#142D52] text-white text-sm rounded-xl whitespace-nowrap opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 shadow-2xl border border-white/20">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#EBC170]">{item.icon}</span>
+                              <span className="font-semibold">{tMenu(item.label)}</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/15 text-white/80">
+                                {tMenu('Segera')}
+                              </span>
+                            </div>
+                            <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-[#1a3a5c]"></div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={item.label} className="relative group/menu">
+                      <Link
+                        href={item.href}
+                        onClick={closeMobileSidebar}
+                        className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg transition-all duration-200 group ${isItemActive
+                          ? 'bg-[#EBC170] text-gray-900'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
+                          }`}
+                      >
                         <span className={isItemActive ? 'text-gray-900' : 'text-white/80 group-hover:text-white'}>
                           {item.icon}
                         </span>
                         {!effectiveCollapsed && (
-                          <span className="flex-1 font-medium text-left truncate">{tMenu(item.label)}</span>
+                          <span className="flex-1 font-medium">{tMenu(item.label)}</span>
                         )}
-                      </div>
-                      {!effectiveCollapsed && (
-                        <span className={isItemActive ? 'text-gray-900' : 'text-white/60'}>
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </span>
-                      )}
-                    </button>
-                    {/* Popup submenu for collapsed state */}
-                    {effectiveCollapsed && (
-                      <div className="absolute left-full top-0 ml-3 py-2 bg-gradient-to-br from-[#1a3a5c] to-[#142D52] rounded-xl shadow-2xl opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 min-w-[220px] border border-white/20 backdrop-blur-sm">
-                        {/* Header */}
-                        <div className="px-4 py-3 border-b border-white/10 mb-2 bg-gradient-to-r from-[#EBC170]/20 to-transparent">
+                      </Link>
+                      {/* Tooltip for collapsed state */}
+                      {effectiveCollapsed && (
+                        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-4 py-2.5 bg-gradient-to-br from-[#1a3a5c] to-[#142D52] text-white text-sm rounded-xl whitespace-nowrap opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 shadow-2xl border border-white/20">
                           <div className="flex items-center gap-2">
                             <span className="text-[#EBC170]">{item.icon}</span>
-                            <span className="text-white font-semibold">{tMenu(item.label)}</span>
+                            <span className="font-semibold">{tMenu(item.label)}</span>
                           </div>
+                          <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-[#1a3a5c]"></div>
                         </div>
-                        {/* Arrow */}
-                        <div className="absolute left-0 top-5 -translate-x-full border-8 border-transparent border-r-[#1a3a5c]"></div>
-                        {/* Submenu items */}
-                        <div className="px-2 space-y-1">
-                          {item.submenu?.map((subItem, subIndex) => {
-                            const isSubActive = isActive(subItem.href);
-                            return (
-                              <Link
-                                key={subIndex}
-                                href={subItem.href}
-                                onClick={closeMobileSidebar}
-                                className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${isSubActive
-                                  ? 'bg-[#EBC170] text-gray-900 shadow-md'
-                                  : 'text-white/80 hover:bg-white/15 hover:text-white hover:translate-x-1'
-                                  }`}
-                              >
-                                <div className="flex items-center space-x-2">
-                                  {subItem.icon && <span className={isSubActive ? 'text-gray-900' : 'opacity-70'}>{subItem.icon}</span>}
-                                  <span className="text-sm font-medium">{tMenu(subItem.label)}</span>
-                                </div>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {!effectiveCollapsed && isExpanded && (
-                      <div className="ml-4 space-y-1 border-l-2 border-white/10 pl-2">
-                        {item.submenu?.map((subItem, subIndex) => {
-                          const isSubActive = isActive(subItem.href);
-                          return (
-                            <Link
-                              key={subIndex}
-                              href={subItem.href}
-                              onClick={closeMobileSidebar}
-                              className={`flex items-center justify-between px-2 py-2.5 rounded-lg transition-all duration-200 group ${isSubActive
-                                ? 'bg-white/15 text-white font-medium'
-                                : 'text-white/70 hover:bg-white/10 hover:text-white'
-                                }`}
-                            >
-                              <div className="flex items-center space-x-2">
-                                {subItem.icon && <span className="opacity-80">{subItem.icon}</span>}
-                                <span className="text-sm">{tMenu(subItem.label)}</span>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              // Menu item tanpa submenu
-              if (!item.href) return null;
-
-              return (
-                <div key={index} className="relative group/menu">
-                  <Link
-                    href={item.href}
-                    onClick={closeMobileSidebar}
-                    className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg transition-all duration-200 group ${isItemActive
-                      ? 'bg-[#EBC170] text-gray-900'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                      }`}
-                  >
-                    <span className={isItemActive ? 'text-gray-900' : 'text-white/80 group-hover:text-white'}>
-                      {item.icon}
-                    </span>
-                    {!effectiveCollapsed && (
-                      <span className="flex-1 font-medium">{tMenu(item.label)}</span>
-                    )}
-                  </Link>
-                  {/* Tooltip for collapsed state */}
-                  {effectiveCollapsed && (
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-4 py-2.5 bg-gradient-to-br from-[#1a3a5c] to-[#142D52] text-white text-sm rounded-xl whitespace-nowrap opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all duration-300 z-50 shadow-2xl border border-white/20">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#EBC170]">{item.icon}</span>
-                        <span className="font-semibold">{tMenu(item.label)}</span>
-                      </div>
-                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-8 border-transparent border-r-[#1a3a5c]"></div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })
+                  );
+                })}
+              </div>
+            ))
           )}
         </nav>
 

@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Link as LocaleLink } from '@/i18n/navigation';
-import { Search, ChevronRight, Home, Menu, X, Bell, Settings, Store } from 'lucide-react';
+import { Search, ChevronRight, Menu, X, Bell, Settings, Store } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
@@ -14,21 +14,32 @@ import ImpersonateButton from './ImpersonateButton';
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
   "Dashboard": "Dashboard",
-  "Kasir (POS)": "Kasir (POS)",
-  "Transaksi": "Transaksi",
+  "Point of Sales": "Point of Sales",
+  "Penjualan": "Penjualan",
   "Produk": "Produk",
-  "Kategori Produk": "Kategori Produk",
+  "Kategori": "Kategori",
   "Supplier": "Supplier",
   "Pembelian": "Pembelian",
-  "Stok": "Stok",
-  "Laporan": "Laporan",
+  "Stok On-Hand": "Stok On-Hand",
+  "Semua Laporan": "Semua Laporan",
   "Metode Pembayaran": "Metode Pembayaran",
-  "Cabang": "Cabang",
+  "Cabang/Lokasi": "Cabang/Lokasi",
   "PPOB": "PPOB",
   "Produk PPOB": "Produk PPOB",
-  "Transaksi PPOB": "Transaksi PPOB",
-  "User Management": "User Management",
-  "Role Management": "Role Management",
+  "Riwayat PPOB": "Riwayat PPOB",
+  "User": "User",
+  "Role": "Role",
+  "Shift Kasir": "Shift Kasir",
+  "Cek Harga": "Cek Harga",
+  "Satuan": "Satuan",
+  "Pelanggan": "Pelanggan",
+  "Printer": "Printer",
+  "Mutasi Stok": "Mutasi Stok",
+  "Stok Opname": "Stok Opname",
+  "Piutang": "Piutang",
+  "Hutang": "Hutang",
+  "Accounting": "Accounting",
+  "Audit Log": "Audit Log",
   "Logout": "Keluar",
 };
 
