@@ -45,6 +45,7 @@ export const POST = withPermission(
       purchase_date: rawBody.purchase_date ?? rawBody.purchaseDate,
       discount_amount: rawBody.discount_amount ?? rawBody.discountAmount ?? 0,
       paid_amount: rawBody.paid_amount ?? rawBody.paidAmount ?? 0,
+      is_draft: rawBody.is_draft ?? rawBody.isDraft ?? false,
       items: Array.isArray(rawBody.items)
         ? rawBody.items.map((item) => {
             const itemRow = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
@@ -68,6 +69,7 @@ export const POST = withPermission(
         purchaseDate: result.data.purchase_date || null,
         discountAmount: Number(result.data.discount_amount || 0),
         paidAmount: Number(result.data.paid_amount || 0),
+        isDraft: Boolean(result.data.is_draft),
         notes: result.data.notes || null,
         items: result.data.items.map((item) => ({
           productUuid: item.product_uuid,

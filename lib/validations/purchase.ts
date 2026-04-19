@@ -24,6 +24,11 @@ export const createPurchaseSchema = z.object({
   purchase_date: z.string().optional().nullable().or(z.literal('')),
   discount_amount: z.coerce.number().min(0, 'Diskon tidak boleh negatif').optional().default(0),
   paid_amount: z.coerce.number().min(0, 'Nominal bayar tidak boleh negatif').optional().default(0),
+  is_draft: z.boolean().optional().default(false),
   notes: z.string().max(500, 'Catatan maksimal 500 karakter').optional().nullable().or(z.literal('')),
   items: z.array(purchaseItemSchema).min(1, 'Minimal 1 item pembelian').max(500, 'Maksimal 500 item pembelian'),
+});
+
+export const updateDraftPurchaseSchema = createPurchaseSchema.extend({
+  finalize: z.boolean().optional().default(false),
 });

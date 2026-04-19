@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Building2, Calendar, FileText, Truck, User } from 'lucide-react';
+import { ArrowLeft, Building2, Calendar, FileText, Pencil, Truck, User } from 'lucide-react';
 
 interface PurchaseItem {
   uuid: string;
@@ -83,14 +83,18 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ uuid:
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
+      draft: 'bg-gray-100 text-gray-800',
       pending: 'bg-yellow-100 text-yellow-800',
       partial: 'bg-blue-100 text-blue-800',
       paid: 'bg-green-100 text-green-800',
+      void: 'bg-red-100 text-red-800',
     };
     const labels: Record<string, string> = {
+      draft: 'Draft',
       pending: 'Belum Dibayar',
       partial: 'Dibayar Sebagian',
       paid: 'Lunas',
+      void: 'Void',
     };
 
     return (
@@ -137,7 +141,18 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ uuid:
             <p className="mt-1 text-gray-600">{purchase.purchase_number}</p>
           </div>
         </div>
-        {getStatusBadge(purchase.payment_status)}
+        <div className="flex items-center gap-3">
+          {purchase.payment_status === 'draft' && (
+            <Link
+              href={`/admin/pos/purchases/${purchase.uuid}/edit`}
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-500 px-3 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50"
+            >
+              <Pencil className="h-4 w-4" />
+              <span>Edit Draft</span>
+            </Link>
+          )}
+          {getStatusBadge(purchase.payment_status)}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ShoppingCart, Plus, Eye, Trash2 } from 'lucide-react';
+import { ShoppingCart, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import DataTable, { Column } from '../../_components/DataTable';
 import ConfirmModal from '../../_components/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -54,11 +54,7 @@ export default function PurchasesPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchPurchases(currentPage);
-  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder]);
-
-  const fetchPurchases = async (page: number) => {
+  const fetchPurchases = useCallback(async (page: number) => {
     try {
       setIsLoading(true);
       setError('');
@@ -88,7 +84,11 @@ export default function PurchasesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [itemsPerPage, debouncedSearch, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchPurchases(currentPage);
+  }, [fetchPurchases, currentPage]);
 
   const handleSortChange = (field: string, order: 'asc' | 'desc') => {
     setSortBy(field);
@@ -112,11 +112,11 @@ export default function PurchasesPage() {
       const result = await response.json();
 
       if (result.status === 'success') {
-        toast.success('Pembelian berhasil dihapus');
+        toast.success('Pembelian berhasil di-void');
         setDeleteModal({ isOpen: false, purchase: null, isLoading: false });
         fetchPurchases(currentPage);
       } else {
-        toast.error(result.message || 'Gagal menghapus pembelian');
+        toast.error(result.message || 'Gagal void pembelian');
         setDeleteModal((prev) => ({ ...prev, isLoading: false }));
       }
     } catch {
@@ -147,14 +147,18 @@ export default function PurchasesPage() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
+      draft: 'bg-gray-100 text-gray-800',
       pending: 'bg-yellow-100 text-yellow-800',
       partial: 'bg-blue-100 text-blue-800',
       paid: 'bg-green-100 text-green-800',
+      void: 'bg-red-100 text-red-800',
     };
     const labels: Record<string, string> = {
+      draft: 'Draft',
       pending: 'Belum Dibayar',
       partial: 'Dibayar Sebagian',
       paid: 'Lunas',
+      void: 'Void',
     };
 
     return (
@@ -247,13 +251,22 @@ export default function PurchasesPage() {
             <Eye className="w-3.5 h-3.5" />
             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
           </Link>
-          {hasPermission('admin.pos.purchase.delete') && (
+          {row.payment_status === 'draft' && hasPermission('admin.pos.purchase.create') && (
+            <Link
+              href={`/admin/pos/purchases/${row.uuid}/edit`}
+              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit Draft</span>
+            </Link>
+          )}
+          {hasPermission('admin.pos.purchase.delete') && row.payment_status !== 'void' && (
             <button
               onClick={() => handleDeleteClick(row)}
               className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Void</span>
             </button>
           )}
         </div>
@@ -311,9 +324,13 @@ export default function PurchasesPage() {
         isOpen={deleteModal.isOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
-        title="Hapus Pembelian"
-        message={`Apakah Anda yakin ingin menghapus pembelian "${deleteModal.purchase?.purchase_number}"? Stock yang telah masuk akan dikurangi. Tindakan ini tidak dapat dibatalkan.`}
-        confirmText="Ya, Hapus"
+        title="Void Pembelian"
+        message={
+          deleteModal.purchase?.payment_status === 'draft'
+            ? `Apakah Anda yakin ingin void draft "${deleteModal.purchase?.purchase_number}"?`
+            : `Apakah Anda yakin ingin void pembelian "${deleteModal.purchase?.purchase_number}"? Stock yang telah masuk akan dikurangi kembali.`
+        }
+        confirmText="Ya, Void"
         cancelText="Batal"
         type="danger"
         isLoading={deleteModal.isLoading}
