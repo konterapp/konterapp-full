@@ -15,6 +15,10 @@ const TITLE_FONT_SIZE = 9;
 const META_FONT_SIZE = 8;
 const BARCODE_TEXT_SIZE = 10;
 const MAX_NAME_LENGTH = 32;
+const MAX_BARCODE_HEIGHT = 34;
+const TITLE_Y_OFFSET = 14;
+const CODE_Y_OFFSET = 26;
+const BARCODE_TOP_OFFSET = 34;
 
 function truncateText(value: string, limit: number) {
   if (value.length <= limit) return value;
@@ -70,17 +74,22 @@ export async function buildProductBarcodePdf(products: ProductBarcodePrintItem[]
     });
 
     const title = truncateText(product.name, MAX_NAME_LENGTH);
+    const titleWidth = fontBold.widthOfTextAtSize(title, TITLE_FONT_SIZE);
+    const titleX = x + (labelWidth - titleWidth) / 2;
     page.drawText(title, {
-      x: x + LABEL_PADDING,
-      y: y + LABEL_HEIGHT - 14,
+      x: titleX,
+      y: y + LABEL_HEIGHT - TITLE_Y_OFFSET,
       size: TITLE_FONT_SIZE,
       font: fontBold,
       color: rgb(0.11, 0.11, 0.11),
     });
 
-    page.drawText(`Kode: ${product.sku}`, {
-      x: x + LABEL_PADDING,
-      y: y + LABEL_HEIGHT - 26,
+    const codeText = `Kode: ${product.sku}`;
+    const codeWidth = fontRegular.widthOfTextAtSize(codeText, META_FONT_SIZE);
+    const codeX = x + (labelWidth - codeWidth) / 2;
+    page.drawText(codeText, {
+      x: codeX,
+      y: y + LABEL_HEIGHT - CODE_Y_OFFSET,
       size: META_FONT_SIZE,
       font: fontRegular,
       color: rgb(0.35, 0.35, 0.35),
@@ -88,20 +97,27 @@ export async function buildProductBarcodePdf(products: ProductBarcodePrintItem[]
 
     const barcodePng = await createBarcodePng(product.barcode);
     const barcodeImage = await pdfDoc.embedPng(barcodePng);
-    const barcodeWidth = labelWidth - LABEL_PADDING * 2;
-    const scale = barcodeWidth / barcodeImage.width;
+    const maxBarcodeWidth = labelWidth - LABEL_PADDING * 2;
+    const widthScale = maxBarcodeWidth / barcodeImage.width;
+    const heightScale = MAX_BARCODE_HEIGHT / barcodeImage.height;
+    const scale = Math.min(widthScale, heightScale);
+    const barcodeWidth = barcodeImage.width * scale;
     const barcodeHeight = barcodeImage.height * scale;
-    const barcodeY = y + 16;
+    const barcodeX = x + (labelWidth - barcodeWidth) / 2;
+    const barcodeTopY = y + LABEL_HEIGHT - BARCODE_TOP_OFFSET;
+    const barcodeY = barcodeTopY - barcodeHeight;
 
     page.drawImage(barcodeImage, {
-      x: x + LABEL_PADDING,
+      x: barcodeX,
       y: barcodeY,
       width: barcodeWidth,
       height: barcodeHeight,
     });
 
+    const barcodeTextWidth = fontBold.widthOfTextAtSize(product.barcode, BARCODE_TEXT_SIZE);
+    const barcodeTextX = barcodeX + (barcodeWidth - barcodeTextWidth) / 2;
     page.drawText(product.barcode, {
-      x: x + LABEL_PADDING,
+      x: barcodeTextX,
       y: y + 8,
       size: BARCODE_TEXT_SIZE,
       font: fontBold,
