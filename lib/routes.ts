@@ -130,6 +130,18 @@ const routes: Record<string, RouteInfo> = {
     path: '/admin/pos/units/:id/edit',
     permission: 'admin.pos.unit.update',
   },
+  'admin.pos.customer.index': {
+    path: '/admin/pos/customers',
+    permission: 'admin.pos.sale.create',
+  },
+  'admin.pos.customer.create': {
+    path: '/admin/pos/customers/create',
+    permission: 'admin.pos.sale.create',
+  },
+  'admin.pos.customer.edit': {
+    path: '/admin/pos/customers/:id/edit',
+    permission: 'admin.pos.sale.create',
+  },
   'admin.pos.supplier.index': {
     path: '/admin/pos/suppliers',
     permission: 'admin.pos.supplier.index',

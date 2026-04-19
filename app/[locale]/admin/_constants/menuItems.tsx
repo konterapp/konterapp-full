@@ -138,6 +138,13 @@ export const allMenuItems: MenuItem[] = [
     },
     {
         section: 'Master Data',
+        label: 'Pelanggan',
+        href: '/admin/pos/customers',
+        icon: <UserRound className="w-5 h-5" />,
+        permission: 'admin.pos.sale.create'
+    },
+    {
+        section: 'Master Data',
         label: 'Supplier', 
         href: '/admin/pos/suppliers', 
         icon: <Truck className="w-5 h-5" />,
@@ -170,12 +177,6 @@ export const allMenuItems: MenuItem[] = [
         href: '/admin/roles',
         icon: <Shield className="w-5 h-5" />,
         permission: 'admin.role.index'
-    },
-    {
-        section: 'Master Data',
-        label: 'Pelanggan',
-        icon: <UserRound className="w-5 h-5" />,
-        isPlaceholder: true
     },
     {
         section: 'Master Data',
