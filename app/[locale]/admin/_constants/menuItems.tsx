@@ -98,8 +98,9 @@ export const allMenuItems: MenuItem[] = [
     {
         section: 'Operasional',
         label: 'Cek Harga',
+        href: '/admin/pos/price-check',
         icon: <ScanLine className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.sale.create'
     },
 
     // Master Data
