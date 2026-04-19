@@ -50,10 +50,7 @@ export const posPayableRepository = {
 
   async countDistinctSuppliers(where: Prisma.PosPurchaseWhereInput) {
     const rows = await prisma.posPurchase.findMany({
-      where: {
-        ...where,
-        supplierUuid: { not: null },
-      },
+      where,
       distinct: ['supplierUuid'],
       select: { supplierUuid: true },
     });
