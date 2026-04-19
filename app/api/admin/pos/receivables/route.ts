@@ -1,0 +1,37 @@
+import { NextRequest } from 'next/server';
+import { successResponse } from '@/lib/response';
+import { withPermission } from '@/lib/api-middleware';
+import { withApiErrorHandling } from '@/lib/api-error-handler';
+import { posReceivableService } from '@/lib/modules/pos/receivables/admin.service';
+
+export const GET = withPermission(
+  'admin.pos.sale.index',
+  withApiErrorHandling(async (req: NextRequest) => {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const perPage = parseInt(searchParams.get('per_page') || '10');
+    const search = searchParams.get('search') || '';
+    const branchUuid = searchParams.get('branch_uuid');
+    const customerUuid = searchParams.get('customer_uuid');
+    const paymentStatus = searchParams.get('payment_status');
+    const startDate = searchParams.get('start_date');
+    const endDate = searchParams.get('end_date');
+    const sortBy = searchParams.get('sort_by');
+    const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
+
+    const result = await posReceivableService.listReceivables({
+      page,
+      perPage,
+      search,
+      branchUuid,
+      customerUuid,
+      paymentStatus,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+    });
+
+    return successResponse('Receivables retrieved successfully', result);
+  })
+);

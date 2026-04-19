@@ -190,14 +190,16 @@ export const allMenuItems: MenuItem[] = [
     {
         section: 'Inventori & Keuangan',
         label: 'Stok Opname',
+        href: '/admin/pos/stock-opname',
         icon: <ClipboardCheck className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Piutang',
+        href: '/admin/pos/receivables',
         icon: <Wallet className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.sale.index'
     },
     {
         section: 'Inventori & Keuangan',

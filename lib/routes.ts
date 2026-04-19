@@ -158,6 +158,14 @@ const routes: Record<string, RouteInfo> = {
     path: '/admin/pos/stock-movements',
     permission: 'admin.pos.stock-movement.index',
   },
+  'admin.pos.stock-opname.index': {
+    path: '/admin/pos/stock-opname',
+    permission: 'admin.pos.stock-movement.index',
+  },
+  'admin.pos.receivable.index': {
+    path: '/admin/pos/receivables',
+    permission: 'admin.pos.sale.index',
+  },
   'admin.pos.report.index': {
     path: '/admin/pos/reports',
     permission: 'admin.pos.report.index',
