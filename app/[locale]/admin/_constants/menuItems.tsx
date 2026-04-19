@@ -204,8 +204,9 @@ export const allMenuItems: MenuItem[] = [
     {
         section: 'Inventori & Keuangan',
         label: 'Hutang',
+        href: '/admin/pos/payables',
         icon: <Landmark className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.purchase.index'
     },
     {
         section: 'Inventori & Keuangan',
