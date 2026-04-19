@@ -30,7 +30,8 @@ export type MenuSection =
     | 'Operasional'
     | 'Master Data'
     | 'Inventori & Keuangan'
-    | 'Laporan';
+    | 'Laporan'
+    | 'PPOB';
 
 export interface SubMenuItem {
     key?: string;
@@ -79,20 +80,6 @@ export const allMenuItems: MenuItem[] = [
         href: '/admin/pos/transactions', 
         icon: <Receipt className="w-5 h-5" />,
         permission: 'admin.pos.sale.index'
-    },
-    {
-        section: 'Operasional',
-        label: 'PPOB', 
-        href: '/admin/pos/ppob', 
-        icon: <Zap className="w-5 h-5" />,
-        permission: 'admin.pos.ppob.index'
-    },
-    {
-        section: 'Operasional',
-        label: 'Riwayat PPOB', 
-        href: '/admin/pos/ppob/transactions', 
-        icon: <History className="w-5 h-5" />,
-        permission: 'admin.pos.ppob.index'
     },
     {
         section: 'Operasional',
@@ -195,13 +182,6 @@ export const allMenuItems: MenuItem[] = [
     },
     {
         section: 'Inventori & Keuangan',
-        label: 'Produk PPOB',
-        href: '/admin/pos/ppob/products',
-        icon: <Package className="w-5 h-5" />,
-        permission: 'admin.pos.ppob.index'
-    },
-    {
-        section: 'Inventori & Keuangan',
         label: 'Mutasi Stok',
         icon: <ArrowLeftRight className="w-5 h-5" />,
         isPlaceholder: true
@@ -244,5 +224,28 @@ export const allMenuItems: MenuItem[] = [
         label: 'Audit Log',
         icon: <FileSearch className="w-5 h-5" />,
         isPlaceholder: true
+    },
+
+    // PPOB
+    {
+        section: 'PPOB',
+        label: 'PPOB',
+        href: '/admin/pos/ppob',
+        icon: <Zap className="w-5 h-5" />,
+        permission: 'admin.pos.ppob.index'
+    },
+    {
+        section: 'PPOB',
+        label: 'Riwayat PPOB',
+        href: '/admin/pos/ppob/transactions',
+        icon: <History className="w-5 h-5" />,
+        permission: 'admin.pos.ppob.index'
+    },
+    {
+        section: 'PPOB',
+        label: 'Produk PPOB',
+        href: '/admin/pos/ppob/products',
+        icon: <Package className="w-5 h-5" />,
+        permission: 'admin.pos.ppob.index'
     },
 ];
