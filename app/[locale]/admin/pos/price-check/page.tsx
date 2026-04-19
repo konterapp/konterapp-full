@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Camera, Search, ScanLine } from 'lucide-react';
 import BarcodeScanner from '../_components/BarcodeScanner';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -90,6 +90,11 @@ export default function PriceCheckPage() {
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [selectedProductUuid, setSelectedProductUuid] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<ProductDetail | null>(null);
+  const selectedProductUuidRef = useRef('');
+
+  useEffect(() => {
+    selectedProductUuidRef.current = selectedProductUuid;
+  }, [selectedProductUuid]);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 300);
@@ -161,7 +166,7 @@ export default function PriceCheckPage() {
           return;
         }
 
-        const keepSelected = rows.some((item) => item.uuid === selectedProductUuid);
+        const keepSelected = rows.some((item) => item.uuid === selectedProductUuidRef.current);
         if (!keepSelected) {
           await loadProductDetail(rows[0].uuid);
         }
@@ -174,7 +179,7 @@ export default function PriceCheckPage() {
         setIsLoading(false);
       }
     },
-    [loadProductDetail, selectedProductUuid, toast]
+    [loadProductDetail, toast]
   );
 
   useEffect(() => {
@@ -319,14 +324,28 @@ export default function PriceCheckPage() {
                         active ? 'bg-[#FFF8EC]' : ''
                       }`}
                     >
-                      <p className="font-semibold text-gray-900">{product.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">SKU: {product.sku}</p>
-                      {product.barcode ? <p className="text-xs text-gray-500">Barcode: {product.barcode}</p> : null}
-                      <div className="mt-2 flex items-center justify-between">
-                        <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(pricing.selling)}</p>
-                        <p className="text-xs text-gray-600">
-                          Stok {selectedBranchUuid ? selectedBranchName : 'Total'}: {product.total_stock}
-                        </p>
+                      <div className="flex items-start gap-3">
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+                          {product.image ? (
+                            <Image src={product.image} alt={product.name} fill className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-500">
+                              No image
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-900 truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">SKU: {product.sku}</p>
+                          {product.barcode ? <p className="text-xs text-gray-500">Barcode: {product.barcode}</p> : null}
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(pricing.selling)}</p>
+                            <p className="text-xs text-gray-600 text-right">
+                              Stok {selectedBranchUuid ? selectedBranchName : 'Total'}: {product.total_stock}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </button>
                   );
