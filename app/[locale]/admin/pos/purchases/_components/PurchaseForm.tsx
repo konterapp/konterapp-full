@@ -26,11 +26,17 @@ type ProductOption = {
   sku: string;
   unit: string;
   purchase_price: number;
+  purchase_units: Array<{
+    unit: string;
+    factor_to_base: number;
+    is_base: boolean;
+  }>;
 };
 
 type PurchaseRow = {
   key: string;
   product_uuid: string;
+  unit: string;
   quantity: string;
   unit_price: string;
   discount: string;
@@ -39,6 +45,9 @@ type PurchaseRow = {
 type PurchaseItemDetail = {
   uuid: string;
   product_uuid: string;
+  unit: string;
+  factor_to_base: number;
+  quantity_base: number;
   quantity: number;
   unit_price: number;
   discount: number;
@@ -66,6 +75,7 @@ function createRow(): PurchaseRow {
   return {
     key: `row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     product_uuid: '',
+    unit: '',
     quantity: '1',
     unit_price: '0',
     discount: '0',
@@ -190,6 +200,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               ? purchaseItems.map((item) => ({
                   key: `row-${item.uuid}`,
                   product_uuid: item.product_uuid,
+                  unit: item.unit || item.product?.unit || '',
                   quantity: String(Number(item.quantity || 0)),
                   unit_price: String(Number(item.unit_price || 0)),
                   discount: String(Number(item.discount || 0)),
@@ -213,23 +224,62 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
     if (!editPurchase || !Array.isArray(editPurchase.items)) return;
 
     setProducts((prev) => {
-      const existingIds = new Set(prev.map((product) => product.uuid));
-      const additions: ProductOption[] = [];
+      const next = [...prev];
 
       for (const item of editPurchase.items || []) {
-        if (!item.product?.uuid || existingIds.has(item.product.uuid)) continue;
-        additions.push({
-          uuid: item.product.uuid,
-          name: item.product.name,
-          sku: item.product.sku || '-',
-          unit: item.product.unit || 'pcs',
-          purchase_price: Number(item.unit_price || 0),
-        });
-        existingIds.add(item.product.uuid);
+        const productUuid = item.product?.uuid || item.product_uuid;
+        if (!productUuid) continue;
+
+        const baseUnit = item.product?.unit || 'pcs';
+        const extraUnit = item.unit;
+        const extraFactor = Number(item.factor_to_base || 1);
+
+        const index = next.findIndex((product) => product.uuid === productUuid);
+        if (index === -1) {
+          next.push({
+            uuid: productUuid,
+            name: item.product?.name || `Produk ${productUuid}`,
+            sku: item.product?.sku || '-',
+            unit: baseUnit,
+            purchase_price: Number(item.unit_price || 0),
+            purchase_units: [
+              {
+                unit: baseUnit,
+                factor_to_base: 1,
+                is_base: true,
+              },
+              ...(extraUnit && extraUnit !== baseUnit
+                ? [
+                    {
+                      unit: extraUnit,
+                      factor_to_base: extraFactor > 0 ? extraFactor : 1,
+                      is_base: false,
+                    },
+                  ]
+                : []),
+            ],
+          });
+          continue;
+        }
+
+        const current = next[index];
+        const hasExtraUnit = current.purchase_units.some((option) => option.unit === extraUnit);
+        if (extraUnit && !hasExtraUnit) {
+          next[index] = {
+            ...current,
+            purchase_units: [
+              ...current.purchase_units,
+              {
+                unit: extraUnit,
+                factor_to_base: extraFactor > 0 ? extraFactor : 1,
+                is_base: false,
+              },
+            ],
+          };
+        }
       }
 
-      if (additions.length === 0) return prev;
-      return [...prev, ...additions];
+      return next;
     });
   }, [editPurchase]);
 
@@ -239,6 +289,12 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
+
+  const resolveSelectedUnitFactor = (product: ProductOption | undefined, selectedUnit: string) => {
+    if (!product || !selectedUnit) return 1;
+    const selected = product.purchase_units.find((option) => option.unit === selectedUnit);
+    return Number(selected?.factor_to_base || 1);
+  };
 
   const handleRowChange = (key: string, patch: Partial<PurchaseRow>) => {
     setRows((prev) => prev.map((row) => (row.key === key ? { ...row, ...patch } : row)));
@@ -284,12 +340,28 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
       }
       seen.add(row.product_uuid);
 
+      if (!row.unit) {
+        toast.error('Satuan item wajib dipilih');
+        return false;
+      }
+
       const qty = Number(row.quantity);
       const unitPrice = Number(row.unit_price);
       const discount = Number(row.discount || 0);
+      const product = productMap.get(row.product_uuid);
+      const selectedUnit = product?.purchase_units.find((option) => option.unit === row.unit);
 
       if (!Number.isInteger(qty) || qty <= 0) {
         toast.error('Qty item harus bilangan bulat dan lebih dari 0');
+        return false;
+      }
+      if (!product || !selectedUnit) {
+        toast.error('Satuan item tidak valid untuk produk yang dipilih');
+        return false;
+      }
+      const quantityBaseRaw = qty * Number(selectedUnit.factor_to_base || 1);
+      if (Math.abs(quantityBaseRaw - Math.round(quantityBaseRaw)) > 1e-9) {
+        toast.error('Konversi qty menghasilkan stok pecahan, sesuaikan qty atau satuan');
         return false;
       }
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
@@ -341,6 +413,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
         .filter((row) => row.product_uuid)
         .map((row) => ({
           product_uuid: row.product_uuid,
+          unit: row.unit,
           quantity: Number(row.quantity),
           unit_price: Number(row.unit_price),
           discount: Number(row.discount || 0),
@@ -508,10 +581,11 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[840px]">
+            <table className="w-full min-w-[980px]">
               <thead className="bg-gray-50">
                 <tr className="border-b border-gray-200">
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Produk</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Satuan</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Qty</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Harga Beli</th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700">Diskon</th>
@@ -522,6 +596,8 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               <tbody>
                 {rows.map((row) => {
                   const product = row.product_uuid ? productMap.get(row.product_uuid) : null;
+                  const factorToBase = resolveSelectedUnitFactor(product, row.unit);
+                  const quantityBase = Number(row.quantity || 0) * factorToBase;
                   const rowSubtotal = Math.max(
                     Number(row.quantity || 0) * Number(row.unit_price || 0) - Number(row.discount || 0),
                     0
@@ -537,6 +613,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                             const selected = productMap.get(nextProductUuid);
                             handleRowChange(row.key, {
                               product_uuid: nextProductUuid,
+                              unit: selected?.unit || '',
                               unit_price: String(selected?.purchase_price ?? 0),
                             });
                           }}
@@ -553,7 +630,24 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                             );
                           })}
                         </select>
-                        {product && <p className="mt-1 text-xs text-gray-500">Satuan: {product.unit}</p>}
+                      </td>
+                      <td className="px-4 py-2">
+                        <select
+                          value={row.unit}
+                          onChange={(e) => handleRowChange(row.key, { unit: e.target.value })}
+                          disabled={isSubmitting || isLockedEdit || !row.product_uuid}
+                          className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                        >
+                          <option value="">Pilih</option>
+                          {(product?.purchase_units || []).map((option) => (
+                            <option key={`${row.key}-${option.unit}`} value={option.unit}>
+                              {option.unit}
+                            </option>
+                          ))}
+                        </select>
+                        {row.product_uuid && row.unit && (
+                          <p className="mt-1 text-xs text-gray-500">Faktor: x{factorToBase}</p>
+                        )}
                       </td>
                       <td className="px-4 py-2">
                         <input
@@ -588,7 +682,12 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                           className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
                         />
                       </td>
-                      <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">{formatCurrency(rowSubtotal)}</td>
+                      <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
+                        <p>{formatCurrency(rowSubtotal)}</p>
+                        {row.product_uuid && row.unit && (
+                          <p className="text-xs font-normal text-gray-500">Base: {Number.isFinite(quantityBase) ? quantityBase : 0}</p>
+                        )}
+                      </td>
                       <td className="px-4 py-2">
                         <button
                           type="button"

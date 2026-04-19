@@ -3,6 +3,7 @@ import { z } from 'zod';
 const purchaseItemSchema = z
   .object({
     product_uuid: z.string({ error: 'Produk wajib dipilih' }).min(1, 'Produk wajib dipilih').max(36, 'Produk tidak valid'),
+    unit: z.string({ error: 'Satuan wajib dipilih' }).min(1, 'Satuan wajib dipilih').max(20, 'Satuan tidak valid'),
     quantity: z.coerce.number().int('Qty harus bilangan bulat').min(1, 'Qty minimal 1'),
     unit_price: z.coerce.number().min(0, 'Harga beli tidak boleh negatif'),
     discount: z.coerce.number().min(0, 'Diskon item tidak boleh negatif').optional().default(0),

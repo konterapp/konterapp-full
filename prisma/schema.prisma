@@ -430,6 +430,9 @@ model PosPurchaseItem {
   purchaseUuid String   @map("purchase_uuid") @db.Char(36)
   productUuid  String   @map("product_uuid") @db.Char(36)
   quantity     Int
+  purchaseUnit String   @default("pcs") @map("purchase_unit") @db.VarChar(20)
+  factorToBase Decimal  @default(1) @map("factor_to_base") @db.Decimal(12, 4)
+  quantityBase Int      @default(0) @map("quantity_base")
   unitPrice    Decimal  @map("unit_price") @db.Decimal(15, 2)
   discount     Decimal  @default(0) @db.Decimal(15, 2)
   subtotal     Decimal  @db.Decimal(15, 2)

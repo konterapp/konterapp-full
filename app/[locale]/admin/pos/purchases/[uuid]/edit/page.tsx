@@ -1,7 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import PurchaseForm from '../../../_components/PurchaseForm';
+import PurchaseForm from '../../_components/PurchaseForm';
 
 export default function EditPurchaseDraftPage({ params }: { params: Promise<{ uuid: string }> }) {
   const resolvedParams = use(params);

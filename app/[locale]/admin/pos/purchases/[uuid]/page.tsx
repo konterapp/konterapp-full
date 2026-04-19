@@ -7,6 +7,9 @@ import { ArrowLeft, Building2, Calendar, FileText, Pencil, Truck, User } from 'l
 interface PurchaseItem {
   uuid: string;
   quantity: number;
+  unit: string;
+  factor_to_base: number;
+  quantity_base: number;
   unit_price: number;
   discount: number;
   subtotal: number;
@@ -217,6 +220,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ uuid:
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">No</th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Produk</th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Qty</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Qty Base</th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Harga Beli</th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Diskon</th>
                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Subtotal</th>
@@ -232,7 +236,11 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ uuid:
                           {item.product?.sku || '-'}{item.product?.unit ? ` • ${item.product.unit}` : ''}
                         </p>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-gray-900">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-900">
+                        {item.quantity} {item.unit}
+                        <p className="text-xs text-gray-500">x{Number(item.factor_to_base || 1)}</p>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-900">{item.quantity_base}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">{formatCurrency(Number(item.unit_price))}</td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900">
                         {Number(item.discount) > 0 ? formatCurrency(Number(item.discount)) : '-'}

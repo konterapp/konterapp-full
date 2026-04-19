@@ -6,6 +6,7 @@ import { mapPurchaseDetail, mapPurchaseListItem } from './purchase.mapper';
 
 type PurchaseItemInput = {
   productUuid: string;
+  unit: string;
   quantity: number;
   unitPrice: number;
   discount?: number;
@@ -20,6 +21,24 @@ type PurchasePayloadInput = {
   notes?: string | null;
   items: PurchaseItemInput[];
 };
+
+type NormalizedPurchaseItem = {
+  productUuid: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+};
+
+type ResolvedPurchaseItem = NormalizedPurchaseItem & {
+  purchaseUnit: string;
+  factorToBase: number;
+  quantityBase: number;
+};
+
+function normalizeUnitValue(value: string) {
+  return value.trim().toLowerCase();
+}
 
 function generatePurchaseNumber() {
   const date = new Date();
@@ -40,6 +59,11 @@ function normalizeItems(items: PurchaseItemInput[]) {
     }
     seenProducts.add(item.productUuid);
 
+    const unit = String(item.unit || '').trim();
+    if (!unit) {
+      throw new ValidationApiError({ items: ['Satuan item wajib dipilih'] });
+    }
+
     if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
       throw new ValidationApiError({ items: ['Qty item harus bilangan bulat dan lebih dari 0'] });
     }
@@ -56,6 +80,7 @@ function normalizeItems(items: PurchaseItemInput[]) {
 
     return {
       productUuid: item.productUuid,
+      unit,
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
       discount,
@@ -64,7 +89,7 @@ function normalizeItems(items: PurchaseItemInput[]) {
 }
 
 function computeTotals(args: {
-  items: ReturnType<typeof normalizeItems>;
+  items: NormalizedPurchaseItem[];
   discountAmount?: number;
   paidAmount?: number;
   forceDraft: boolean;
@@ -126,7 +151,7 @@ async function assertPurchaseReferencesExist(
   params: {
     branchUuid: string;
     supplierUuid: string;
-    items: ReturnType<typeof normalizeItems>;
+    items: NormalizedPurchaseItem[];
   }
 ) {
   const { branchUuid, supplierUuid, items } = params;
@@ -139,7 +164,20 @@ async function assertPurchaseReferencesExist(
         uuid: { in: items.map((item) => item.productUuid) },
         isActive: true,
       },
-      select: { uuid: true },
+      select: {
+        uuid: true,
+        name: true,
+        sku: true,
+        unit: true,
+        unitConversions: {
+          where: { isActive: true },
+          select: {
+            unit: true,
+            factorToBase: true,
+            isActive: true,
+          },
+        },
+      },
     }),
   ]);
 
@@ -152,6 +190,78 @@ async function assertPurchaseReferencesExist(
   if (products.length !== items.length) {
     throw new ValidationApiError({ items: ['Sebagian produk tidak ditemukan atau tidak aktif'] });
   }
+
+  return { products };
+}
+
+function resolveItemsWithConversion(params: {
+  items: NormalizedPurchaseItem[];
+  products: Array<{
+    uuid: string;
+    name: string;
+    sku: string;
+    unit: string;
+    unitConversions: Array<{
+      unit: string;
+      factorToBase: Prisma.Decimal;
+      isActive: boolean;
+    }>;
+  }>;
+}) {
+  const { items, products } = params;
+
+  const productMap = new Map(products.map((product) => [product.uuid, product]));
+
+  return items.map<ResolvedPurchaseItem>((item) => {
+    const product = productMap.get(item.productUuid);
+    if (!product) {
+      throw new ValidationApiError({ items: ['Produk pada item pembelian tidak valid'] });
+    }
+
+    const requestedUnitKey = normalizeUnitValue(item.unit);
+    const baseUnitKey = normalizeUnitValue(product.unit);
+
+    let purchaseUnit = product.unit;
+    let factorToBase = 1;
+
+    if (requestedUnitKey !== baseUnitKey) {
+      const conversion = product.unitConversions.find(
+        (row) => normalizeUnitValue(row.unit) === requestedUnitKey && row.isActive
+      );
+
+      if (!conversion) {
+        throw new ValidationApiError({
+          items: [`Satuan ${item.unit} tidak tersedia untuk produk ${product.name}`],
+        });
+      }
+
+      const parsedFactor = Number(conversion.factorToBase);
+      if (!Number.isFinite(parsedFactor) || parsedFactor <= 0) {
+        throw new ValidationApiError({
+          items: [`Konversi satuan produk ${product.name} tidak valid`],
+        });
+      }
+
+      purchaseUnit = conversion.unit;
+      factorToBase = parsedFactor;
+    }
+
+    const quantityBaseRaw = item.quantity * factorToBase;
+    const quantityBaseRounded = Math.round(quantityBaseRaw);
+
+    if (Math.abs(quantityBaseRaw - quantityBaseRounded) > 1e-9) {
+      throw new ValidationApiError({
+        items: [`Konversi qty produk ${product.name} menghasilkan stok pecahan. Periksa qty atau faktor satuan.`],
+      });
+    }
+
+    return {
+      ...item,
+      purchaseUnit,
+      factorToBase,
+      quantityBase: quantityBaseRounded,
+    };
+  });
 }
 
 async function applyStockInForItems(
@@ -162,7 +272,7 @@ async function applyStockInForItems(
     purchaseUuid: string;
     purchaseNumber: string;
     userId: number;
-    items: ReturnType<typeof normalizeItems>;
+    items: ResolvedPurchaseItem[];
   }
 ) {
   const { companyUuid, branchUuid, purchaseUuid, purchaseNumber, userId, items } = params;
@@ -176,7 +286,7 @@ async function applyStockInForItems(
     });
 
     const previousStock = Number(stock?.stock ?? 0);
-    const newStock = previousStock + item.quantity;
+    const newStock = previousStock + item.quantityBase;
 
     if (stock) {
       await tx.posProductStock.update({
@@ -199,12 +309,12 @@ async function applyStockInForItems(
         branchUuid,
         productUuid: item.productUuid,
         movementType: 'purchase',
-        quantity: item.quantity,
+        quantity: item.quantityBase,
         previousStock,
         newStock,
         referenceType: 'Purchase',
         referenceUuid: purchaseUuid,
-        notes: `Purchase: ${purchaseNumber}`,
+        notes: `Purchase: ${purchaseNumber} (${item.quantity} ${item.purchaseUnit})`,
         createdBy: userId,
       },
     });
@@ -271,13 +381,45 @@ export const posPurchaseService = {
     return {
       branches,
       suppliers,
-      products: products.map((product) => ({
-        uuid: product.uuid,
-        name: product.name,
-        sku: product.sku,
-        unit: product.unit,
-        purchase_price: Number(product.purchasePrice || 0),
-      })),
+      products: products.map((product) => {
+        const baseUnitKey = normalizeUnitValue(product.unit);
+        const unitMap = new Map<string, { unit: string; factor_to_base: number; is_base: boolean }>();
+
+        unitMap.set(baseUnitKey, {
+          unit: product.unit,
+          factor_to_base: 1,
+          is_base: true,
+        });
+
+        for (const conversion of product.unitConversions) {
+          const factor = Number(conversion.factorToBase);
+          if (!Number.isFinite(factor) || factor <= 0) continue;
+
+          const key = normalizeUnitValue(conversion.unit);
+          if (!unitMap.has(key)) {
+            unitMap.set(key, {
+              unit: conversion.unit,
+              factor_to_base: factor,
+              is_base: false,
+            });
+          }
+        }
+
+        const purchaseUnits = Array.from(unitMap.values()).sort((a, b) => {
+          if (a.is_base) return -1;
+          if (b.is_base) return 1;
+          return a.factor_to_base - b.factor_to_base;
+        });
+
+        return {
+          uuid: product.uuid,
+          name: product.name,
+          sku: product.sku,
+          unit: product.unit,
+          purchase_price: Number(product.purchasePrice || 0),
+          purchase_units: purchaseUnits,
+        };
+      }),
     };
   },
 
@@ -304,7 +446,8 @@ export const posPurchaseService = {
     const purchaseNumber = generatePurchaseNumber();
 
     const purchaseUuid = await posPurchaseRepository.runInTransaction(async (tx) => {
-      await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const refs = await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
       const createdPurchase = await tx.posPurchase.create({
         data: {
@@ -323,12 +466,15 @@ export const posPurchaseService = {
         },
       });
 
-      for (const item of items) {
+      for (const item of resolvedItems) {
         await tx.posPurchaseItem.create({
           data: {
             purchaseUuid: createdPurchase.uuid,
             productUuid: item.productUuid,
             quantity: item.quantity,
+            purchaseUnit: item.purchaseUnit,
+            factorToBase: item.factorToBase,
+            quantityBase: item.quantityBase,
             unitPrice: item.unitPrice,
             discount: item.discount,
             subtotal: item.quantity * item.unitPrice - item.discount,
@@ -343,7 +489,7 @@ export const posPurchaseService = {
           purchaseUuid: createdPurchase.uuid,
           purchaseNumber,
           userId,
-          items,
+          items: resolvedItems,
         });
       }
 
@@ -392,7 +538,8 @@ export const posPurchaseService = {
     const parsedPurchaseDate = parsePurchaseDate(purchaseDate);
 
     await posPurchaseRepository.runInTransaction(async (tx) => {
-      await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const refs = await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
       await tx.posPurchase.update({
         where: { uuid },
@@ -411,12 +558,15 @@ export const posPurchaseService = {
 
       await tx.posPurchaseItem.deleteMany({ where: { purchaseUuid: uuid } });
 
-      for (const item of items) {
+      for (const item of resolvedItems) {
         await tx.posPurchaseItem.create({
           data: {
             purchaseUuid: uuid,
             productUuid: item.productUuid,
             quantity: item.quantity,
+            purchaseUnit: item.purchaseUnit,
+            factorToBase: item.factorToBase,
+            quantityBase: item.quantityBase,
             unitPrice: item.unitPrice,
             discount: item.discount,
             subtotal: item.quantity * item.unitPrice - item.discount,
@@ -431,7 +581,7 @@ export const posPurchaseService = {
           purchaseUuid: uuid,
           purchaseNumber: existingPurchase.purchaseNumber,
           userId,
-          items,
+          items: resolvedItems,
         });
       }
     });
@@ -483,15 +633,16 @@ export const posPurchaseService = {
             throw new ApiError(`Stok produk ${productLabel} tidak ditemukan di cabang ini`, 400);
           }
 
+          const quantityRollback = Number(item.quantityBase || item.quantity || 0);
           const quantityBefore = Number(stock.stock);
-          if (quantityBefore < item.quantity) {
+          if (quantityBefore < quantityRollback) {
             throw new ApiError(
-              `Gagal void pembelian: stok produk ${productLabel} akan menjadi negatif (stok saat ini ${quantityBefore}, rollback ${item.quantity})`,
+              `Gagal void pembelian: stok produk ${productLabel} akan menjadi negatif (stok saat ini ${quantityBefore}, rollback ${quantityRollback})`,
               400
             );
           }
 
-          const quantityAfter = quantityBefore - item.quantity;
+          const quantityAfter = quantityBefore - quantityRollback;
 
           await tx.posProductStock.update({
             where: { uuid: stock.uuid },
@@ -504,12 +655,12 @@ export const posPurchaseService = {
               productUuid: item.productUuid,
               branchUuid: purchase.branchUuid,
               movementType: 'purchase',
-              quantity: -item.quantity,
+              quantity: -quantityRollback,
               previousStock: quantityBefore,
               newStock: quantityAfter,
               referenceType: 'PurchaseVoid',
               referenceUuid: purchase.uuid,
-              notes: `Purchase void: ${purchase.purchaseNumber}`,
+              notes: `Purchase void: ${purchase.purchaseNumber} (${item.quantity} ${item.purchaseUnit})`,
               createdBy: userId,
             },
           });

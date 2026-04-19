@@ -33,6 +33,7 @@ export const PUT = withPermission(
             const itemRow = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
             return {
               product_uuid: itemRow.product_uuid ?? itemRow.productUuid,
+              unit: itemRow.unit,
               quantity: itemRow.quantity,
               unit_price: itemRow.unit_price ?? itemRow.unitPrice,
               discount: itemRow.discount ?? 0,
@@ -56,6 +57,7 @@ export const PUT = withPermission(
         finalize: Boolean(result.data.finalize),
         items: result.data.items.map((item) => ({
           productUuid: item.product_uuid,
+          unit: item.unit,
           quantity: Number(item.quantity),
           unitPrice: Number(item.unit_price),
           discount: Number(item.discount || 0),

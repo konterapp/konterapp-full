@@ -100,6 +100,14 @@ export const posPurchaseRepository = {
         sku: true,
         unit: true,
         purchasePrice: true,
+        unitConversions: {
+          where: { isActive: true },
+          select: {
+            unit: true,
+            factorToBase: true,
+            isActive: true,
+          },
+        },
       },
     });
   },
