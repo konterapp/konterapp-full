@@ -8,6 +8,7 @@ const tenantContextStorage = new AsyncLocalStorage<TenantStore>();
 
 export const TENANT_MODELS = new Set<string>([
   "PosProductCategory",
+  "PosProductUnit",
   "PosBranch",
   "PosProduct",
   "PosSupplier",

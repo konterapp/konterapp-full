@@ -46,6 +46,7 @@ model Company {
 
   memberships       CompanyUser[]
   productCategories PosProductCategory[]
+  productUnits      PosProductUnit[]
   branches          PosBranch[]
   products          PosProduct[]
   suppliers         PosSupplier[]
@@ -227,6 +228,20 @@ model PosProductCategory {
 
   @@index([companyUuid])
   @@map("pos_product_categories")
+}
+
+model PosProductUnit {
+  uuid        String   @id @default(cuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
+  name        String   @db.VarChar(20)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([companyUuid])
+  @@map("pos_product_units")
 }
 
 model PosBranch {

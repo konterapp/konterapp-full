@@ -29,6 +29,11 @@ const PERMISSIONS = [
   "admin.pos.category.create",
   "admin.pos.category.update",
   "admin.pos.category.delete",
+  // POS - Unit
+  "admin.pos.unit.index",
+  "admin.pos.unit.create",
+  "admin.pos.unit.update",
+  "admin.pos.unit.delete",
   // POS - Supplier
   "admin.pos.supplier.index",
   "admin.pos.supplier.create",

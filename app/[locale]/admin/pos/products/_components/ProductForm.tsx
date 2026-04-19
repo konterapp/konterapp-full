@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter, Link } from '@/i18n/navigation';
 import { Save, X, Upload, Trash2, Star } from 'lucide-react';
@@ -9,6 +9,11 @@ import Button from '@/components/ui/Button';
 import { useToast } from '@/components/toast/ToastContainer';
 
 interface Category {
+  uuid: string;
+  name: string;
+}
+
+interface Unit {
   uuid: string;
   name: string;
 }
@@ -66,18 +71,6 @@ interface ImagePreview {
 }
 
 let previewIdCounter = 0;
-const UNIT_OPTIONS = [
-  { value: 'pcs', label: 'Pcs' },
-  { value: 'box', label: 'Box' },
-  { value: 'pack', label: 'Pack' },
-  { value: 'kg', label: 'Kg' },
-  { value: 'gram', label: 'Gram' },
-  { value: 'liter', label: 'Liter' },
-  { value: 'meter', label: 'Meter' },
-  { value: 'unit', label: 'Unit' },
-  { value: 'bungkus', label: 'Bungkus' },
-  { value: 'strip', label: 'Strip' },
-];
 
 const createEmptyUnitConversion = () => ({
   unit: '',
@@ -97,6 +90,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [categories, setCategories] = useState<Category[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [branches, setBranches] = useState<BranchSimple[]>([]);
   const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>([]);
   const [deletedImageUuids, setDeletedImageUuids] = useState<string[]>([]);
@@ -136,6 +130,38 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
     }
   }, []);
 
+  const fetchUnits = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        page: '1',
+        per_page: '200',
+        sort_by: 'name',
+        sort_order: 'asc',
+      });
+      const response = await fetch(`/api/admin/pos/units?${params.toString()}`);
+      const result = await response.json();
+
+      if (result.status === 'success' && result.data?.data) {
+        setUnits(result.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch units:', err);
+    }
+  }, []);
+
+  const unitOptions = useMemo(() => {
+    const normalized = units.map((item) => ({
+      value: item.name,
+      label: item.name,
+    }));
+
+    if (formData.unit && !normalized.some((item) => item.value === formData.unit)) {
+      return [{ value: formData.unit, label: `${formData.unit} (legacy)` }, ...normalized];
+    }
+
+    return normalized;
+  }, [units, formData.unit]);
+
   const fetchProduct = useCallback(async () => {
     if (!productId) return;
 
@@ -148,7 +174,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
         setFormData({
           category_uuid: result.data.category_uuid,
           name: result.data.name,
-          sku: result.data.sku,
+          sku: result.data.sku || '',
           barcode: result.data.barcode || '',
           additional_barcodes: Array.isArray(result.data.additional_barcodes)
             ? result.data.additional_barcodes.join(',')
@@ -241,11 +267,12 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
 
   useEffect(() => {
     fetchCategories();
+    fetchUnits();
     fetchBranches();
     if (mode === 'edit' && productId) {
       fetchProduct();
     }
-  }, [mode, productId, fetchCategories, fetchBranches, fetchProduct]);
+  }, [mode, productId, fetchCategories, fetchUnits, fetchBranches, fetchProduct]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -618,7 +645,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               }`}
             >
               <option value="">-</option>
-              {UNIT_OPTIONS.map(option => (
+              {unitOptions.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -651,7 +678,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
                 >
                   <option value="">Pilih Satuan</option>
-                  {UNIT_OPTIONS.map(option => (
+                  {unitOptions.map(option => (
                     <option key={`${index}-${option.value}`} value={option.value}>
                       {option.label}
                     </option>
