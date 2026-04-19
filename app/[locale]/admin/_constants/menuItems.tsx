@@ -176,15 +176,16 @@ export const allMenuItems: MenuItem[] = [
     {
         section: 'Inventori & Keuangan',
         label: 'Stok On-Hand',
-        href: '/admin/pos/stock-movements',
+        href: '/admin/pos/stock-on-hand',
         icon: <History className="w-5 h-5" />,
         permission: 'admin.pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Mutasi Stok',
+        href: '/admin/pos/stock-movements',
         icon: <ArrowLeftRight className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
