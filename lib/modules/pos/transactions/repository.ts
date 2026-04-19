@@ -24,7 +24,15 @@ export const posTransactionRepository = {
         items: {
           include: {
             product: {
-              select: { uuid: true, name: true, sku: true, image: true },
+              select: {
+                uuid: true,
+                name: true,
+                sku: true,
+                images: {
+                  select: { image: true, isPrimary: true, sortOrder: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
             },
           },
         },
@@ -55,7 +63,15 @@ export const posTransactionRepository = {
         items: {
           include: {
             product: {
-              select: { uuid: true, name: true, sku: true, image: true },
+              select: {
+                uuid: true,
+                name: true,
+                sku: true,
+                images: {
+                  select: { image: true, isPrimary: true, sortOrder: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
+              },
             },
           },
         },

@@ -15,6 +15,7 @@ import { seedPurchases } from "./purchases";
 import { seedStockMovements } from "./stock-movements";
 import { seedPpobTransactions } from "./ppob-transactions";
 import { seedCashierShifts } from "./cashier-shifts";
+import { seedSales } from "./sales";
 
 async function seedDummy(prisma: PrismaClient) {
   await ensureDefaultCompany(prisma);
@@ -31,6 +32,7 @@ async function seedDummy(prisma: PrismaClient) {
   await seedProducts(prisma);
   await seedPurchases(prisma);
   await seedStockMovements(prisma);
+  await seedSales(prisma);
   await seedPpobTransactions(prisma);
   await seedCashierShifts(prisma);
   await seedBerita(prisma);

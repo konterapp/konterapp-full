@@ -1,3 +1,24 @@
+import { buildUploadFileUrl } from '@/lib/utils/file-upload';
+
+type ProductImageRow = {
+  image: string | null;
+  isPrimary: boolean;
+  sortOrder: number;
+};
+
+type ProductWithImages = {
+  images?: ProductImageRow[];
+} | null | undefined;
+
+function mapProductImage(product: ProductWithImages): string | null {
+  if (!product || !Array.isArray(product.images) || product.images.length === 0) {
+    return null;
+  }
+
+  const primary = product.images.find((img) => img.isPrimary) || product.images[0];
+  return buildUploadFileUrl('products', primary?.image ?? null);
+}
+
 export function mapTransaction(sale: any) {
   return {
     uuid: sale.uuid,
@@ -37,7 +58,12 @@ export function mapTransaction(sale: any) {
           discount: item.discount,
           subtotal: item.subtotal,
           product: item.product
-            ? { uuid: item.product.uuid, name: item.product.name, sku: item.product.sku, image: item.product.image }
+            ? {
+                uuid: item.product.uuid,
+                name: item.product.name,
+                sku: item.product.sku,
+                image: mapProductImage(item.product),
+              }
             : null,
         }))
       : [],
