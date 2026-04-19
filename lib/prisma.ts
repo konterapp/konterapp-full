@@ -118,9 +118,9 @@ function createPrismaClient() {
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
-          let nextArgs = args;
+          let nextArgs: Record<string, unknown> = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
           if (model && UUID_MODELS.has(model) && ["create", "createMany", "upsert"].includes(operation)) {
-            nextArgs = applyUuidByOperation(operation, args);
+            nextArgs = applyUuidByOperation(operation, args) as Record<string, unknown>;
           }
 
           const companyUuid = getTenantCompanyUuid();
