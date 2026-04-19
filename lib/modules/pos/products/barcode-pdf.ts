@@ -6,19 +6,20 @@ const A4_WIDTH = 595.28;
 const A4_HEIGHT = 841.89;
 const MARGIN_X = 24;
 const MARGIN_Y = 24;
-const COLUMN_COUNT = 3;
-const COLUMN_GAP = 10;
-const ROW_GAP = 10;
-const LABEL_HEIGHT = 92;
-const LABEL_PADDING = 6;
-const TITLE_FONT_SIZE = 9;
-const META_FONT_SIZE = 8;
-const BARCODE_TEXT_SIZE = 10;
-const MAX_NAME_LENGTH = 32;
-const MAX_BARCODE_HEIGHT = 34;
-const TITLE_Y_OFFSET = 14;
-const CODE_Y_OFFSET = 26;
-const BARCODE_TOP_OFFSET = 34;
+const COLUMN_COUNT = 4;
+const COLUMN_GAP = 8;
+const ROW_GAP = 8;
+const LABEL_HEIGHT = 76;
+const LABEL_PADDING = 5;
+const TITLE_FONT_SIZE = 8;
+const META_FONT_SIZE = 7;
+const BARCODE_TEXT_SIZE = 8.5;
+const BARCODE_TEXT_GAP = 2;
+const MAX_NAME_LENGTH = 28;
+const MAX_BARCODE_HEIGHT = 24;
+const TITLE_Y_OFFSET = 12;
+const CODE_Y_OFFSET = 20;
+const BARCODE_TOP_OFFSET = 23;
 
 function truncateText(value: string, limit: number) {
   if (value.length <= limit) return value;
@@ -116,9 +117,11 @@ export async function buildProductBarcodePdf(products: ProductBarcodePrintItem[]
 
     const barcodeTextWidth = fontBold.widthOfTextAtSize(product.barcode, BARCODE_TEXT_SIZE);
     const barcodeTextX = barcodeX + (barcodeWidth - barcodeTextWidth) / 2;
+    // Keep human-readable barcode text close to bars, but still inside the label box.
+    const barcodeTextY = Math.max(y + 3, barcodeY - BARCODE_TEXT_SIZE - BARCODE_TEXT_GAP);
     page.drawText(product.barcode, {
       x: barcodeTextX,
-      y: y + 8,
+      y: barcodeTextY,
       size: BARCODE_TEXT_SIZE,
       font: fontBold,
       color: rgb(0, 0, 0),
