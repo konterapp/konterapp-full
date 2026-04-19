@@ -61,6 +61,7 @@ async function createUserWithRole(
       isDefault: true,
     },
     create: {
+      uuid: uuidv7(),
       companyUuid,
       userId: user.id,
       isDefault: true,
