@@ -9,7 +9,7 @@ import { getDefaultCompanyUuid } from "../company";
 type ProductSeed = {
   category_name: string;
   name: string;
-  sku: string;
+  code: string;
   description?: string;
   barcode?: string;
   selling_price: number;
@@ -24,7 +24,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Pulsa & Paket Data',
     name: 'Pulsa Telkomsel 10.000',
-    sku: 'PLSA-TSEL-10K',
+    code: 'PLSA-TSEL-10K',
     description: 'Pulsa Telkomsel nominal 10.000',
     selling_price: 11500,
     unit: 'pcs',
@@ -35,7 +35,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Pulsa & Paket Data',
     name: 'Pulsa Telkomsel 25.000',
-    sku: 'PLSA-TSEL-25K',
+    code: 'PLSA-TSEL-25K',
     description: 'Pulsa Telkomsel nominal 25.000',
     selling_price: 26000,
     unit: 'pcs',
@@ -46,7 +46,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Pulsa & Paket Data',
     name: 'Paket Data XL 5GB',
-    sku: 'DATA-XL-5GB',
+    code: 'DATA-XL-5GB',
     description: 'Paket data XL 5GB 30 hari',
     selling_price: 35000,
     unit: 'pcs',
@@ -59,7 +59,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Aksesoris HP',
     name: 'Charger Type-C Fast Charging',
-    sku: 'ACC-CHG-TYPEC',
+    code: 'ACC-CHG-TYPEC',
     barcode: '8991234560011',
     description: 'Charger Type-C dengan teknologi fast charging',
     selling_price: 45000,
@@ -71,7 +71,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Aksesoris HP',
     name: 'Tempered Glass Universal',
-    sku: 'ACC-TG-UNI',
+    code: 'ACC-TG-UNI',
     barcode: '8991234560028',
     description: 'Pelindung layar tempered glass universal',
     selling_price: 25000,
@@ -83,7 +83,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Aksesoris HP',
     name: 'Kabel Data Micro USB 1m',
-    sku: 'ACC-KBL-MICRO',
+    code: 'ACC-KBL-MICRO',
     barcode: '8991234560035',
     description: 'Kabel data micro USB panjang 1 meter',
     selling_price: 15000,
@@ -95,7 +95,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Aksesoris HP',
     name: 'Softcase Silikon iPhone',
-    sku: 'ACC-CASE-IPH',
+    code: 'ACC-CASE-IPH',
     barcode: '8991234560042',
     description: 'Softcase silikon bening untuk iPhone',
     selling_price: 20000,
@@ -109,7 +109,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Minuman',
     name: 'Aqua 600ml',
-    sku: 'DRK-AQUA-600',
+    code: 'DRK-AQUA-600',
     barcode: '8886008101053',
     description: 'Air mineral Aqua kemasan 600ml',
     selling_price: 4000,
@@ -121,7 +121,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Minuman',
     name: 'Teh Botol Sosro 450ml',
-    sku: 'DRK-TBS-450',
+    code: 'DRK-TBS-450',
     barcode: '8993388817009',
     description: 'Teh botol sosro kemasan 450ml',
     selling_price: 5000,
@@ -133,7 +133,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Minuman',
     name: 'Coca-Cola 390ml',
-    sku: 'DRK-COLA-390',
+    code: 'DRK-COLA-390',
     barcode: '5449000000996',
     description: 'Coca-Cola kemasan botol 390ml',
     selling_price: 6000,
@@ -145,7 +145,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Minuman',
     name: 'Kopi Good Day Cappuccino',
-    sku: 'DRK-GD-CAP',
+    code: 'DRK-GD-CAP',
     barcode: '8991002105003',
     description: 'Kopi Good Day Cappuccino botol 250ml',
     selling_price: 5500,
@@ -159,7 +159,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Makanan Ringan',
     name: 'Chitato Sapi Panggang 68g',
-    sku: 'SNACK-CHT-SP',
+    code: 'SNACK-CHT-SP',
     barcode: '8886008101121',
     description: 'Chitato rasa sapi panggang 68g',
     selling_price: 10000,
@@ -171,7 +171,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Makanan Ringan',
     name: 'Oreo Original 137g',
-    sku: 'SNACK-OREO-ORI',
+    code: 'SNACK-OREO-ORI',
     barcode: '7622210100016',
     description: 'Biskuit Oreo original 137g',
     selling_price: 12000,
@@ -183,7 +183,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Makanan Ringan',
     name: 'Indomie Goreng',
-    sku: 'SNACK-INDMIE-GR',
+    code: 'SNACK-INDMIE-GR',
     barcode: '8996001600016',
     description: 'Indomie Mi Goreng kemasan satuan',
     selling_price: 3500,
@@ -195,7 +195,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Makanan Ringan',
     name: 'Silverqueen Cashew 65g',
-    sku: 'SNACK-SQ-CSH',
+    code: 'SNACK-SQ-CSH',
     barcode: '8991002105065',
     description: 'Coklat Silverqueen Cashew 65g',
     selling_price: 15000,
@@ -209,7 +209,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Rokok',
     name: 'Gudang Garam Surya 16',
-    sku: 'RKK-GG-SRY16',
+    code: 'RKK-GG-SRY16',
     barcode: '8990001001165',
     description: 'Gudang Garam Surya 16 batang',
     selling_price: 28000,
@@ -221,7 +221,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Rokok',
     name: 'Sampoerna Mild 16',
-    sku: 'RKK-SAM-MLD16',
+    code: 'RKK-SAM-MLD16',
     barcode: '8991092114163',
     description: 'Sampoerna A Mild 16 batang',
     selling_price: 30000,
@@ -235,7 +235,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Alat Tulis & Kantor',
     name: 'Pulpen Pilot Hitam',
-    sku: 'ATK-PLN-HT',
+    code: 'ATK-PLN-HT',
     barcode: '4902505511233',
     description: 'Pulpen Pilot warna hitam',
     selling_price: 4000,
@@ -247,7 +247,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Alat Tulis & Kantor',
     name: 'Buku Tulis Sidu 58 Lembar',
-    sku: 'ATK-BKT-58',
+    code: 'ATK-BKT-58',
     barcode: '8992775005800',
     description: 'Buku tulis Sinar Dunia 58 lembar',
     selling_price: 5000,
@@ -259,7 +259,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Alat Tulis & Kantor',
     name: 'Pensil 2B Faber Castell',
-    sku: 'ATK-PSL-2B',
+    code: 'ATK-PSL-2B',
     barcode: '4005401117025',
     description: 'Pensil 2B Faber Castell',
     selling_price: 3500,
@@ -271,7 +271,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Alat Tulis & Kantor',
     name: 'Penghapus Staedtler',
-    sku: 'ATK-PHP-STD',
+    code: 'ATK-PHP-STD',
     barcode: '4007817526392',
     description: 'Penghapus Staedtler putih',
     selling_price: 3000,
@@ -285,7 +285,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Kebutuhan Rumah Tangga',
     name: 'Rinso Anti Noda 800g',
-    sku: 'RT-RINSO-800',
+    code: 'RT-RINSO-800',
     barcode: '8999999527051',
     description: 'Deterjen Rinso Anti Noda 800g',
     selling_price: 18000,
@@ -297,7 +297,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Kebutuhan Rumah Tangga',
     name: 'Tisu Paseo 250 Sheet',
-    sku: 'RT-TISU-PSO',
+    code: 'RT-TISU-PSO',
     barcode: '8993088250016',
     description: 'Tisu Paseo Soft Pack 250 sheet',
     selling_price: 12000,
@@ -309,7 +309,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Kebutuhan Rumah Tangga',
     name: 'Sunlight Lemon 800ml',
-    sku: 'RT-SNLT-800',
+    code: 'RT-SNLT-800',
     barcode: '8999999535018',
     description: 'Sabun cuci piring Sunlight Lemon 800ml',
     selling_price: 14000,
@@ -323,7 +323,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Perawatan Diri',
     name: 'Shampoo Pantene 160ml',
-    sku: 'PD-PNTNE-160',
+    code: 'PD-PNTNE-160',
     barcode: '4902430915694',
     description: 'Shampoo Pantene Anti Dandruff 160ml',
     selling_price: 22000,
@@ -335,7 +335,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Perawatan Diri',
     name: 'Pepsodent 120g',
-    sku: 'PD-PEPS-120',
+    code: 'PD-PEPS-120',
     barcode: '8999999749613',
     description: 'Pasta gigi Pepsodent Cavity Prevention 120g',
     selling_price: 10000,
@@ -347,7 +347,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Perawatan Diri',
     name: 'Sabun Lifebuoy 100g',
-    sku: 'PD-LFB-100',
+    code: 'PD-LFB-100',
     barcode: '8999999048952',
     description: 'Sabun batang Lifebuoy Total 10 100g',
     selling_price: 5000,
@@ -361,7 +361,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Obat & Kesehatan',
     name: 'Paracetamol 500mg Strip',
-    sku: 'OBT-PARA-500',
+    code: 'OBT-PARA-500',
     barcode: '8991038101013',
     description: 'Paracetamol 500mg isi 10 tablet',
     selling_price: 5000,
@@ -373,7 +373,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Obat & Kesehatan',
     name: 'Masker Medis 3-Ply (5pcs)',
-    sku: 'OBT-MASK-3PLY',
+    code: 'OBT-MASK-3PLY',
     barcode: '8991234560301',
     description: 'Masker medis 3 ply isi 5 lembar',
     selling_price: 8000,
@@ -385,7 +385,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Obat & Kesehatan',
     name: 'Hansaplast Plester (10pcs)',
-    sku: 'OBT-HANS-10',
+    code: 'OBT-HANS-10',
     barcode: '4005800038907',
     description: 'Hansaplast plester luka isi 10 lembar',
     selling_price: 7000,
@@ -399,7 +399,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Elektronik & Gadget',
     name: 'Earphone Bass In-Ear',
-    sku: 'ELK-EARPH-BS',
+    code: 'ELK-EARPH-BS',
     barcode: '8991234560400',
     description: 'Earphone bass in-ear dengan microphone',
     selling_price: 35000,
@@ -411,7 +411,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Elektronik & Gadget',
     name: 'Powerbank 10000mAh',
-    sku: 'ELK-PB-10K',
+    code: 'ELK-PB-10K',
     barcode: '8991234560417',
     description: 'Powerbank 10000mAh fast charging',
     selling_price: 120000,
@@ -423,7 +423,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
   {
     category_name: 'Elektronik & Gadget',
     name: 'Flashdisk 16GB',
-    sku: 'ELK-FD-16GB',
+    code: 'ELK-FD-16GB',
     barcode: '8991234560424',
     description: 'Flashdisk USB 3.0 kapasitas 16GB',
     selling_price: 45000,
@@ -465,18 +465,20 @@ export async function seedProducts(prisma: PrismaClient) {
       continue;
     }
 
+    const productCode = data.code.trim();
+    const primaryBarcode = (data.barcode || '').trim();
     const existing = await prisma.posProduct.findUnique({
-      where: { sku: data.sku },
+      where: { sku: productCode },
     });
 
     const product = existing
       ? await prisma.posProduct.update({
-          where: { sku: data.sku },
+          where: { sku: productCode },
           data: {
             companyUuid,
             categoryUuid,
             name: data.name,
-            barcode: data.barcode || null,
+            barcode: primaryBarcode || null,
             purchasePrice: Math.round(data.selling_price * 0.8),
             sellingPrice: data.selling_price,
             wholesalePrice: Math.round(data.selling_price * 0.95),
@@ -491,8 +493,8 @@ export async function seedProducts(prisma: PrismaClient) {
             companyUuid,
             categoryUuid,
             name: data.name,
-            sku: data.sku,
-            barcode: data.barcode || null,
+            sku: productCode,
+            barcode: primaryBarcode || null,
             purchasePrice: Math.round(data.selling_price * 0.8),
             sellingPrice: data.selling_price,
             wholesalePrice: Math.round(data.selling_price * 0.95),

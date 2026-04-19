@@ -48,6 +48,11 @@ type BranchOption = {
   name: string;
 };
 
+type BranchListItem = {
+  uuid: string;
+  name: string;
+};
+
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
 export default function ReportsPage() {
@@ -83,10 +88,10 @@ export default function ReportsPage() {
       const result = await response.json();
 
       if (result.status === 'success' && result.data) {
-        const items = result.data.data || result.data || [];
+        const items: BranchListItem[] = result.data.data || result.data || [];
         const options = [
           { uuid: '', name: 'Semua Cabang' },
-          ...items.map((branch: any) => ({ uuid: branch.uuid, name: branch.name })),
+          ...items.map((branch) => ({ uuid: branch.uuid, name: branch.name })),
         ];
         setBranches(options);
       }

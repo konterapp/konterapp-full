@@ -8,7 +8,7 @@ import { getDefaultCompanyUuid } from "../company";
 
 const MOVEMENTS_DATA = [
   {
-    sku: "PRD-001",
+    code: "PRD-001",
     name: "Voucher Game 100K",
     movementType: "adjustment",
     quantityChange: -2,
@@ -16,7 +16,7 @@ const MOVEMENTS_DATA = [
     notes: "Penyesuaian stok (rusak)",
   },
   {
-    sku: "PRD-002",
+    code: "PRD-002",
     name: "Pulsa 50K",
     movementType: "sale",
     quantityChange: -5,
@@ -24,7 +24,7 @@ const MOVEMENTS_DATA = [
     notes: "Penjualan manual",
   },
   {
-    sku: "PRD-003",
+    code: "PRD-003",
     name: "Paket Data 10GB",
     movementType: "transfer_in",
     quantityChange: 10,
@@ -32,7 +32,7 @@ const MOVEMENTS_DATA = [
     notes: "Transfer masuk cabang",
   },
   {
-    sku: "PRD-004",
+    code: "PRD-004",
     name: "Token Listrik 200K",
     movementType: "transfer_out",
     quantityChange: -1,
@@ -40,7 +40,7 @@ const MOVEMENTS_DATA = [
     notes: "Transfer keluar cabang",
   },
   {
-    sku: "PRD-002",
+    code: "PRD-002",
     name: "Pulsa 50K",
     movementType: "purchase",
     quantityChange: 8,
@@ -102,10 +102,10 @@ async function ensureProduct(
   prisma: PrismaClient,
   companyUuid: string,
   categoryUuid: string,
-  data: { sku: string; name: string; sellingPrice: number }
+  data: { code: string; name: string; sellingPrice: number }
 ) {
   const existing = await prisma.posProduct.findUnique({
-    where: { sku: data.sku },
+    where: { sku: data.code },
   });
   if (existing) return existing;
 
@@ -115,7 +115,8 @@ async function ensureProduct(
       companyUuid,
       categoryUuid,
       name: data.name,
-      sku: data.sku,
+      sku: data.code,
+      barcode: data.code,
       sellingPrice: data.sellingPrice,
       unit: "pcs",
       isActive: true,
@@ -133,18 +134,18 @@ export async function seedStockMovements(prisma: PrismaClient) {
 
   const productMap = new Map<string, { uuid: string }>();
   for (const movement of MOVEMENTS_DATA) {
-    if (!productMap.has(movement.sku)) {
+    if (!productMap.has(movement.code)) {
       const product = await ensureProduct(prisma, companyUuid, category.uuid, {
-        sku: movement.sku,
+        code: movement.code,
         name: movement.name,
         sellingPrice: 100000,
       });
-      productMap.set(movement.sku, { uuid: product.uuid });
+      productMap.set(movement.code, { uuid: product.uuid });
     }
   }
 
   for (const movement of MOVEMENTS_DATA) {
-    const product = productMap.get(movement.sku);
+    const product = productMap.get(movement.code);
     if (!product) continue;
 
     let stock = await prisma.posProductStock.findFirst({

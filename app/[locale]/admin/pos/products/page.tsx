@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { Package, Plus, Edit, Trash2 } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, Download, X } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import DataTable, { Column } from '../../_components/DataTable';
 import ConfirmModal from '../../_components/ConfirmModal';
@@ -44,6 +44,8 @@ export default function ProductsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedProductUuids, setSelectedProductUuids] = useState<Set<string>>(new Set());
+  const [isGeneratingBarcodePdf, setIsGeneratingBarcodePdf] = useState(false);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; product: Product | null; isLoading: boolean }>({
     isOpen: false,
     product: null,
@@ -59,17 +61,18 @@ export default function ProductsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchProducts(currentPage);
-  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder]);
-
   const handleSortChange = (field: string, order: 'asc' | 'desc') => {
     setSortBy(field);
     setSortOrder(order);
     setCurrentPage(1);
   };
 
-  const fetchProducts = async (page: number) => {
+  const selectedCount = selectedProductUuids.size;
+  const selectedCurrentPageCount = products.filter((product) => selectedProductUuids.has(product.uuid)).length;
+  const isAllCurrentPageSelected = products.length > 0 && selectedCurrentPageCount === products.length;
+  const isSomeCurrentPageSelected = selectedCurrentPageCount > 0 && !isAllCurrentPageSelected;
+
+  const fetchProducts = useCallback(async (page: number) => {
     try {
       setIsLoading(true);
       setError('');
@@ -100,12 +103,16 @@ export default function ProductsPage() {
       } else {
         setError(result.message || 'Gagal memuat data produk');
       }
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan saat memuat data');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [itemsPerPage, debouncedSearch, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchProducts(currentPage);
+  }, [currentPage, fetchProducts]);
 
   const handleDeleteClick = (product: Product) => {
     setDeleteModal({
@@ -128,20 +135,103 @@ export default function ProductsPage() {
 
       if (result.status === 'success') {
         toast.success('Produk berhasil dihapus');
+        setSelectedProductUuids((prev) => {
+          if (!deleteModal.product?.uuid || !prev.has(deleteModal.product.uuid)) {
+            return prev;
+          }
+          const next = new Set(prev);
+          next.delete(deleteModal.product.uuid);
+          return next;
+        });
         setDeleteModal({ isOpen: false, product: null, isLoading: false });
         fetchProducts(currentPage);
       } else {
         toast.error(result.message || 'Gagal menghapus produk');
         setDeleteModal(prev => ({ ...prev, isLoading: false }));
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+    } catch {
+      toast.error('Terjadi kesalahan. Silakan coba lagi.');
       setDeleteModal(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const handleDeleteCancel = () => {
     setDeleteModal({ isOpen: false, product: null, isLoading: false });
+  };
+
+  const handleToggleProductSelection = (uuid: string) => {
+    setSelectedProductUuids((prev) => {
+      const next = new Set(prev);
+      if (next.has(uuid)) {
+        next.delete(uuid);
+      } else {
+        next.add(uuid);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSelectCurrentPage = () => {
+    setSelectedProductUuids((prev) => {
+      const next = new Set(prev);
+      if (isAllCurrentPageSelected) {
+        products.forEach((product) => next.delete(product.uuid));
+      } else {
+        products.forEach((product) => next.add(product.uuid));
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProductUuids(new Set());
+  };
+
+  const handleDownloadSelectedBarcodePdf = async () => {
+    if (selectedCount === 0) {
+      toast.error('Pilih minimal 1 produk untuk download PDF barcode');
+      return;
+    }
+
+    try {
+      setIsGeneratingBarcodePdf(true);
+      const response = await fetch('/api/admin/pos/products/barcode-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ uuids: Array.from(selectedProductUuids) }),
+      });
+
+      if (!response.ok) {
+        let message = 'Gagal membuat PDF barcode';
+        try {
+          const result = await response.json();
+          message = result?.message || message;
+        } catch {
+          // fallback to default message when response is not JSON
+        }
+        throw new Error(message);
+      }
+
+      const pdfBlob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      const matchedFilename = contentDisposition.match(/filename="?([^"]+)"?/i);
+      const filename = matchedFilename?.[1] || `barcode-produk-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const downloadUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      toast.success(`PDF barcode berhasil diunduh (${selectedCount} produk)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan saat membuat PDF barcode');
+    } finally {
+      setIsGeneratingBarcodePdf(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -153,6 +243,34 @@ export default function ProductsPage() {
   };
 
   const columns: Column<Product>[] = [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={isAllCurrentPageSelected}
+          ref={(element) => {
+            if (element) {
+              element.indeterminate = isSomeCurrentPageSelected;
+            }
+          }}
+          onChange={handleToggleSelectCurrentPage}
+          className="w-4 h-4 rounded border-gray-300 text-[#142D52] focus:ring-[#EBC170] cursor-pointer"
+          aria-label="Pilih semua produk di halaman ini"
+        />
+      ),
+      sortable: false,
+      width: '3rem',
+      render: (_, row) => (
+        <input
+          type="checkbox"
+          checked={selectedProductUuids.has(row.uuid)}
+          onChange={() => handleToggleProductSelection(row.uuid)}
+          className="w-4 h-4 rounded border-gray-300 text-[#142D52] focus:ring-[#EBC170] cursor-pointer"
+          aria-label={`Pilih produk ${row.name}`}
+        />
+      ),
+    },
     {
       key: 'no',
       label: 'No',
@@ -197,7 +315,7 @@ export default function ProductsPage() {
       render: (_, row) => (
         <div>
           <p className="text-sm font-medium text-gray-900">{row.name}</p>
-          <p className="text-xs text-gray-500">SKU: {row.sku}</p>
+          <p className="text-xs text-gray-500">{row.sku}</p>
         </div>
       ),
     },
@@ -311,6 +429,34 @@ export default function ProductsPage() {
         columns={columns}
         itemsPerPage={itemsPerPage}
         searchPlaceholder="Cari produk..."
+        actionComponent={(
+          <div className="flex items-center gap-2">
+            {selectedCount > 0 && (
+              <span className="px-2 py-1 text-xs font-medium rounded-md bg-[#F6E7C6] text-[#6A4B16]">
+                {selectedCount} dipilih
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleDownloadSelectedBarcodePdf}
+              disabled={selectedCount === 0 || isGeneratingBarcodePdf}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#142D52] text-white hover:bg-[#0f2442] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>{isGeneratingBarcodePdf ? 'Memproses...' : 'Download PDF Barcode'}</span>
+            </button>
+            {selectedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+        )}
         emptyMessage="Tidak ada produk ditemukan"
         emptyIcon={<Package className="w-16 h-16 text-gray-300 mx-auto" />}
         serverSide={true}

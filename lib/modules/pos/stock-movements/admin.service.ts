@@ -29,6 +29,7 @@ export const posStockMovementService = {
       where.OR = [
         { product: { name: { contains: search, mode: 'insensitive' } } },
         { product: { sku: { contains: search, mode: 'insensitive' } } },
+        { product: { barcode: { contains: search, mode: 'insensitive' } } },
       ];
     }
     if (branchUuid) where.branchUuid = branchUuid;

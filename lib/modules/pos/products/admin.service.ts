@@ -114,6 +114,13 @@ async function saveProductImage(file: File) {
   });
 }
 
+export interface ProductBarcodePrintItem {
+  uuid: string;
+  name: string;
+  sku: string;
+  barcode: string;
+}
+
 export const posProductService = {
   async listProducts(params: {
     page: number;
@@ -196,7 +203,7 @@ export const posProductService = {
 
     const existingSku = await posProductRepository.findBySku(payload.sku);
     if (existingSku) {
-      throw new ValidationApiError({ sku: ['SKU sudah digunakan'] });
+      throw new ValidationApiError({ sku: ['Kode produk sudah digunakan'] });
     }
 
     if (payload.barcode) {
@@ -288,7 +295,7 @@ export const posProductService = {
     if (payload.sku && payload.sku !== existingProduct.sku) {
       const skuExists = await posProductRepository.findBySku(payload.sku);
       if (skuExists) {
-        throw new ValidationApiError({ sku: ['SKU sudah digunakan'] });
+        throw new ValidationApiError({ sku: ['Kode produk sudah digunakan'] });
       }
     }
 
@@ -417,5 +424,38 @@ export const posProductService = {
     }
 
     return mapProductLookupBarcode(product, branchUuid);
+  },
+
+  async getProductsForBarcodePdf(uuids: string[]): Promise<ProductBarcodePrintItem[]> {
+    const uniqueUuids = [...new Set(uuids.map((uuid) => uuid.trim()).filter(Boolean))];
+    if (uniqueUuids.length === 0) {
+      throw new ValidationApiError({ uuids: ['Pilih minimal 1 produk'] });
+    }
+
+    const products = await posProductRepository.findManyByUuids(uniqueUuids);
+    if (products.length === 0) {
+      throw new ApiError('Produk tidak ditemukan', 404);
+    }
+
+    const byUuid = new Map(products.map((product) => [product.uuid, product]));
+    const selected = uniqueUuids
+      .map((uuid) => byUuid.get(uuid))
+      .filter((product): product is NonNullable<typeof product> => Boolean(product))
+      .map((product) => {
+        const barcodeValue = (product.barcode || product.sku || '').trim();
+        return {
+          uuid: product.uuid,
+          name: product.name,
+          sku: product.sku,
+          barcode: barcodeValue,
+        };
+      })
+      .filter((product) => Boolean(product.barcode));
+
+    if (selected.length === 0) {
+      throw new ApiError('Produk terpilih tidak memiliki barcode/sku yang bisa diunduh', 422);
+    }
+
+    return selected;
   },
 };

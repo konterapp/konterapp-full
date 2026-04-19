@@ -88,7 +88,7 @@ export async function getTransactions(
     end_date?: string;
     payment_status?: string;
   }
-): Promise<{ status: string; data: { data: Sale[]; pagination: any } }> {
+): Promise<{ status: string; data: { data: Sale[]; pagination: Record<string, unknown> } }> {
   const params = new URLSearchParams({
     page: page.toString(),
     per_page: perPage.toString(),

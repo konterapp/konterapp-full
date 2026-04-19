@@ -76,6 +76,20 @@ export const posProductRepository = {
     });
   },
 
+  findManyByUuids(uuids: string[]) {
+    return prisma.posProduct.findMany({
+      where: {
+        uuid: { in: uuids },
+      },
+      select: {
+        uuid: true,
+        name: true,
+        sku: true,
+        barcode: true,
+      },
+    });
+  },
+
   create(data: Record<string, unknown>) {
     return prisma.posProduct.create({ data: data as any });
   },

@@ -232,8 +232,8 @@ export default function KasirPage() {
         const message = (response as { message?: string }).message;
         setError(message || 'Gagal memproses transaksi');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan');
+    } catch {
+      setError('Terjadi kesalahan');
     } finally {
       setIsProcessing(false);
     }
@@ -334,7 +334,7 @@ export default function KasirPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder={selectedBranch ? 'Cari produk (nama, SKU, barcode)...' : 'Pilih cabang terlebih dahulu...'}
+                  placeholder={selectedBranch ? 'Cari produk (nama, kode produk, barcode)...' : 'Pilih cabang terlebih dahulu...'}
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   disabled={!selectedBranch}

@@ -20,7 +20,7 @@ const branchPriceSchema = z.object({
 export const createProductSchema = z.object({
   category_uuid: z.string({ error: "Kategori wajib diisi" }).min(1, "Kategori wajib diisi"),
   name: z.string({ error: "Nama wajib diisi" }).min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
-  sku: z.string({ error: "SKU wajib diisi" }).min(1, "SKU wajib diisi").max(255, "SKU maksimal 255 karakter"),
+  sku: z.string({ error: "Kode produk wajib diisi" }).min(1, "Kode produk wajib diisi").max(100, "Kode produk maksimal 100 karakter"),
   barcode: z.string().optional().nullable().or(z.literal("")),
   additional_barcodes: z.array(additionalBarcodeSchema).optional(),
   purchase_price: z.number().min(0, "Harga beli minimal 0").optional(),
@@ -36,7 +36,7 @@ export const createProductSchema = z.object({
 export const updateProductSchema = z.object({
   category_uuid: z.string().optional(),
   name: z.string().min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter").optional(),
-  sku: z.string().min(1, "SKU wajib diisi").max(255, "SKU maksimal 255 karakter").optional(),
+  sku: z.string().min(1, "Kode produk wajib diisi").max(100, "Kode produk maksimal 100 karakter").optional(),
   barcode: z.string().optional().nullable().or(z.literal("")),
   additional_barcodes: z.array(additionalBarcodeSchema).optional(),
   purchase_price: z.number().min(0, "Harga beli minimal 0").optional(),
@@ -47,4 +47,11 @@ export const updateProductSchema = z.object({
   unit_conversions: z.array(unitConversionSchema).optional(),
   branch_prices: z.array(branchPriceSchema).optional(),
   is_active: z.boolean().optional(),
+});
+
+export const bulkProductBarcodePdfSchema = z.object({
+  uuids: z
+    .array(z.string().min(1, "UUID produk tidak valid"))
+    .min(1, "Pilih minimal 1 produk")
+    .max(500, "Maksimal 500 produk per unduhan"),
 });

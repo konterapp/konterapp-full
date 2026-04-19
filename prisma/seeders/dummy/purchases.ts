@@ -14,8 +14,8 @@ const PURCHASES_DATA = [
     paidAmount: 1250000,
     notes: "Pembelian stok awal",
     items: [
-      { sku: "PRD-001", name: "Voucher Game 100K", qty: 5, unitPrice: 90000 },
-      { sku: "PRD-002", name: "Pulsa 50K", qty: 20, unitPrice: 45000 },
+      { code: "PRD-001", name: "Voucher Game 100K", qty: 5, unitPrice: 90000 },
+      { code: "PRD-002", name: "Pulsa 50K", qty: 20, unitPrice: 45000 },
     ],
   },
   {
@@ -25,8 +25,8 @@ const PURCHASES_DATA = [
     paidAmount: 500000,
     notes: "Pembelian mingguan",
     items: [
-      { sku: "PRD-003", name: "Paket Data 10GB", qty: 10, unitPrice: 38000 },
-      { sku: "PRD-002", name: "Pulsa 50K", qty: 15, unitPrice: 45000 },
+      { code: "PRD-003", name: "Paket Data 10GB", qty: 10, unitPrice: 38000 },
+      { code: "PRD-002", name: "Pulsa 50K", qty: 15, unitPrice: 45000 },
     ],
   },
   {
@@ -36,8 +36,8 @@ const PURCHASES_DATA = [
     paidAmount: 0,
     notes: "Pembelian tambahan",
     items: [
-      { sku: "PRD-004", name: "Token Listrik 200K", qty: 3, unitPrice: 190000 },
-      { sku: "PRD-001", name: "Voucher Game 100K", qty: 4, unitPrice: 90000 },
+      { code: "PRD-004", name: "Token Listrik 200K", qty: 3, unitPrice: 190000 },
+      { code: "PRD-001", name: "Voucher Game 100K", qty: 4, unitPrice: 90000 },
     ],
   },
 ];
@@ -117,10 +117,10 @@ async function ensureProduct(
   prisma: PrismaClient,
   companyUuid: string,
   categoryUuid: string,
-  data: { sku: string; name: string; sellingPrice: number }
+  data: { code: string; name: string; sellingPrice: number }
 ) {
   const existing = await prisma.posProduct.findUnique({
-    where: { sku: data.sku },
+    where: { sku: data.code },
   });
   if (existing) return existing;
 
@@ -130,7 +130,8 @@ async function ensureProduct(
       companyUuid,
       categoryUuid,
       name: data.name,
-      sku: data.sku,
+      sku: data.code,
+      barcode: data.code,
       sellingPrice: data.sellingPrice,
       unit: "pcs",
       isActive: true,
@@ -151,13 +152,13 @@ export async function seedPurchases(prisma: PrismaClient) {
   const allItems = PURCHASES_DATA.flatMap((purchase) => purchase.items);
 
   for (const item of allItems) {
-    if (!productMap.has(item.sku)) {
+    if (!productMap.has(item.code)) {
       const product = await ensureProduct(prisma, companyUuid, category.uuid, {
-        sku: item.sku,
+        code: item.code,
         name: item.name,
         sellingPrice: item.unitPrice + 10000,
       });
-      productMap.set(item.sku, { uuid: product.uuid, name: product.name });
+      productMap.set(item.code, { uuid: product.uuid, name: product.name });
     }
   }
 
@@ -194,7 +195,7 @@ export async function seedPurchases(prisma: PrismaClient) {
     });
 
     for (const item of purchase.items) {
-      const product = productMap.get(item.sku);
+      const product = productMap.get(item.code);
       if (!product) continue;
 
       const subtotal = item.qty * item.unitPrice;
