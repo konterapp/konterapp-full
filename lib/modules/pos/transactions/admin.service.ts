@@ -2,6 +2,7 @@ import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posTransactionRepository } from './repository';
 import { mapTransaction } from './transaction.mapper';
 import { Prisma } from '@prisma/client';
+import { posShiftRepository } from '../shifts/repository';
 
 function generateSaleNumber() {
   const date = new Date();
@@ -112,6 +113,18 @@ export const posTransactionService = {
 
     if (!branchUuid || !paymentMethodUuid || !items || items.length === 0) {
       throw new ValidationApiError({ items: ['Branch, payment method, and items are required'] });
+    }
+
+    const activeShift = await posShiftRepository.findOpenByUser(userId);
+    if (!activeShift) {
+      throw new ApiError('Shift kasir belum dibuka. Buka shift terlebih dahulu sebelum transaksi.', 400);
+    }
+
+    if (activeShift.branchUuid !== branchUuid) {
+      throw new ApiError(
+        `Shift aktif berada di cabang ${activeShift.branch?.name || activeShift.branchUuid}. Gunakan cabang shift aktif atau tutup shift terlebih dahulu.`,
+        400
+      );
     }
 
     const saleNumber = generateSaleNumber();

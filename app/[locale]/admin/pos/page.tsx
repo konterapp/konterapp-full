@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getAllBranches, Branch } from '@/lib/api/admin/branch';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/admin/product';
 import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/admin/payment-method';
 import { Customer } from '@/lib/api/admin/customer';
@@ -26,13 +25,41 @@ interface CartItem {
   available_stock: number;
 }
 
+interface BranchOption {
+  uuid: string;
+  name: string;
+  code?: string;
+  is_main?: boolean;
+}
+
+interface ActiveShift {
+  uuid: string;
+  opened_at: string;
+  opening_cash: number;
+  current_total_sales: number;
+  current_expected_cash: number;
+  branch: {
+    uuid: string;
+    name: string;
+    code?: string;
+  } | null;
+}
+
 export default function KasirPage() {
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [productResults, setProductResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState('');
+  const [activeShift, setActiveShift] = useState<ActiveShift | null>(null);
+  const [isShiftLoading, setIsShiftLoading] = useState(true);
+  const [isSubmittingShift, setIsSubmittingShift] = useState(false);
+  const [openShiftForm, setOpenShiftForm] = useState({
+    branch_uuid: '',
+    opening_cash: '',
+    notes_open: '',
+  });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [nextCartId, setNextCartId] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -50,23 +77,49 @@ export default function KasirPage() {
   const [imageGallery, setImageGallery] = useState<{ images: string[]; name: string; index: number } | null>(null);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
 
+  const loadShiftState = useCallback(async () => {
+    setIsShiftLoading(true);
+    try {
+      const response = await fetch('/api/admin/pos/shifts?page=1&per_page=10');
+      const result = await response.json();
+
+      if (result.status !== 'success' || !result.data) {
+        throw new Error(result.message || 'Gagal memuat status shift');
+      }
+
+      const branchItems = Array.isArray(result.data.filters?.branches)
+        ? result.data.filters.branches
+        : [];
+      setBranches(branchItems);
+
+      const active = result.data.active_shift || null;
+      setActiveShift(active);
+
+      if (active?.branch?.uuid) {
+        setSelectedBranch(active.branch.uuid);
+        setOpenShiftForm((prev) => ({ ...prev, branch_uuid: active.branch.uuid }));
+      } else {
+        const defaultBranch = branchItems.find((item: BranchOption) => item.is_main) || branchItems[0];
+        setSelectedBranch('');
+        setOpenShiftForm((prev) => ({
+          ...prev,
+          branch_uuid: prev.branch_uuid || defaultBranch?.uuid || '',
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to load shift state:', err);
+      setActiveShift(null);
+      setBranches([]);
+    } finally {
+      setIsShiftLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [branchesRes, paymentMethodsRes] = await Promise.all([
-          getAllBranches(),
-          getAllPaymentMethods(),
-        ]);
-        if (branchesRes.data) {
-          const branchItems = Array.isArray(branchesRes.data)
-            ? branchesRes.data
-            : (branchesRes.data as { data?: Branch[] }).data || [];
-          setBranches(branchItems);
-          const mainBranch = branchItems.find(b => b.is_main);
-          if (mainBranch) setSelectedBranch(mainBranch.uuid);
-          else if (branchItems.length === 1) setSelectedBranch(branchItems[0].uuid);
-        }
+        await loadShiftState();
+        const paymentMethodsRes = await getAllPaymentMethods();
         if (paymentMethodsRes.data) {
           const paymentItems = Array.isArray(paymentMethodsRes.data)
             ? paymentMethodsRes.data
@@ -80,10 +133,10 @@ export default function KasirPage() {
       }
     };
     loadData();
-  }, []);
+  }, [loadShiftState]);
 
   const searchProducts = useCallback(async (query: string) => {
-    if (!selectedBranch) return;
+    if (!selectedBranch || !activeShift) return;
     setIsSearching(true);
     try {
       const response = await getProducts(1, 20, query, 'name', 'asc', selectedBranch, undefined, true);
@@ -98,10 +151,10 @@ export default function KasirPage() {
     } finally {
       setIsSearching(false);
     }
-  }, [selectedBranch]);
+  }, [selectedBranch, activeShift]);
 
   useEffect(() => {
-    if (!selectedBranch) {
+    if (!selectedBranch || !activeShift) {
       setProductResults([]);
       return;
     }
@@ -109,7 +162,7 @@ export default function KasirPage() {
       searchProducts(productSearch);
     }, 300);
     return () => clearTimeout(timer);
-  }, [productSearch, selectedBranch, searchProducts]);
+  }, [productSearch, selectedBranch, activeShift, searchProducts]);
 
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const totalAmount = cartSubtotal - discountAmount;
@@ -193,7 +246,48 @@ export default function KasirPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
-  const canProcess = cart.length > 0 && selectedBranch && selectedPaymentMethod && totalAmount > 0;
+  const canProcess = Boolean(activeShift) && cart.length > 0 && selectedBranch && selectedPaymentMethod && totalAmount > 0;
+
+  const handleOpenShift = async () => {
+    if (!openShiftForm.branch_uuid) {
+      setError('Pilih cabang untuk membuka shift');
+      return;
+    }
+
+    const openingCash = Number(openShiftForm.opening_cash);
+    if (!Number.isFinite(openingCash) || openingCash < 0) {
+      setError('Kas awal wajib berupa angka >= 0');
+      return;
+    }
+
+    setIsSubmittingShift(true);
+    setError('');
+    try {
+      const response = await fetch('/api/admin/pos/shifts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branch_uuid: openShiftForm.branch_uuid,
+          opening_cash: openingCash,
+          notes_open: openShiftForm.notes_open || null,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Gagal membuka shift');
+      }
+
+      setOpenShiftForm((prev) => ({ ...prev, opening_cash: '', notes_open: '' }));
+      await loadShiftState();
+      setProductSearch('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal membuka shift';
+      setError(message);
+    } finally {
+      setIsSubmittingShift(false);
+    }
+  };
 
   const handleProcess = async () => {
     if (!canProcess) return;
@@ -239,7 +333,7 @@ export default function KasirPage() {
   };
 
   const handleBarcodeScan = useCallback(async (code: string) => {
-    if (!selectedBranch || !code.trim()) return;
+    if (!selectedBranch || !activeShift || !code.trim()) return;
     try {
       const response = await lookupBarcode(code.trim(), selectedBranch || undefined);
       if (response.status === 'success' && response.data) {
@@ -252,7 +346,7 @@ export default function KasirPage() {
       setScanNotification({ type: 'error', message: `Produk dengan barcode "${code}" tidak ditemukan` });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBranch, cart]);
+  }, [selectedBranch, activeShift, cart]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -292,14 +386,20 @@ export default function KasirPage() {
             <ShoppingCart className="w-4 h-4 text-[#EBC170]" />
           </div>
           <h1 className="text-base font-bold text-[#142D52]">Kasir</h1>
+          {activeShift && (
+            <span className="text-[11px] font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
+              Shift aktif
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <select
             value={selectedBranch}
             onChange={(e) => { setSelectedBranch(e.target.value); setCart([]); }}
-            className="px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
+            disabled
+            className="px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
           >
-            <option value="">Pilih Cabang</option>
+            <option value="">{activeShift ? 'Cabang Shift Aktif' : 'Pilih Cabang Shift'}</option>
             {branches.map(branch => (
               <option key={branch.uuid} value={branch.uuid}>{branch.name}</option>
             ))}
@@ -315,6 +415,73 @@ export default function KasirPage() {
       )}
 
       {/* Main content */}
+      {isShiftLoading ? (
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-sm text-gray-500">Memuat status shift kasir...</div>
+        </div>
+      ) : !activeShift ? (
+        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
+          <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[#142D52]">Buka Shift Dulu</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                POS terkunci sampai shift kasir dibuka. Setelah shift aktif, transaksi bisa diproses.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
+                <select
+                  value={openShiftForm.branch_uuid}
+                  onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, branch_uuid: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                >
+                  <option value="">Pilih Cabang</option>
+                  {branches.map((branch) => (
+                    <option key={branch.uuid} value={branch.uuid}>
+                      {branch.code ? `${branch.code} - ` : ''}{branch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kas Awal</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={openShiftForm.opening_cash}
+                  onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, opening_cash: e.target.value }))}
+                  placeholder="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan (Opsional)</label>
+                <input
+                  type="text"
+                  value={openShiftForm.notes_open}
+                  onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, notes_open: e.target.value }))}
+                  placeholder="Catatan buka shift"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenShift}
+              disabled={isSubmittingShift}
+              className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {isSubmittingShift ? 'Membuka Shift...' : 'Buka Shift'}
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Products + Cart (scrollable together) */}
         <div className="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
@@ -642,6 +809,7 @@ export default function KasirPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Scan notification toast */}
       {scanNotification && (
