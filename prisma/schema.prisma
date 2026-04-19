@@ -37,7 +37,7 @@ model User {
 }
 
 model Company {
-  uuid      String   @id @default(cuid()) @db.Char(36)
+  uuid      String   @id @default(uuid()) @db.Char(36)
   code      String   @unique @db.VarChar(50)
   name      String   @db.VarChar(255)
   isActive  Boolean  @default(true) @map("is_active")
@@ -62,7 +62,7 @@ model Company {
 }
 
 model CompanyUser {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   companyUuid String   @map("company_uuid") @db.Char(36)
   userId      Int      @map("user_id")
   role        String?  @db.VarChar(50)
@@ -216,7 +216,7 @@ model RoleHasPermission {
 // ==================== POS Models ====================
 
 model PosProductCategory {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   companyUuid String   @map("company_uuid") @db.Char(36)
   name        String   @db.VarChar(255)
   description String?  @db.Text
@@ -231,7 +231,7 @@ model PosProductCategory {
 }
 
 model PosProductUnit {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   companyUuid String   @map("company_uuid") @db.Char(36)
   name        String   @db.VarChar(20)
   description String?  @db.Text
@@ -245,7 +245,7 @@ model PosProductUnit {
 }
 
 model PosBranch {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   companyUuid String   @map("company_uuid") @db.Char(36)
   code        String   @unique @db.VarChar(20)
   name        String   @db.VarChar(255)
@@ -270,7 +270,7 @@ model PosBranch {
 }
 
 model PosProduct {
-  uuid           String   @id @default(cuid()) @db.Char(36)
+  uuid           String   @id @default(uuid()) @db.Char(36)
   companyUuid    String   @map("company_uuid") @db.Char(36)
   categoryUuid   String   @map("category_uuid") @db.Char(36)
   name           String   @db.VarChar(255)
@@ -301,7 +301,7 @@ model PosProduct {
 }
 
 model PosProductBarcode {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   barcode     String   @unique @db.VarChar(100)
   createdAt   DateTime @default(now()) @map("created_at")
@@ -314,7 +314,7 @@ model PosProductBarcode {
 }
 
 model PosProductUnitConversion {
-  uuid         String   @id @default(cuid()) @db.Char(36)
+  uuid         String   @id @default(uuid()) @db.Char(36)
   productUuid  String   @map("product_uuid") @db.Char(36)
   unit         String   @db.VarChar(20)
   factorToBase Decimal  @map("factor_to_base") @db.Decimal(12, 4)
@@ -330,7 +330,7 @@ model PosProductUnitConversion {
 }
 
 model PosProductBranchPrice {
-  uuid           String   @id @default(cuid()) @db.Char(36)
+  uuid           String   @id @default(uuid()) @db.Char(36)
   productUuid    String   @map("product_uuid") @db.Char(36)
   branchUuid     String   @map("branch_uuid") @db.Char(36)
   sellingPrice   Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
@@ -347,7 +347,7 @@ model PosProductBranchPrice {
 }
 
 model PosProductImage {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   image       String   @db.VarChar(255)
   isPrimary   Boolean  @default(false) @map("is_primary")
@@ -361,7 +361,7 @@ model PosProductImage {
 }
 
 model PosProductStock {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   branchUuid  String   @map("branch_uuid") @db.Char(36)
   stock       Int      @default(0)
@@ -376,7 +376,7 @@ model PosProductStock {
 }
 
 model PosSupplier {
-  uuid          String   @id @default(cuid()) @db.Char(36)
+  uuid          String   @id @default(uuid()) @db.Char(36)
   companyUuid   String   @map("company_uuid") @db.Char(36)
   code          String   @unique @db.VarChar(50)
   name          String   @db.VarChar(255)
@@ -396,7 +396,7 @@ model PosSupplier {
 }
 
 model PosPurchase {
-  uuid           String   @id @default(cuid()) @db.Char(36)
+  uuid           String   @id @default(uuid()) @db.Char(36)
   companyUuid    String   @map("company_uuid") @db.Char(36)
   purchaseNumber String   @unique @map("purchase_number") @db.VarChar(50)
   branchUuid     String   @map("branch_uuid") @db.Char(36)
@@ -423,7 +423,7 @@ model PosPurchase {
 }
 
 model PosPurchaseItem {
-  uuid         String   @id @default(cuid()) @db.Char(36)
+  uuid         String   @id @default(uuid()) @db.Char(36)
   purchaseUuid String   @map("purchase_uuid") @db.Char(36)
   productUuid  String   @map("product_uuid") @db.Char(36)
   quantity     Int
@@ -440,7 +440,7 @@ model PosPurchaseItem {
 }
 
 model PosStockMovement {
-  uuid          String   @id @default(cuid()) @db.Char(36)
+  uuid          String   @id @default(uuid()) @db.Char(36)
   companyUuid   String   @map("company_uuid") @db.Char(36)
   branchUuid    String   @map("branch_uuid") @db.Char(36)
   productUuid   String   @map("product_uuid") @db.Char(36)
@@ -466,7 +466,7 @@ model PosStockMovement {
 }
 
 model PosPaymentMethod {
-  uuid          String   @id @default(cuid()) @db.Char(36)
+  uuid          String   @id @default(uuid()) @db.Char(36)
   companyUuid   String   @map("company_uuid") @db.Char(36)
   code          String   @unique @db.VarChar(50)
   name          String   @db.VarChar(100)
@@ -487,7 +487,7 @@ model PosPaymentMethod {
 }
 
 model PosCustomer {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   companyUuid String   @map("company_uuid") @db.Char(36)
   name        String   @db.VarChar(255)
   phone       String?  @db.VarChar(20)
@@ -506,7 +506,7 @@ model PosCustomer {
 }
 
 model PosSale {
-  uuid              String   @id @default(cuid()) @db.Char(36)
+  uuid              String   @id @default(uuid()) @db.Char(36)
   companyUuid       String   @map("company_uuid") @db.Char(36)
   saleNumber        String   @unique @map("sale_number") @db.VarChar(50)
   branchUuid        String   @map("branch_uuid") @db.Char(36)
@@ -538,7 +538,7 @@ model PosSale {
 }
 
 model PosSaleItem {
-  uuid        String   @id @default(cuid()) @db.Char(36)
+  uuid        String   @id @default(uuid()) @db.Char(36)
   saleUuid    String   @map("sale_uuid") @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   quantity    Int
@@ -555,7 +555,7 @@ model PosSaleItem {
 }
 
 model PosPpobProduct {
-  uuid                String   @id @default(cuid()) @db.Char(36)
+  uuid                String   @id @default(uuid()) @db.Char(36)
   companyUuid         String   @map("company_uuid") @db.Char(36)
   provider            String   @db.VarChar(20)
   providerProductCode String   @map("provider_product_code") @db.VarChar(100)
@@ -592,7 +592,7 @@ model PosPpobProduct {
 }
 
 model PosPpobTransaction {
-  uuid              String   @id @default(cuid()) @db.Char(36)
+  uuid              String   @id @default(uuid()) @db.Char(36)
   companyUuid       String   @map("company_uuid") @db.Char(36)
   branchUuid        String   @map("branch_uuid") @db.Char(36)
   transactionNumber String   @unique @map("transaction_number") @db.VarChar(50)
