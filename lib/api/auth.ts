@@ -6,10 +6,19 @@ export interface User {
   email: string;
   roles: string[];
   permissions: string[];
+  active_company_uuid?: string;
+  companies?: UserCompany[];
   avatar?: string;
   avatar_url?: string;
   impersonating?: boolean;
   profile?: UserProfile;
+}
+
+export interface UserCompany {
+  uuid: string;
+  code: string;
+  name: string;
+  is_default?: boolean;
 }
 
 export interface UserProfile {
@@ -53,5 +62,12 @@ export async function resendVerification(email: string): Promise<ApiResponse<nul
   return apiRequest<null>('/api/auth/resend-verification', {
     method: 'POST',
     data: { email },
+  });
+}
+
+export async function switchActiveCompany(companyUuid: string): Promise<ApiResponse<{ active_company_uuid: string; companies: UserCompany[] }>> {
+  return apiRequest<{ active_company_uuid: string; companies: UserCompany[] }>('/api/auth/company/switch', {
+    method: 'POST',
+    data: { company_uuid: companyUuid },
   });
 }

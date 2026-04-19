@@ -3,6 +3,13 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { successResponse, errorResponse } from "@/lib/response";
 import { getToken } from "next-auth/jwt";
 import { NextRequest } from "next/server";
+import { resolveUserActiveCompany } from "@/lib/company-access";
+
+type AuthTokenShape = {
+  id?: string;
+  activeCompanyUuid?: string;
+  impersonatorId?: string;
+};
 
 export async function GET(req: NextRequest) {
   const isSecure = req.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
@@ -23,9 +30,18 @@ export async function GET(req: NextRequest) {
 
   const roles = await getUserRoles(user.id);
   const permissions = await getUserPermissions(user.id);
+  const tokenData = token as AuthTokenShape;
+  const preferredCompanyUuid = req.headers.get("x-company-uuid") || tokenData.activeCompanyUuid || null;
+  let companyContext;
+  try {
+    companyContext = await resolveUserActiveCompany(user.id, preferredCompanyUuid);
+  } catch (error) {
+    return errorResponse((error as Error).message || "Akun belum memiliki perusahaan aktif", 403);
+  }
+  const companies = companyContext.companies;
 
   // Check if impersonating
-  const impersonatorId = (token as any).impersonatorId ?? null;
+  const impersonatorId = tokenData.impersonatorId ?? null;
 
   return successResponse("User data", {
     id: user.id,
@@ -34,6 +50,8 @@ export async function GET(req: NextRequest) {
     email: user.email,
     roles,
     permissions,
+    active_company_uuid: companyContext.activeCompanyUuid,
+    companies,
     impersonating: !!impersonatorId,
     avatar_url: user.profile?.avatar ?? null,
     profile: user.profile

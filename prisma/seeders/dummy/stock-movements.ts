@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
 
 const MOVEMENTS_DATA = [
   {
@@ -58,8 +59,9 @@ async function ensureAdminUser(prisma: PrismaClient) {
   return admin;
 }
 
-async function ensureBranch(prisma: PrismaClient) {
+async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
   const existing = await prisma.posBranch.findFirst({
+    where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
@@ -67,6 +69,7 @@ async function ensureBranch(prisma: PrismaClient) {
   return prisma.posBranch.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       code: "CB001",
       name: "Konter Pusat",
       address: "Jl. Margonda Raya No. 1",
@@ -78,8 +81,9 @@ async function ensureBranch(prisma: PrismaClient) {
   });
 }
 
-async function ensureCategory(prisma: PrismaClient) {
+async function ensureCategory(prisma: PrismaClient, companyUuid: string) {
   const existing = await prisma.posProductCategory.findFirst({
+    where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
@@ -87,13 +91,19 @@ async function ensureCategory(prisma: PrismaClient) {
   return prisma.posProductCategory.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       name: "Produk Digital",
       description: "Kategori produk digital",
     },
   });
 }
 
-async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: { sku: string; name: string; sellingPrice: number }) {
+async function ensureProduct(
+  prisma: PrismaClient,
+  companyUuid: string,
+  categoryUuid: string,
+  data: { sku: string; name: string; sellingPrice: number }
+) {
   const existing = await prisma.posProduct.findUnique({
     where: { sku: data.sku },
   });
@@ -102,6 +112,7 @@ async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: {
   return prisma.posProduct.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       categoryUuid,
       name: data.name,
       sku: data.sku,
@@ -113,16 +124,17 @@ async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: {
 }
 
 export async function seedStockMovements(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
   const admin = await ensureAdminUser(prisma);
   if (!admin) return;
 
-  const branch = await ensureBranch(prisma);
-  const category = await ensureCategory(prisma);
+  const branch = await ensureBranch(prisma, companyUuid);
+  const category = await ensureCategory(prisma, companyUuid);
 
   const productMap = new Map<string, { uuid: string }>();
   for (const movement of MOVEMENTS_DATA) {
     if (!productMap.has(movement.sku)) {
-      const product = await ensureProduct(prisma, category.uuid, {
+      const product = await ensureProduct(prisma, companyUuid, category.uuid, {
         sku: movement.sku,
         name: movement.name,
         sellingPrice: 100000,
@@ -173,6 +185,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
     await prisma.posStockMovement.create({
       data: {
         uuid: uuidv7(),
+        companyUuid,
         productUuid: product.uuid,
         branchUuid: branch.uuid,
         movementType: movement.movementType,

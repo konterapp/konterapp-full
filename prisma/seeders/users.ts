@@ -1,11 +1,13 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "./company";
 
 async function createUserWithRole(
   prisma: PrismaClient,
   data: { name: string; email: string; password: string; userType: number },
-  role: Role
+  role: Role,
+  companyUuid: string
 ) {
   const hashedPassword = await bcrypt.hash(data.password, 10);
 
@@ -47,6 +49,25 @@ async function createUserWithRole(
     },
   });
 
+  await prisma.companyUser.upsert({
+    where: {
+      company_user_unique: {
+        companyUuid,
+        userId: user.id,
+      },
+    },
+    update: {
+      isActive: true,
+      isDefault: true,
+    },
+    create: {
+      companyUuid,
+      userId: user.id,
+      isDefault: true,
+      isActive: true,
+    },
+  });
+
   return user;
 }
 
@@ -54,17 +75,21 @@ export async function seedUsers(
   prisma: PrismaClient,
   roles: { adminRole: Role; userRole: Role }
 ) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
+
   await createUserWithRole(
     prisma,
     { name: "Admin", email: "admin@admin.com", password: "password", userType: 2 },
-    roles.adminRole
+    roles.adminRole,
+    companyUuid
   );
   console.log("✓ Admin user created: admin@admin.com / password");
 
   await createUserWithRole(
     prisma,
     { name: "User", email: "user@user.com", password: "password", userType: 4 },
-    roles.userRole
+    roles.userRole,
+    companyUuid
   );
   console.log("✓ Regular user created: user@user.com / password");
 }

@@ -59,8 +59,9 @@ export const userRepository = {
     userData: { uuid: string; name: string; email: string; password: string; isActive: boolean };
     profileData: any;
     roleId: number;
+    companyUuid: string;
   }) {
-    const { userData, profileData, roleId } = payload;
+    const { userData, profileData, roleId, companyUuid } = payload;
 
     return prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({ data: userData });
@@ -77,6 +78,15 @@ export const userRepository = {
           roleId,
           modelType: "App\\Models\\User",
           modelId: newUser.id,
+        },
+      });
+
+      await tx.companyUser.create({
+        data: {
+          companyUuid,
+          userId: newUser.id,
+          isDefault: true,
+          isActive: true,
         },
       });
 

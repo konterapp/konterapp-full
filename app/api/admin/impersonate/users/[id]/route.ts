@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
+import { resolveUserActiveCompany } from "@/lib/company-access";
 
 export const POST = withAuth(async (req, context) => {
   try {
@@ -42,6 +43,13 @@ export const POST = withAuth(async (req, context) => {
     }
 
     const targetPermissions = await getUserPermissions(targetUser.id);
+    let companyContext;
+    try {
+      companyContext = await resolveUserActiveCompany(targetUser.id);
+    } catch (error) {
+      return errorResponse((error as Error).message || "User target belum memiliki perusahaan aktif", 403);
+    }
+    const companies = companyContext.companies;
 
     // Create new session as target user, store original admin id
     const token = await encode({
@@ -51,6 +59,8 @@ export const POST = withAuth(async (req, context) => {
         email: targetUser.email,
         roles: targetRoles,
         permissions: targetPermissions,
+        activeCompanyUuid: companyContext.activeCompanyUuid,
+        companies,
         impersonatorId: String(context.userId),
       },
       secret: process.env.AUTH_SECRET!,
@@ -74,10 +84,13 @@ export const POST = withAuth(async (req, context) => {
         email: targetUser.email,
         roles: targetRoles,
         permissions: targetPermissions,
+        active_company_uuid: companyContext.activeCompanyUuid,
+        companies,
       },
       impersonating: true,
     });
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Internal server error";
+    return errorResponse(message, 500);
   }
 });

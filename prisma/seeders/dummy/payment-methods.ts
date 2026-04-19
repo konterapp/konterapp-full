@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
 
 const PAYMENT_METHODS_DATA = [
   {
@@ -59,6 +60,7 @@ const PAYMENT_METHODS_DATA = [
 ];
 
 export async function seedPaymentMethods(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
   const baseDate = new Date();
   for (let index = 0; index < PAYMENT_METHODS_DATA.length; index += 1) {
     const data = PAYMENT_METHODS_DATA[index];
@@ -67,10 +69,12 @@ export async function seedPaymentMethods(prisma: PrismaClient) {
       where: { code: data.code },
       update: {
         ...data,
+        companyUuid,
         createdAt,
       },
       create: {
         uuid: uuidv7(),
+        companyUuid,
         ...data,
         createdAt,
       },

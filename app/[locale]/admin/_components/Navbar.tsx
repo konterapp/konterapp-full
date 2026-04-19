@@ -3,8 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Link as LocaleLink } from '@/i18n/navigation';
-import { Search, ChevronRight, Menu, X, Bell, Settings, Store } from 'lucide-react';
+import { Search, ChevronRight, Menu, X, Bell, Settings, Building2 } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
@@ -52,7 +51,7 @@ const Navbar = () => {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const mobileSearchRef = useRef<HTMLInputElement>(null);
-  const { user } = useUser();
+  const { user, activeCompanyUuid } = useUser();
 
   useEffect(() => {
     if (isMobileSearchOpen && mobileSearchRef.current) {
@@ -105,6 +104,10 @@ const Navbar = () => {
 
     return results;
   }, [searchQuery, permissions]);
+
+  const activeCompany = user?.companies?.length
+    ? (user.companies.find((company) => company.uuid === activeCompanyUuid) ?? user.companies[0])
+    : null;
 
   return (
     <nav
@@ -247,15 +250,26 @@ const Navbar = () => {
           <Search className="w-[18px] h-[18px] text-gray-600" />
         </button>
 
-        {/* Lihat Website Button */}
-        <LocaleLink
-          href="/"
-          target="_blank"
-          className="inline-flex items-center justify-center gap-2 px-3 py-2 text-gray-600 hover:text-[#142D52] hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium cursor-pointer"
+        {/* Perusahaan Aktif */}
+        <div
+          className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium cursor-default"
+          title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
         >
-          <Store className="w-4 h-4 shrink-0" />
-          <span className="hidden md:inline">Lihat Website</span>
-        </LocaleLink>
+          <Building2 className="w-4 h-4 shrink-0 text-[#142D52]" />
+          <div className="leading-tight min-w-0">
+            <div className="text-[10px] uppercase tracking-wide text-gray-400 hidden md:block">
+              Perusahaan Aktif
+            </div>
+            <div className="max-w-[10rem] md:max-w-[14rem] truncate text-sm text-gray-800">
+              {activeCompany ? activeCompany.name : 'Perusahaan tidak tersedia'}
+            </div>
+          </div>
+          {activeCompany && (
+            <span className="hidden lg:inline-flex px-2 py-0.5 rounded-full bg-white text-[#142D52] text-[10px] font-semibold border border-gray-200">
+              {activeCompany.code}
+            </span>
+          )}
+        </div>
 
         {/* Divider */}
         <div className="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div>

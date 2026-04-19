@@ -2,10 +2,12 @@ import { NextRequest } from "next/server";
 import { auth } from "./auth-config";
 import { errorResponse } from "./response";
 import { getUserPermissions, hasPermission } from "./permissions";
+import { resolveUserActiveCompany } from "./company-access";
+import { runWithTenantContext } from "./tenant-context";
 
 type RouteHandler = (
   req: NextRequest,
-  context: { params: Promise<Record<string, string>>; userId: number }
+  context: { params: Promise<Record<string, string>>; userId: number; companyUuid: string }
 ) => Promise<Response>;
 
 export function withAuth(handler: RouteHandler) {
@@ -14,7 +16,21 @@ export function withAuth(handler: RouteHandler) {
     if (!session?.user?.id) {
       return errorResponse("Unauthenticated", 401);
     }
-    return handler(req, { ...context, userId: Number(session.user.id) });
+
+    const userId = Number(session.user.id);
+    const preferredCompanyUuid = req.headers.get("x-company-uuid") || session.user.activeCompanyUuid || null;
+
+    let activeCompanyUuid: string;
+    try {
+      const companyContext = await resolveUserActiveCompany(userId, preferredCompanyUuid);
+      activeCompanyUuid = companyContext.activeCompanyUuid;
+    } catch (error) {
+      return errorResponse((error as Error).message || "Akses perusahaan tidak valid", 403);
+    }
+
+    return runWithTenantContext(activeCompanyUuid, () =>
+      handler(req, { ...context, userId, companyUuid: activeCompanyUuid })
+    );
   };
 }
 

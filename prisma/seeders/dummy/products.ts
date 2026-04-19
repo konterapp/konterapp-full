@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
 
 type ProductSeed = {
   category_name: string;
@@ -434,7 +435,10 @@ const PRODUCTS_DATA: ProductSeed[] = [
 ];
 
 export async function seedProducts(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
+
   const branches = await prisma.posBranch.findMany({
+    where: { companyUuid },
     orderBy: { createdAt: 'asc' },
   });
   if (branches.length === 0) {
@@ -447,7 +451,9 @@ export async function seedProducts(prisma: PrismaClient) {
     mainBranch = branches[0];
   }
 
-  const categories = await prisma.posProductCategory.findMany();
+  const categories = await prisma.posProductCategory.findMany({
+    where: { companyUuid },
+  });
   const categoryMap = new Map(categories.map((cat) => [cat.name, cat.uuid]));
 
   let createdCount = 0;
@@ -467,6 +473,7 @@ export async function seedProducts(prisma: PrismaClient) {
       ? await prisma.posProduct.update({
           where: { sku: data.sku },
           data: {
+            companyUuid,
             categoryUuid,
             name: data.name,
             barcode: data.barcode || null,
@@ -481,6 +488,7 @@ export async function seedProducts(prisma: PrismaClient) {
       : await prisma.posProduct.create({
           data: {
             uuid: uuidv7(),
+            companyUuid,
             categoryUuid,
             name: data.name,
             sku: data.sku,

@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { getUser, User } from '@/lib/api/auth';
 
 interface UserContextType {
   user: User | null;
   roles: string[];
   permissions: string[];
+  activeCompanyUuid: string | null;
   adminScope: 'daerah' | 'nasional' | 'internasional' | 'mice' | null;
   isLoading: boolean;
   refetchUser: () => Promise<void>;
@@ -18,10 +19,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [activeCompanyUuid, setActiveCompanyUuid] = useState<string | null>(null);
   const [adminScope, setAdminScope] = useState<'daerah' | 'nasional' | 'internasional' | 'mice' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await getUser();
@@ -30,6 +32,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         setRoles(userData.roles || []);
         setPermissions(userData.permissions || []);
+        setActiveCompanyUuid(userData.active_company_uuid || null);
         const asdepRole = (userData.roles || []).find((r: string) => r.startsWith('admin-asdep-'));
         const scope = asdepRole ? asdepRole.replace('admin-asdep-', '') : null;
         setAdminScope(scope as typeof adminScope);
@@ -37,6 +40,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setRoles([]);
         setPermissions([]);
+        setActiveCompanyUuid(null);
         setAdminScope(null);
       }
     } catch (error) {
@@ -44,18 +48,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setRoles([]);
       setPermissions([]);
+      setActiveCompanyUuid(null);
       setAdminScope(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
-  }, []);
+  }, [fetchUser]);
 
   return (
-    <UserContext.Provider value={{ user, roles, permissions, adminScope, isLoading, refetchUser: fetchUser }}>
+    <UserContext.Provider value={{ user, roles, permissions, activeCompanyUuid, adminScope, isLoading, refetchUser: fetchUser }}>
       {children}
     </UserContext.Provider>
   );

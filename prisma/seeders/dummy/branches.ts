@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
 
 const BRANCHES_DATA = [
   {
@@ -36,12 +37,18 @@ const BRANCHES_DATA = [
 ];
 
 export async function seedBranches(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
+
   for (const data of BRANCHES_DATA) {
     await prisma.posBranch.upsert({
       where: { code: data.code },
-      update: data,
+      update: {
+        ...data,
+        companyUuid,
+      },
       create: {
         uuid: uuidv7(),
+        companyUuid,
         ...data,
       },
     });

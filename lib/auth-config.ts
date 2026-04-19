@@ -3,12 +3,17 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { getUserRoles, getUserPermissions } from "./permissions";
+import { resolveUserActiveCompany, UserCompanySummary } from "./company-access";
+
+type SessionCompany = UserCompanySummary;
 
 declare module "next-auth" {
   interface User {
     id: string;
     roles: string[];
     permissions: string[];
+    activeCompanyUuid: string;
+    companies: SessionCompany[];
   }
   interface Session {
     user: {
@@ -17,6 +22,8 @@ declare module "next-auth" {
       email: string;
       roles: string[];
       permissions: string[];
+      activeCompanyUuid: string;
+      companies: SessionCompany[];
       impersonatorId?: string;
     };
   }
@@ -27,6 +34,8 @@ declare module "@auth/core/jwt" {
     id: string;
     roles: string[];
     permissions: string[];
+    activeCompanyUuid: string;
+    companies: SessionCompany[];
     impersonatorId?: string;
   }
 }
@@ -60,6 +69,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const roles = await getUserRoles(user.id);
         const permissions = await getUserPermissions(user.id);
+        let companyContext;
+        try {
+          companyContext = await resolveUserActiveCompany(user.id);
+        } catch {
+          return null;
+        }
 
         return {
           id: String(user.id),
@@ -67,6 +82,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           roles,
           permissions,
+          activeCompanyUuid: companyContext.activeCompanyUuid,
+          companies: companyContext.companies,
         };
       },
     }),
@@ -81,6 +98,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.roles = user.roles;
         token.permissions = user.permissions;
+        token.activeCompanyUuid = user.activeCompanyUuid;
+        token.companies = user.companies;
       }
       return token;
     },
@@ -88,6 +107,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.id = token.id;
       session.user.roles = token.roles;
       session.user.permissions = token.permissions;
+      session.user.activeCompanyUuid = token.activeCompanyUuid;
+      session.user.companies = token.companies;
       session.user.impersonatorId = token.impersonatorId;
       return session;
     },

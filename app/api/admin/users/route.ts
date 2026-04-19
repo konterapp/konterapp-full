@@ -38,7 +38,7 @@ export const GET = withPermission(
 
 export const POST = withPermission(
   "admin.user.create",
-  withApiErrorHandling(async (req) => {
+  withApiErrorHandling(async (req, context) => {
     const contentType = req.headers.get("content-type") ?? "";
     let body: any;
     let profilePhotoFile: File | null = null;
@@ -58,7 +58,7 @@ export const POST = withPermission(
     const validated = validateSchema(createUserSchema, body);
     if (!("data" in validated)) return validated;
 
-    const created = await userService.createUser(validated.data, profilePhotoFile);
+    const created = await userService.createUser(validated.data, profilePhotoFile, context.companyUuid);
     return successResponse("User created successfully", created, 201);
   })
 );

@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
+import { resolveUserActiveCompany } from "@/lib/company-access";
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,6 +45,13 @@ export async function POST(req: NextRequest) {
 
     const roles = await getUserRoles(user.id);
     const permissions = await getUserPermissions(user.id);
+    let companyContext;
+    try {
+      companyContext = await resolveUserActiveCompany(user.id);
+    } catch (error) {
+      return errorResponse((error as Error).message || "Akun belum memiliki perusahaan aktif", 403);
+    }
+    const companies = companyContext.companies;
 
     // Create session token manually
     const isSecure = process.env.NODE_ENV === "production";
@@ -57,6 +65,8 @@ export async function POST(req: NextRequest) {
         email: user.email,
         roles,
         permissions,
+        activeCompanyUuid: companyContext.activeCompanyUuid,
+        companies,
       },
       secret: process.env.AUTH_SECRET!,
       salt: cookieName,
@@ -80,6 +90,8 @@ export async function POST(req: NextRequest) {
         email: user.email,
         roles,
         permissions,
+        active_company_uuid: companyContext.activeCompanyUuid,
+        companies,
         avatar_url: user.profile?.avatar ?? null,
         profile: user.profile
           ? {

@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from "@/lib/response";
 import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode, decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
+import { resolveUserActiveCompany } from "@/lib/company-access";
 
 export async function POST() {
   try {
@@ -37,6 +38,13 @@ export async function POST() {
 
     const roles = await getUserRoles(adminUser.id);
     const permissions = await getUserPermissions(adminUser.id);
+    let companyContext;
+    try {
+      companyContext = await resolveUserActiveCompany(adminUser.id);
+    } catch (error) {
+      return errorResponse((error as Error).message || "Admin belum memiliki perusahaan aktif", 403);
+    }
+    const companies = companyContext.companies;
 
     // Create new session as original admin (no impersonatorId)
     const token = await encode({
@@ -46,6 +54,8 @@ export async function POST() {
         email: adminUser.email,
         roles,
         permissions,
+        activeCompanyUuid: companyContext.activeCompanyUuid,
+        companies,
       },
       secret: process.env.AUTH_SECRET!,
       salt: "authjs.session-token",
@@ -67,9 +77,12 @@ export async function POST() {
         email: adminUser.email,
         roles,
         permissions,
+        active_company_uuid: companyContext.activeCompanyUuid,
+        companies,
       },
     });
-  } catch (e: any) {
-    return errorResponse(e.message ?? "Internal server error", 500);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Internal server error";
+    return errorResponse(message, 500);
   }
 }

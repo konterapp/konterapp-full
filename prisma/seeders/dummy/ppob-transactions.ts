@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { v7 as uuidv7 } from 'uuid';
+import { getDefaultCompanyUuid } from '../company';
 
 const TRANSACTIONS_DATA = [
   {
@@ -62,13 +63,14 @@ async function ensureAdmin(prisma: PrismaClient) {
   return admin;
 }
 
-async function ensureBranch(prisma: PrismaClient) {
-  const existing = await prisma.posBranch.findFirst({ orderBy: { createdAt: 'asc' } });
+async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
+  const existing = await prisma.posBranch.findFirst({ where: { companyUuid }, orderBy: { createdAt: 'asc' } });
   if (existing) return existing;
 
   return prisma.posBranch.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       code: 'CB001',
       name: 'Konter Pusat',
       address: 'Jl. Margonda Raya No. 1',
@@ -80,13 +82,16 @@ async function ensureBranch(prisma: PrismaClient) {
   });
 }
 
-async function ensurePaymentMethod(prisma: PrismaClient) {
-  const existing = await prisma.posPaymentMethod.findFirst({ where: { code: 'CASH' } });
+async function ensurePaymentMethod(prisma: PrismaClient, companyUuid: string) {
+  const existing = await prisma.posPaymentMethod.findFirst({
+    where: { companyUuid, code: 'CASH' },
+  });
   if (existing) return existing;
 
   return prisma.posPaymentMethod.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       code: 'CASH',
       name: 'Tunai',
       type: 'cash',
@@ -97,16 +102,18 @@ async function ensurePaymentMethod(prisma: PrismaClient) {
 }
 
 export async function seedPpobTransactions(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
   const admin = await ensureAdmin(prisma);
   if (!admin) return;
 
-  const branch = await ensureBranch(prisma);
-  const paymentMethod = await ensurePaymentMethod(prisma);
+  const branch = await ensureBranch(prisma, companyUuid);
+  const paymentMethod = await ensurePaymentMethod(prisma, companyUuid);
 
   for (const item of TRANSACTIONS_DATA) {
     await prisma.posPpobTransaction.upsert({
       where: { transactionNumber: item.transactionNumber },
       update: {
+        companyUuid,
         branchUuid: branch.uuid,
         type: item.type,
         productCode: item.productCode,
@@ -129,6 +136,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
       },
       create: {
         uuid: uuidv7(),
+        companyUuid,
         branchUuid: branch.uuid,
         transactionNumber: item.transactionNumber,
         type: item.type,

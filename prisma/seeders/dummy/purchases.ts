@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
 
 const PURCHASES_DATA = [
   {
@@ -51,8 +52,9 @@ async function ensureAdminUser(prisma: PrismaClient) {
   return admin;
 }
 
-async function ensureBranch(prisma: PrismaClient) {
+async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
   const existing = await prisma.posBranch.findFirst({
+    where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
@@ -60,6 +62,7 @@ async function ensureBranch(prisma: PrismaClient) {
   return prisma.posBranch.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       code: "CB001",
       name: "Konter Pusat",
       address: "Jl. Margonda Raya No. 1",
@@ -71,8 +74,9 @@ async function ensureBranch(prisma: PrismaClient) {
   });
 }
 
-async function ensureSupplier(prisma: PrismaClient) {
+async function ensureSupplier(prisma: PrismaClient, companyUuid: string) {
   const existing = await prisma.posSupplier.findFirst({
+    where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
@@ -80,6 +84,7 @@ async function ensureSupplier(prisma: PrismaClient) {
   return prisma.posSupplier.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       code: "SUP-001",
       name: "PT Sumber Makmur",
       contactPerson: "Budi Santoso",
@@ -91,8 +96,9 @@ async function ensureSupplier(prisma: PrismaClient) {
   });
 }
 
-async function ensureCategory(prisma: PrismaClient) {
+async function ensureCategory(prisma: PrismaClient, companyUuid: string) {
   const existing = await prisma.posProductCategory.findFirst({
+    where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
@@ -100,13 +106,19 @@ async function ensureCategory(prisma: PrismaClient) {
   return prisma.posProductCategory.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       name: "Produk Digital",
       description: "Kategori produk digital",
     },
   });
 }
 
-async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: { sku: string; name: string; sellingPrice: number }) {
+async function ensureProduct(
+  prisma: PrismaClient,
+  companyUuid: string,
+  categoryUuid: string,
+  data: { sku: string; name: string; sellingPrice: number }
+) {
   const existing = await prisma.posProduct.findUnique({
     where: { sku: data.sku },
   });
@@ -115,6 +127,7 @@ async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: {
   return prisma.posProduct.create({
     data: {
       uuid: uuidv7(),
+      companyUuid,
       categoryUuid,
       name: data.name,
       sku: data.sku,
@@ -126,19 +139,20 @@ async function ensureProduct(prisma: PrismaClient, categoryUuid: string, data: {
 }
 
 export async function seedPurchases(prisma: PrismaClient) {
+  const companyUuid = await getDefaultCompanyUuid(prisma);
   const admin = await ensureAdminUser(prisma);
   if (!admin) return;
 
-  const branch = await ensureBranch(prisma);
-  const supplier = await ensureSupplier(prisma);
-  const category = await ensureCategory(prisma);
+  const branch = await ensureBranch(prisma, companyUuid);
+  const supplier = await ensureSupplier(prisma, companyUuid);
+  const category = await ensureCategory(prisma, companyUuid);
 
   const productMap = new Map<string, { uuid: string; name: string }>();
   const allItems = PURCHASES_DATA.flatMap((purchase) => purchase.items);
 
   for (const item of allItems) {
     if (!productMap.has(item.sku)) {
-      const product = await ensureProduct(prisma, category.uuid, {
+      const product = await ensureProduct(prisma, companyUuid, category.uuid, {
         sku: item.sku,
         name: item.name,
         sellingPrice: item.unitPrice + 10000,
@@ -164,6 +178,7 @@ export async function seedPurchases(prisma: PrismaClient) {
     const createdPurchase = await prisma.posPurchase.create({
       data: {
         uuid: uuidv7(),
+        companyUuid,
         purchaseNumber: purchase.purchaseNumber,
         purchaseDate: purchase.purchaseDate,
         branchUuid: branch.uuid,
@@ -172,7 +187,7 @@ export async function seedPurchases(prisma: PrismaClient) {
         discountAmount: 0,
         totalAmount,
         paidAmount: purchase.paidAmount,
-        paymentStatus: purchase.paymentStatus as any,
+        paymentStatus: purchase.paymentStatus as "pending" | "partial" | "paid",
         notes: purchase.notes,
         createdBy: admin.id,
       },
@@ -225,6 +240,7 @@ export async function seedPurchases(prisma: PrismaClient) {
       await prisma.posStockMovement.create({
         data: {
           uuid: uuidv7(),
+          companyUuid,
           productUuid: product.uuid,
           branchUuid: branch.uuid,
           movementType: "purchase",
