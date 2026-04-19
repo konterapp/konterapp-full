@@ -1,0 +1,52 @@
+import { PrismaClient } from "@prisma/client";
+import { ensureDefaultCompany } from "../company";
+import { seedPermissions } from "../permissions";
+import { seedRoles } from "../roles";
+import { seedPermissionRole } from "../permission-role";
+import { seedUsers } from "../users";
+import { seedBerita } from "./berita";
+import { seedBranches } from "./branches";
+import { seedCategories } from "./categories";
+import { seedUnits } from "./units";
+import { seedCustomers } from "./customers";
+import { seedPaymentMethods } from "./payment-methods";
+import { seedProducts } from "./products";
+import { seedPurchases } from "./purchases";
+import { seedStockMovements } from "./stock-movements";
+import { seedPpobTransactions } from "./ppob-transactions";
+import { seedCashierShifts } from "./cashier-shifts";
+
+async function seedDummy(prisma: PrismaClient) {
+  await ensureDefaultCompany(prisma);
+  await seedPermissions(prisma);
+  const roles = await seedRoles(prisma);
+  await seedPermissionRole(prisma, roles);
+  await seedUsers(prisma, roles);
+
+  await seedBranches(prisma);
+  await seedCategories(prisma);
+  await seedUnits(prisma);
+  await seedCustomers(prisma);
+  await seedPaymentMethods(prisma);
+  await seedProducts(prisma);
+  await seedPurchases(prisma);
+  await seedStockMovements(prisma);
+  await seedPpobTransactions(prisma);
+  await seedCashierShifts(prisma);
+  await seedBerita(prisma);
+}
+
+if (require.main === module) {
+  const prisma = new PrismaClient();
+  seedDummy(prisma)
+    .then(() => {
+      console.log("✓ Dummy seeding completed");
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    })
+    .finally(() => prisma.$disconnect());
+}
+
+export { seedDummy };

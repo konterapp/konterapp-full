@@ -111,7 +111,12 @@ const BERITA_DATA = [
 export async function seedBerita(prisma: PrismaClient) {
   // Get admin user as creator
   const adminUser = await prisma.user.findFirst({
-    where: { email: "admin@eventbyid.com" },
+    where: {
+      OR: [
+        { email: "admin@eventbyid.com" },
+        { email: "admin@admin.com" },
+      ],
+    },
   });
 
   if (!adminUser) {
