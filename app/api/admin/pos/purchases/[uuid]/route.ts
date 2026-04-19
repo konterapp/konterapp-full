@@ -4,6 +4,15 @@ import { withPermission } from '@/lib/api-middleware';
 import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posPurchaseService } from '@/lib/modules/pos/purchases/admin.service';
 
+export const GET = withPermission(
+  'admin.pos.purchase.index',
+  withApiErrorHandling(async (_req: NextRequest, context) => {
+    const { uuid } = await context.params;
+    const purchase = await posPurchaseService.getPurchaseDetail(uuid);
+    return successResponse('Purchase retrieved successfully', purchase);
+  })
+);
+
 export const DELETE = withPermission(
   'admin.pos.purchase.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
