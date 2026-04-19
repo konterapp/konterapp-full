@@ -91,8 +91,9 @@ export const allMenuItems: MenuItem[] = [
     {
         section: 'Operasional',
         label: 'Shift Kasir',
+        href: '/admin/pos/shifts',
         icon: <CircleDot className="w-5 h-5" />,
-        isPlaceholder: true
+        permission: 'admin.pos.sale.create'
     },
     {
         section: 'Operasional',

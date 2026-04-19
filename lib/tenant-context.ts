@@ -17,6 +17,7 @@ export const TENANT_MODELS = new Set<string>([
   "PosPaymentMethod",
   "PosCustomer",
   "PosSale",
+  "PosCashierShift",
   "PosPpobProduct",
   "PosPpobTransaction",
 ]);

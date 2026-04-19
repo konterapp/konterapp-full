@@ -24,6 +24,7 @@ const UUID_MODELS = new Set<string>([
   "PosCustomer",
   "PosSale",
   "PosSaleItem",
+  "PosCashierShift",
   "PosPpobProduct",
   "PosPpobTransaction",
 ]);

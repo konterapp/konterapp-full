@@ -150,6 +150,18 @@ const routes: Record<string, RouteInfo> = {
     path: '/admin/pos/purchases',
     permission: 'admin.pos.purchase.index',
   },
+  'admin.pos.purchase.create': {
+    path: '/admin/pos/purchases/create',
+    permission: 'admin.pos.purchase.create',
+  },
+  'admin.pos.purchase.detail': {
+    path: '/admin/pos/purchases/:id',
+    permission: 'admin.pos.purchase.index',
+  },
+  'admin.pos.shift.index': {
+    path: '/admin/pos/shifts',
+    permission: 'admin.pos.sale.create',
+  },
   'admin.pos.stock-on-hand.index': {
     path: '/admin/pos/stock-on-hand',
     permission: 'admin.pos.stock-movement.index',

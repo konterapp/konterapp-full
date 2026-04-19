@@ -30,6 +30,7 @@ model User {
   posPurchases        PosPurchase[]
   posStockMovements   PosStockMovement[]
   posSales            PosSale[]
+  posCashierShifts    PosCashierShift[]
   posPpobTransactions PosPpobTransaction[]
 
   @@unique([sourceDb, sourceId], name: "users_source_db_source_id_unique")
@@ -55,6 +56,7 @@ model Company {
   paymentMethods    PosPaymentMethod[]
   customers         PosCustomer[]
   sales             PosSale[]
+  cashierShifts     PosCashierShift[]
   ppobProducts      PosPpobProduct[]
   ppobTransactions  PosPpobTransaction[]
 
@@ -263,6 +265,7 @@ model PosBranch {
   purchases        PosPurchase[]
   stockMovements   PosStockMovement[]
   sales            PosSale[]
+  cashierShifts    PosCashierShift[]
   ppobTransactions PosPpobTransaction[]
 
   @@index([companyUuid])
@@ -552,6 +555,36 @@ model PosSaleItem {
   product PosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
   @@map("pos_sale_items")
+}
+
+model PosCashierShift {
+  uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
+  branchUuid  String   @map("branch_uuid") @db.Char(36)
+  userId      Int      @map("user_id")
+  status      String   @default("open") @db.VarChar(20)
+  openedAt    DateTime @map("opened_at")
+  closedAt    DateTime? @map("closed_at")
+  openingCash Decimal  @default(0) @map("opening_cash") @db.Decimal(15, 2)
+  totalSales  Decimal  @default(0) @map("total_sales") @db.Decimal(15, 2)
+  expectedCash Decimal @default(0) @map("expected_cash") @db.Decimal(15, 2)
+  closingCash Decimal? @map("closing_cash") @db.Decimal(15, 2)
+  variance    Decimal  @default(0) @db.Decimal(15, 2)
+  notesOpen   String?  @map("notes_open") @db.Text
+  notesClose  String?  @map("notes_close") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company Company  @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch  PosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([companyUuid])
+  @@index([branchUuid])
+  @@index([userId])
+  @@index([status])
+  @@index([openedAt])
+  @@map("pos_cashier_shifts")
 }
 
 model PosPpobProduct {
