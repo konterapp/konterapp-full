@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Eye, Receipt, X } from 'lucide-react';
 import DataTable, { Column } from '../../_components/DataTable';
@@ -60,10 +60,6 @@ export default function TransactionsPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchSales();
-  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder, filterBranch, filterPaymentMethod, filterStatus, filterDateFrom, filterDateTo]);
-
   const loadFilterOptions = async () => {
     try {
       const [branchRes, pmRes] = await Promise.all([
@@ -84,7 +80,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     setIsLoading(true);
     setError('');
 
@@ -120,7 +116,11 @@ export default function TransactionsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, debouncedSearch, sortBy, sortOrder, filterBranch, filterPaymentMethod, filterStatus, filterDateFrom, filterDateTo]);
+
+  useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
 
   const handleSortChange = (field: string, order: 'asc' | 'desc') => {
     setSortBy(field);
@@ -158,10 +158,12 @@ export default function TransactionsPage() {
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
+      partial: 'bg-blue-100 text-blue-800',
       paid: 'bg-green-100 text-green-800',
     };
     const labels: Record<string, string> = {
       pending: 'Belum Dibayar',
+      partial: 'Dibayar Sebagian',
       paid: 'Lunas',
     };
     return (
@@ -319,6 +321,7 @@ export default function TransactionsPage() {
             >
               <option value="">Semua Status</option>
               <option value="paid">Lunas</option>
+              <option value="partial">Dibayar Sebagian</option>
               <option value="pending">Belum Dibayar</option>
             </select>
           </div>

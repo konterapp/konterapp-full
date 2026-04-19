@@ -88,10 +88,12 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
+      partial: 'bg-blue-100 text-blue-800',
       paid: 'bg-green-100 text-green-800',
     };
     const labels: Record<string, string> = {
       pending: 'Belum Dibayar',
+      partial: 'Dibayar Sebagian',
       paid: 'Lunas',
     };
     return (
@@ -125,6 +127,8 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
       </div>
     );
   }
+
+  const outstandingAmount = Math.max(Number(sale.total_amount) - Number(sale.paid_amount), 0);
 
   return (
     <div className="space-y-6">
@@ -273,10 +277,17 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
                 <span className="text-sm font-semibold text-green-600">{formatCurrency(Number(sale.paid_amount))}</span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Kembalian</span>
-                <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(sale.change_amount))}</span>
-              </div>
+              {outstandingAmount > 0 ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Sisa Piutang</span>
+                  <span className="text-sm font-semibold text-red-600">{formatCurrency(outstandingAmount)}</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Kembalian</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(Number(sale.change_amount))}</span>
+                </div>
+              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Status</span>

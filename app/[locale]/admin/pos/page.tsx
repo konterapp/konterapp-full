@@ -114,6 +114,7 @@ export default function KasirPage() {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const totalAmount = cartSubtotal - discountAmount;
   const changeAmount = paidAmount - totalAmount;
+  const outstandingAmount = Math.max(totalAmount - paidAmount, 0);
 
   const getStockForBranch = (product: Product): number => {
     if (selectedBranch && Array.isArray(product.stocks) && product.stocks.length > 0) {
@@ -175,16 +176,6 @@ export default function KasirPage() {
     );
   };
 
-  const updateItemDiscount = (id: number, discount: number) => {
-    setCart(prev =>
-      prev.map(item =>
-        item.id === id
-          ? { ...item, discount, subtotal: item.quantity * item.unit_price - discount }
-          : item
-      )
-    );
-  };
-
   const removeFromCart = (id: number) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
@@ -202,7 +193,7 @@ export default function KasirPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
-  const canProcess = cart.length > 0 && selectedBranch && selectedPaymentMethod && paidAmount >= totalAmount && totalAmount > 0;
+  const canProcess = cart.length > 0 && selectedBranch && selectedPaymentMethod && totalAmount > 0;
 
   const handleProcess = async () => {
     if (!canProcess) return;
@@ -617,10 +608,10 @@ export default function KasirPage() {
                   ))}
                 </div>
               )}
-              {paidAmount > 0 && totalAmount > 0 && (
+              {totalAmount > 0 && (
                 <div className={`flex justify-between text-sm p-2.5 rounded-lg font-medium ${changeAmount >= 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                  <span>Kembalian</span>
-                  <span className="font-bold">{formatCurrency(Math.max(0, changeAmount))}</span>
+                  <span>{changeAmount >= 0 ? 'Kembalian' : 'Sisa Piutang'}</span>
+                  <span className="font-bold">{formatCurrency(changeAmount >= 0 ? changeAmount : outstandingAmount)}</span>
                 </div>
               )}
             </div>
@@ -646,7 +637,7 @@ export default function KasirPage() {
               disabled={!canProcess || isProcessing}
               className="w-full py-3 bg-[#142D52] text-white rounded-lg font-bold text-sm hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isProcessing ? 'Memproses...' : `Proses Pembayaran${cart.length > 0 ? ` (${cart.length})` : ''}`}
+              {isProcessing ? 'Memproses...' : `Proses Transaksi${cart.length > 0 ? ` (${cart.length})` : ''}`}
             </button>
           </div>
         </div>

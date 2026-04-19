@@ -1,6 +1,7 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posTransactionRepository } from './repository';
 import { mapTransaction } from './transaction.mapper';
+import { Prisma } from '@prisma/client';
 
 function generateSaleNumber() {
   const date = new Date();
@@ -30,7 +31,7 @@ export const posTransactionService = {
     const { page, perPage, search, branchUuid, paymentMethodUuid, startDate, endDate, paymentStatus, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
 
-    const where: any = {};
+    const where: Prisma.PosSaleWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -62,12 +63,13 @@ export const posTransactionService = {
       where.paymentStatus = paymentStatus;
     }
 
-    const sortMap: Record<string, any> = {
-      sale_number: { saleNumber: sortOrder || 'desc' },
-      sale_date: { saleDate: sortOrder || 'desc' },
-      total_amount: { totalAmount: sortOrder || 'desc' },
-      payment_status: { paymentStatus: sortOrder || 'desc' },
-      created_at: { createdAt: sortOrder || 'desc' },
+    const safeSortOrder: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
+    const sortMap: Record<string, Prisma.PosSaleOrderByWithRelationInput> = {
+      sale_number: { saleNumber: safeSortOrder },
+      sale_date: { saleDate: safeSortOrder },
+      total_amount: { totalAmount: safeSortOrder },
+      payment_status: { paymentStatus: safeSortOrder },
+      created_at: { createdAt: safeSortOrder },
     };
 
     const orderBy = sortMap[sortBy || 'created_at'] || sortMap.created_at;
@@ -101,7 +103,7 @@ export const posTransactionService = {
         discount?: number;
       }>;
       discountAmount?: number;
-      paidAmount?: number;
+      paidAmount?: number | string;
       notes?: string | null;
     },
     userId: number
@@ -125,8 +127,25 @@ export const posTransactionService = {
     }
 
     const totalAmount = subtotal - totalDiscount;
+    const parsedPaidAmount =
+      paidAmount === undefined || paidAmount === null || paidAmount === ''
+        ? totalAmount
+        : Number(paidAmount);
 
-    const sale = await posTransactionRepository.runInTransaction(async (tx: any) => {
+    if (Number.isNaN(parsedPaidAmount) || parsedPaidAmount < 0) {
+      throw new ValidationApiError({ paidAmount: ['Nominal bayar tidak valid'] });
+    }
+
+    const finalPaidAmount = parsedPaidAmount;
+    const changeAmount = Math.max(finalPaidAmount - totalAmount, 0);
+    const paymentStatus =
+      finalPaidAmount <= 0
+        ? 'pending'
+        : finalPaidAmount < totalAmount
+          ? 'partial'
+          : 'paid';
+
+    const sale = await posTransactionRepository.runInTransaction(async (tx: Prisma.TransactionClient) => {
       for (const item of items) {
         const stock = await tx.posProductStock.findFirst({
           where: {
@@ -150,9 +169,9 @@ export const posTransactionService = {
           subtotal,
           discountAmount: totalDiscount,
           totalAmount,
-          paidAmount: paidAmount || totalAmount,
-          changeAmount: (paidAmount || totalAmount) - totalAmount,
-          paymentStatus: 'paid',
+          paidAmount: finalPaidAmount,
+          changeAmount,
+          paymentStatus,
           notes: notes || null,
           createdBy: userId,
         },

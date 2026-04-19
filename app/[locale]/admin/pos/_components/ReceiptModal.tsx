@@ -22,6 +22,7 @@ interface ReceiptSale {
   total_amount?: number;
   paid_amount?: number;
   change_amount?: number;
+  payment_status?: string;
 }
 
 interface ReceiptModalProps {
@@ -54,6 +55,8 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
   const handlePrint = () => {
     window.print();
   };
+
+  const outstandingAmount = Math.max(Number(sale.total_amount || 0) - Number(sale.paid_amount || 0), 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -140,10 +143,17 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
               <span className="text-gray-600">Bayar:</span>
               <span>{formatCurrency(Number(sale.paid_amount))}</span>
             </div>
-            <div className="flex justify-between font-medium">
-              <span className="text-gray-600">Kembalian:</span>
-              <span>{formatCurrency(Number(sale.change_amount))}</span>
-            </div>
+            {outstandingAmount > 0 ? (
+              <div className="flex justify-between font-medium">
+                <span className="text-gray-600">Sisa Piutang:</span>
+                <span>{formatCurrency(outstandingAmount)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between font-medium">
+                <span className="text-gray-600">Kembalian:</span>
+                <span>{formatCurrency(Number(sale.change_amount))}</span>
+              </div>
+            )}
           </div>
 
           <div className="border-b border-dashed border-gray-300 mt-4 mb-3" />
