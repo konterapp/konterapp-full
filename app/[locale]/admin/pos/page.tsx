@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
-import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/admin/product';
 import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/admin/payment-method';
 import { Customer } from '@/lib/api/admin/customer';
@@ -45,6 +46,19 @@ interface ActiveShift {
   } | null;
 }
 
+interface ClosedShiftSummary {
+  uuid: string;
+  closed_at: string | null;
+  expected_cash: number;
+  closing_cash: number | null;
+  variance: number;
+  branch: {
+    uuid: string;
+    name: string;
+    code?: string;
+  } | null;
+}
+
 export default function KasirPage() {
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -55,10 +69,17 @@ export default function KasirPage() {
   const [activeShift, setActiveShift] = useState<ActiveShift | null>(null);
   const [isShiftLoading, setIsShiftLoading] = useState(true);
   const [isSubmittingShift, setIsSubmittingShift] = useState(false);
+  const [isSubmittingCloseShift, setIsSubmittingCloseShift] = useState(false);
+  const [showCloseShiftModal, setShowCloseShiftModal] = useState(false);
+  const [recentlyClosedShift, setRecentlyClosedShift] = useState<ClosedShiftSummary | null>(null);
   const [openShiftForm, setOpenShiftForm] = useState({
     branch_uuid: '',
     opening_cash: '',
     notes_open: '',
+  });
+  const [closeShiftForm, setCloseShiftForm] = useState({
+    closing_cash: '',
+    notes_close: '',
   });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [nextCartId, setNextCartId] = useState(1);
@@ -97,7 +118,12 @@ export default function KasirPage() {
 
       if (active?.branch?.uuid) {
         setSelectedBranch(active.branch.uuid);
+        setRecentlyClosedShift(null);
         setOpenShiftForm((prev) => ({ ...prev, branch_uuid: active.branch.uuid }));
+        setCloseShiftForm((prev) => ({
+          ...prev,
+          closing_cash: prev.closing_cash || String(Math.round(active.current_expected_cash || 0)),
+        }));
       } else {
         const defaultBranch = branchItems.find((item: BranchOption) => item.is_main) || branchItems[0];
         setSelectedBranch('');
@@ -105,6 +131,7 @@ export default function KasirPage() {
           ...prev,
           branch_uuid: prev.branch_uuid || defaultBranch?.uuid || '',
         }));
+        setCloseShiftForm({ closing_cash: '', notes_close: '' });
       }
     } catch (err) {
       console.error('Failed to load shift state:', err);
@@ -279,6 +306,7 @@ export default function KasirPage() {
       }
 
       setOpenShiftForm((prev) => ({ ...prev, opening_cash: '', notes_open: '' }));
+      setRecentlyClosedShift(null);
       await loadShiftState();
       setProductSearch('');
     } catch (err) {
@@ -330,6 +358,60 @@ export default function KasirPage() {
     clearCart();
     setSelectedPaymentMethod('');
     searchProducts(productSearch);
+  };
+
+  const handleCloseShift = async () => {
+    if (!activeShift) return;
+    if (cart.length > 0) {
+      setError('Kosongkan atau selesaikan keranjang sebelum menutup shift.');
+      return;
+    }
+
+    const closingCash = Number(closeShiftForm.closing_cash);
+    if (!Number.isFinite(closingCash) || closingCash < 0) {
+      setError('Kas akhir wajib berupa angka >= 0');
+      return;
+    }
+
+    setIsSubmittingCloseShift(true);
+    setError('');
+    try {
+      const response = await fetch(`/api/admin/pos/shifts/${activeShift.uuid}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          closing_cash: closingCash,
+          notes_close: closeShiftForm.notes_close || null,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.status !== 'success') {
+        throw new Error(result.message || 'Gagal menutup shift');
+      }
+
+      if (result.data) {
+        setRecentlyClosedShift({
+          uuid: result.data.uuid,
+          closed_at: result.data.closed_at || null,
+          expected_cash: Number(result.data.expected_cash || 0),
+          closing_cash: result.data.closing_cash === null ? null : Number(result.data.closing_cash),
+          variance: Number(result.data.variance || 0),
+          branch: result.data.branch || null,
+        });
+      }
+
+      clearCart();
+      setProductSearch('');
+      setProductResults([]);
+      setShowCloseShiftModal(false);
+      await loadShiftState();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal menutup shift';
+      setError(message);
+    } finally {
+      setIsSubmittingCloseShift(false);
+    }
   };
 
   const handleBarcodeScan = useCallback(async (code: string) => {
@@ -393,6 +475,16 @@ export default function KasirPage() {
           )}
         </div>
         <div className="flex items-center space-x-2">
+          {activeShift && (
+            <button
+              type="button"
+              onClick={() => setShowCloseShiftModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              Tutup Shift
+            </button>
+          )}
           <select
             value={selectedBranch}
             onChange={(e) => { setSelectedBranch(e.target.value); setCart([]); }}
@@ -418,6 +510,50 @@ export default function KasirPage() {
       {isShiftLoading ? (
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-sm text-gray-500">Memuat status shift kasir...</div>
+        </div>
+      ) : !activeShift && recentlyClosedShift ? (
+        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
+          <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-green-700">Shift Berhasil Ditutup</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Shift {recentlyClosedShift.branch?.name ? `di ${recentlyClosedShift.branch.name}` : ''} sudah ditutup.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                <p className="text-xs text-gray-500">Kas Seharusnya</p>
+                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.expected_cash)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                <p className="text-xs text-gray-500">Kas Real</p>
+                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.closing_cash)}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
+                <p className="text-xs text-gray-500">Selisih</p>
+                <p className={`text-sm font-semibold ${recentlyClosedShift.variance < 0 ? 'text-red-600' : recentlyClosedShift.variance > 0 ? 'text-green-600' : 'text-[#142D52]'}`}>
+                  {formatCurrency(recentlyClosedShift.variance)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => setRecentlyClosedShift(null)}
+                className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold cursor-pointer"
+              >
+                Buka Shift Baru
+              </button>
+              <Link
+                href="/admin/pos/shifts"
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-center font-medium"
+              >
+                Lihat Riwayat Shift
+              </Link>
+            </div>
+          </div>
         </div>
       ) : !activeShift ? (
         <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
@@ -809,6 +945,74 @@ export default function KasirPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {showCloseShiftModal && activeShift && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-[#142D52]">Tutup Shift</h3>
+              <button
+                type="button"
+                onClick={() => setShowCloseShiftModal(false)}
+                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-4 py-4 space-y-3">
+              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm">
+                <p className="text-gray-600">Cabang Shift</p>
+                <p className="font-semibold text-[#142D52]">{activeShift.branch?.name || '-'}</p>
+                <p className="text-gray-600 mt-2">Kas Seharusnya (live)</p>
+                <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_expected_cash || 0)}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kas Akhir (Real)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={closeShiftForm.closing_cash}
+                  onChange={(e) => setCloseShiftForm((prev) => ({ ...prev, closing_cash: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tutup Shift</label>
+                <textarea
+                  rows={3}
+                  value={closeShiftForm.notes_close}
+                  onChange={(e) => setCloseShiftForm((prev) => ({ ...prev, notes_close: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] resize-none"
+                  placeholder="Opsional"
+                />
+              </div>
+            </div>
+
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCloseShiftModal(false)}
+                className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseShift}
+                disabled={isSubmittingCloseShift}
+                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isSubmittingCloseShift ? 'Menutup...' : 'Tutup Shift'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Scan notification toast */}
