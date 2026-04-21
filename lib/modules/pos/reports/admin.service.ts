@@ -38,6 +38,13 @@ function resolveDateRange(dateFromParam: string | null, dateToParam: string | nu
   };
 }
 
+async function resolveBranchInfo(branchUuid?: string) {
+  if (!branchUuid) return null;
+  const branch = await posReportRepository.findBranch(branchUuid);
+  if (!branch) return null;
+  return { uuid: branch.uuid, name: branch.name };
+}
+
 export const posReportService = {
   async getProfitLoss(params: { dateFromParam: string | null; dateToParam: string | null; branchUuid?: string }) {
     const { dateFromParam, dateToParam, branchUuid } = params;
@@ -118,13 +125,7 @@ export const posReportService = {
     const totalProfit = totalRevenue - totalCogs;
     const overallMargin = totalRevenue > 0 ? round2((totalProfit / totalRevenue) * 100) : 0;
 
-    let branchInfo = null;
-    if (branchUuid) {
-      const branch = await posReportRepository.findBranch(branchUuid);
-      if (branch) {
-        branchInfo = { uuid: branch.uuid, name: branch.name };
-      }
-    }
+    const branchInfo = await resolveBranchInfo(branchUuid);
 
     return mapProfitLossReport({
       dateFrom,
@@ -138,5 +139,164 @@ export const posReportService = {
       totalItemsSold,
       products: productDetails,
     });
+  },
+
+  async getSalesSummary(params: { dateFromParam: string | null; dateToParam: string | null; branchUuid?: string }) {
+    const { dateFromParam, dateToParam, branchUuid } = params;
+    const { dateFrom, dateTo, rangeStart, rangeEnd } = resolveDateRange(dateFromParam, dateToParam);
+
+    const saleWhere: Prisma.PosSaleWhereInput = {
+      saleDate: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+    };
+
+    if (branchUuid) {
+      saleWhere.branchUuid = branchUuid;
+    }
+
+    const [aggregate, byPaymentStatus, dailyRows, recentRows, branchInfo] = await Promise.all([
+      posReportRepository.aggregateSales(saleWhere),
+      posReportRepository.groupSalesByPaymentStatus(saleWhere),
+      posReportRepository.groupSalesByDate(saleWhere),
+      posReportRepository.findRecentSales(saleWhere, 10),
+      resolveBranchInfo(branchUuid),
+    ]);
+
+    const totalSales = Number(aggregate._sum.totalAmount || 0);
+    const totalPaid = Number(aggregate._sum.paidAmount || 0);
+    const totalDiscount = Number(aggregate._sum.discountAmount || 0);
+    const totalTransactions = Number(aggregate._count._all || 0);
+    const avgTicket = totalTransactions > 0 ? round2(totalSales / totalTransactions) : 0;
+
+    return {
+      period: {
+        from: dateFrom,
+        to: dateTo,
+      },
+      branch: branchInfo,
+      summary: {
+        total_sales: round2(totalSales),
+        total_paid: round2(totalPaid),
+        outstanding_amount: round2(Math.max(totalSales - totalPaid, 0)),
+        total_discount: round2(totalDiscount),
+        total_transactions: totalTransactions,
+        average_ticket: round2(avgTicket),
+      },
+      by_payment_status: byPaymentStatus.map((row) => ({
+        payment_status: row.paymentStatus,
+        count: Number(row._count._all || 0),
+        total_amount: round2(Number(row._sum.totalAmount || 0)),
+        paid_amount: round2(Number(row._sum.paidAmount || 0)),
+      })),
+      daily: dailyRows.map((row) => ({
+        date: formatDate(row.saleDate),
+        transactions: Number(row._count._all || 0),
+        total_amount: round2(Number(row._sum.totalAmount || 0)),
+      })),
+      recent_transactions: recentRows.map((row) => ({
+        uuid: row.uuid,
+        sale_number: row.saleNumber,
+        sale_date: row.saleDate,
+        total_amount: round2(Number(row.totalAmount || 0)),
+        paid_amount: round2(Number(row.paidAmount || 0)),
+        payment_status: row.paymentStatus,
+        branch: row.branch
+          ? {
+              uuid: row.branch.uuid,
+              name: row.branch.name,
+              code: row.branch.code,
+            }
+          : null,
+        customer: row.customer
+          ? {
+              uuid: row.customer.uuid,
+              name: row.customer.name,
+              phone: row.customer.phone,
+            }
+          : null,
+      })),
+    };
+  },
+
+  async getPurchaseSummary(params: { dateFromParam: string | null; dateToParam: string | null; branchUuid?: string }) {
+    const { dateFromParam, dateToParam, branchUuid } = params;
+    const { dateFrom, dateTo, rangeStart, rangeEnd } = resolveDateRange(dateFromParam, dateToParam);
+
+    const purchaseWhere: Prisma.PosPurchaseWhereInput = {
+      purchaseDate: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+      paymentStatus: { notIn: ['draft', 'void'] },
+    };
+
+    if (branchUuid) {
+      purchaseWhere.branchUuid = branchUuid;
+    }
+
+    const [aggregate, byPaymentStatus, dailyRows, recentRows, branchInfo] = await Promise.all([
+      posReportRepository.aggregatePurchases(purchaseWhere),
+      posReportRepository.groupPurchasesByPaymentStatus(purchaseWhere),
+      posReportRepository.groupPurchasesByDate(purchaseWhere),
+      posReportRepository.findRecentPurchases(purchaseWhere, 10),
+      resolveBranchInfo(branchUuid),
+    ]);
+
+    const totalPurchases = Number(aggregate._sum.totalAmount || 0);
+    const totalPaid = Number(aggregate._sum.paidAmount || 0);
+    const totalDiscount = Number(aggregate._sum.discountAmount || 0);
+    const totalTransactions = Number(aggregate._count._all || 0);
+    const avgTicket = totalTransactions > 0 ? round2(totalPurchases / totalTransactions) : 0;
+
+    return {
+      period: {
+        from: dateFrom,
+        to: dateTo,
+      },
+      branch: branchInfo,
+      summary: {
+        total_purchases: round2(totalPurchases),
+        total_paid: round2(totalPaid),
+        outstanding_amount: round2(Math.max(totalPurchases - totalPaid, 0)),
+        total_discount: round2(totalDiscount),
+        total_transactions: totalTransactions,
+        average_ticket: round2(avgTicket),
+      },
+      by_payment_status: byPaymentStatus.map((row) => ({
+        payment_status: row.paymentStatus,
+        count: Number(row._count._all || 0),
+        total_amount: round2(Number(row._sum.totalAmount || 0)),
+        paid_amount: round2(Number(row._sum.paidAmount || 0)),
+      })),
+      daily: dailyRows.map((row) => ({
+        date: formatDate(row.purchaseDate),
+        transactions: Number(row._count._all || 0),
+        total_amount: round2(Number(row._sum.totalAmount || 0)),
+      })),
+      recent_transactions: recentRows.map((row) => ({
+        uuid: row.uuid,
+        purchase_number: row.purchaseNumber,
+        purchase_date: row.purchaseDate,
+        total_amount: round2(Number(row.totalAmount || 0)),
+        paid_amount: round2(Number(row.paidAmount || 0)),
+        payment_status: row.paymentStatus,
+        branch: row.branch
+          ? {
+              uuid: row.branch.uuid,
+              name: row.branch.name,
+              code: row.branch.code,
+            }
+          : null,
+        supplier: row.supplier
+          ? {
+              uuid: row.supplier.uuid,
+              name: row.supplier.name,
+              code: row.supplier.code,
+            }
+          : null,
+      })),
+    };
   },
 };
