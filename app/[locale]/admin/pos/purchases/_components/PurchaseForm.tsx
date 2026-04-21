@@ -598,6 +598,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               <tbody>
                 {rows.map((row) => {
                   const product = row.product_uuid ? productMap.get(row.product_uuid) : null;
+                  const baseUnit = product?.unit || 'pcs';
                   const factorToBase = resolveSelectedUnitFactor(product, row.unit);
                   const quantityBase = Number(row.quantity || 0) * factorToBase;
                   const rowSubtotal = Math.max(
@@ -648,7 +649,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                           ))}
                         </select>
                         {row.product_uuid && row.unit && (
-                          <p className="mt-1 text-xs text-gray-500">Faktor: x{factorToBase}</p>
+                          <p className="mt-1 text-xs text-gray-500">Faktor: x{factorToBase} {baseUnit}</p>
                         )}
                       </td>
                       <td className="px-4 py-2">
@@ -687,7 +688,9 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                       <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
                         <p>{formatCurrency(rowSubtotal)}</p>
                         {row.product_uuid && row.unit && (
-                          <p className="text-xs font-normal text-gray-500">Base: {Number.isFinite(quantityBase) ? quantityBase : 0}</p>
+                          <p className="text-xs font-normal text-gray-500">
+                            Base: {Number.isFinite(quantityBase) ? quantityBase : 0} {baseUnit}
+                          </p>
                         )}
                       </td>
                       <td className="px-4 py-2">
@@ -748,7 +751,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                   value={discountAmount}
                   onChange={(e) => setDiscountAmount(e.target.value)}
                   disabled={isSubmitting || isLockedEdit}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100"
                 />
                 {fieldErrors.discount_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.discount_amount[0]}</p>}
               </div>
@@ -765,7 +768,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(e.target.value)}
                   disabled={isSubmitting || isLockedEdit || !calculations.hasSupplier}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100 disabled:text-gray-500"
                 />
                 {!calculations.hasSupplier && (
                   <p className="mt-1 text-xs text-gray-500">Tanpa supplier, sistem otomatis set lunas saat final.</p>
