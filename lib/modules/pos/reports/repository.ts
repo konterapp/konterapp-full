@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export const posReportRepository = {
-  countSales(where: any) {
+  countSales(where: Prisma.PosSaleWhereInput) {
     return prisma.posSale.count({ where });
   },
 
-  groupSoldProducts(saleWhere: any) {
+  groupSoldProducts(saleWhere: Prisma.PosSaleWhereInput) {
     return prisma.posSaleItem.groupBy({
       by: ['productUuid'],
       where: {
@@ -18,11 +19,21 @@ export const posReportRepository = {
     });
   },
 
-  groupPurchaseAverageRows() {
+  groupPurchaseCostRows(params: {
+    purchaseWhere: Prisma.PosPurchaseWhereInput;
+    productUuids: string[];
+  }) {
+    const { purchaseWhere, productUuids } = params;
+    if (productUuids.length === 0) return Promise.resolve([]);
+
     return prisma.posPurchaseItem.groupBy({
       by: ['productUuid'],
+      where: {
+        productUuid: { in: productUuids },
+        purchase: purchaseWhere,
+      },
       _sum: {
-        quantity: true,
+        quantityBase: true,
         subtotal: true,
       },
     });
@@ -33,7 +44,7 @@ export const posReportRepository = {
 
     return prisma.posProduct.findMany({
       where: { uuid: { in: productUuids } },
-      select: { uuid: true, name: true, sku: true },
+      select: { uuid: true, name: true, sku: true, purchasePrice: true },
     });
   },
 
