@@ -250,25 +250,25 @@ const Navbar = () => {
           <Search className="w-[18px] h-[18px] text-gray-600" />
         </button>
 
-        {/* Perusahaan Aktif */}
+        {/* Perusahaan Aktif - Mobile */}
         <div
-          className="inline-flex items-center gap-2 px-3 py-2 text-gray-700 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium cursor-default"
+          className="sm:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#142D52]"
           title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
         >
-          <Building2 className="w-4 h-4 shrink-0 text-[#142D52]" />
-          <div className="leading-tight min-w-0">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400 hidden md:block">
-              Perusahaan Aktif
-            </div>
-            <div className="max-w-[10rem] md:max-w-[14rem] truncate text-sm text-gray-800">
-              {activeCompany ? activeCompany.name : 'Perusahaan tidak tersedia'}
-            </div>
+          <Building2 className="h-4 w-4" />
+        </div>
+
+        {/* Perusahaan Aktif - Desktop */}
+        <div
+          className="hidden sm:flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] max-w-[16rem] cursor-default"
+          title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142D52]/10 text-[#142D52] shrink-0">
+            <Building2 className="h-4 w-4" />
           </div>
-          {activeCompany && (
-            <span className="hidden lg:inline-flex px-2 py-0.5 rounded-full bg-white text-[#142D52] text-[10px] font-semibold border border-gray-200">
-              {activeCompany.code}
-            </span>
-          )}
+          <p className="text-sm font-semibold text-gray-900 truncate">
+            {activeCompany?.name || 'Perusahaan tidak tersedia'}
+          </p>
         </div>
 
         {/* Divider */}
