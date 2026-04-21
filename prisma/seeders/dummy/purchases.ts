@@ -40,6 +40,18 @@ const PURCHASES_DATA = [
       { code: "PRD-001", name: "Voucher Game 100K", qty: 4, unitPrice: 90000 },
     ],
   },
+  {
+    purchaseNumber: "PO-2026-004",
+    purchaseDate: new Date("2026-03-15"),
+    paymentStatus: "paid",
+    paidAmount: 0,
+    notes: "Belanja campur pasar (tanpa supplier)",
+    supplierMode: "none",
+    items: [
+      { code: "PRD-005", name: "Earphone Bass In-Ear", qty: 6, unitPrice: 28000 },
+      { code: "PRD-006", name: "Powerbank 10000mAh", qty: 2, unitPrice: 175000 },
+    ],
+  },
 ];
 
 async function ensureAdminUser(prisma: PrismaClient) {
@@ -175,6 +187,7 @@ export async function seedPurchases(prisma: PrismaClient) {
       (sum, item) => sum + item.qty * item.unitPrice,
       0
     );
+    const hasSupplier = purchase.supplierMode !== "none";
 
     const createdPurchase = await prisma.posPurchase.create({
       data: {
@@ -183,12 +196,12 @@ export async function seedPurchases(prisma: PrismaClient) {
         purchaseNumber: purchase.purchaseNumber,
         purchaseDate: purchase.purchaseDate,
         branchUuid: branch.uuid,
-        supplierUuid: supplier.uuid,
+        supplierUuid: hasSupplier ? supplier.uuid : null,
         subtotal: totalAmount,
         discountAmount: 0,
         totalAmount,
-        paidAmount: purchase.paidAmount,
-        paymentStatus: purchase.paymentStatus as "pending" | "partial" | "paid",
+        paidAmount: hasSupplier ? purchase.paidAmount : totalAmount,
+        paymentStatus: (hasSupplier ? purchase.paymentStatus : "paid") as "pending" | "partial" | "paid",
         notes: purchase.notes,
         createdBy: admin.id,
       },
@@ -253,7 +266,7 @@ export async function seedPurchases(prisma: PrismaClient) {
           newStock: quantityAfter,
           referenceType: "Purchase",
           referenceUuid: createdPurchase.uuid,
-          notes: `Purchase from ${supplier.name}`,
+          notes: hasSupplier ? `Purchase from ${supplier.name}` : "Purchase tanpa supplier",
           createdBy: admin.id,
         },
       });

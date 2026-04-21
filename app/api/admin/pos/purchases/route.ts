@@ -62,11 +62,15 @@ export const POST = withPermission(
 
     const result = validateSchema(createPurchaseSchema, body);
     if (!('data' in result)) return result;
+    const supplierUuid =
+      typeof result.data.supplier_uuid === 'string' && result.data.supplier_uuid.trim()
+        ? result.data.supplier_uuid.trim()
+        : null;
 
     const purchase = await posPurchaseService.createPurchase(
       {
         branchUuid: result.data.branch_uuid,
-        supplierUuid: result.data.supplier_uuid,
+        supplierUuid,
         purchaseDate: result.data.purchase_date || null,
         discountAmount: Number(result.data.discount_amount || 0),
         paidAmount: Number(result.data.paid_amount || 0),

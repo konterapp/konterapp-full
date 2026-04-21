@@ -215,7 +215,7 @@ export default function PurchasesPage() {
       sortable: false,
       render: (_, row) => (
         <div>
-          <p className="text-sm font-medium text-gray-900">{row.supplier?.name || '-'}</p>
+          <p className="text-sm font-medium text-gray-900">{row.supplier?.name || 'Tanpa Supplier'}</p>
           <p className="text-xs text-gray-500">{row.supplier?.code || ''}</p>
         </div>
       ),
@@ -279,7 +279,7 @@ export default function PurchasesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#142D52]">Pembelian / Stock In</h1>
-          <p className="text-gray-600 mt-1">Kelola pembelian barang dari supplier.</p>
+          <p className="text-gray-600 mt-1">Kelola stock in pembelian dengan atau tanpa supplier.</p>
         </div>
         {hasPermission('admin.pos.purchase.create') && (
           <Link

@@ -403,7 +403,7 @@ model PosPurchase {
   companyUuid    String   @map("company_uuid") @db.Char(36)
   purchaseNumber String   @unique @map("purchase_number") @db.VarChar(50)
   branchUuid     String   @map("branch_uuid") @db.Char(36)
-  supplierUuid   String   @map("supplier_uuid") @db.Char(36)
+  supplierUuid   String?  @map("supplier_uuid") @db.Char(36)
   purchaseDate   DateTime @map("purchase_date") @db.Date
   subtotal       Decimal  @default(0) @db.Decimal(15, 2)
   discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
@@ -417,7 +417,7 @@ model PosPurchase {
 
   company  Company           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   branch   PosBranch         @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  supplier PosSupplier       @relation(fields: [supplierUuid], references: [uuid], onDelete: Cascade)
+  supplier PosSupplier?      @relation(fields: [supplierUuid], references: [uuid], onDelete: SetNull)
   creator  User              @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   items    PosPurchaseItem[]
 

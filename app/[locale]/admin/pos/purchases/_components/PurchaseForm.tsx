@@ -62,7 +62,7 @@ type PurchaseItemDetail = {
 type PurchaseDetail = {
   uuid: string;
   branch_uuid: string;
-  supplier_uuid: string;
+  supplier_uuid?: string | null;
   purchase_date: string;
   discount_amount: number;
   paid_amount: number;
@@ -128,8 +128,10 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
     const totalDiscount = itemDiscount + globalDiscount;
     const totalAmount = Math.max(subtotal - totalDiscount, 0);
     const paid = Number(paidAmount || 0);
-    const outstanding = Math.max(totalAmount - paid, 0);
-    const paymentStatus = paid <= 0 ? 'pending' : paid < totalAmount ? 'partial' : 'paid';
+    const hasSupplier = Boolean(supplierUuid.trim());
+    const effectivePaid = hasSupplier ? paid : totalAmount;
+    const outstanding = Math.max(totalAmount - effectivePaid, 0);
+    const paymentStatus = effectivePaid <= 0 ? 'pending' : effectivePaid < totalAmount ? 'partial' : 'paid';
 
     return {
       subtotal,
@@ -138,10 +140,12 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
       totalDiscount,
       totalAmount,
       paid,
+      effectivePaid,
+      hasSupplier,
       outstanding,
       paymentStatus,
     };
-  }, [rows, discountAmount, paidAmount]);
+  }, [rows, discountAmount, paidAmount, supplierUuid]);
 
   const isLockedEdit = mode === 'edit' && !!editPurchase && editPurchase.payment_status !== 'draft';
 
@@ -321,11 +325,6 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
       toast.error('Cabang wajib dipilih');
       return false;
     }
-    if (!supplierUuid) {
-      toast.error('Supplier wajib dipilih');
-      return false;
-    }
-
     const validRows = rows.filter((row) => row.product_uuid);
     if (validRows.length === 0) {
       toast.error('Minimal isi 1 item pembelian');
@@ -404,7 +403,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
 
     const payload: Record<string, unknown> = {
       branch_uuid: branchUuid,
-      supplier_uuid: supplierUuid,
+      supplier_uuid: supplierUuid || null,
       purchase_date: purchaseDate,
       discount_amount: calculations.globalDiscount,
       paid_amount: isDraftAction ? 0 : calculations.paid,
@@ -496,7 +495,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
       <h1 className="text-2xl font-bold text-[#142D52]">{mode === 'create' ? 'Tambah Pembelian' : 'Edit Draft Pembelian'}</h1>
       <p className="mt-1 text-sm text-gray-600">
         {mode === 'create'
-          ? 'Catat stock in dari supplier. Draft bisa diedit, dokumen final gunakan void/retur untuk koreksi.'
+          ? 'Catat stock in pembelian. Supplier opsional: jika tanpa supplier, dokumen final otomatis dianggap lunas.'
           : 'Hanya dokumen draft yang bisa diedit atau difinalisasi.'}
       </p>
 
@@ -531,20 +530,23 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Supplier</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Supplier (Opsional)</label>
             <select
               value={supplierUuid}
               onChange={(e) => setSupplierUuid(e.target.value)}
               disabled={isSubmitting || isLockedEdit}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
             >
-              <option value="">Pilih Supplier</option>
+              <option value="">Tanpa Supplier</option>
               {suppliers.map((supplier) => (
                 <option key={supplier.uuid} value={supplier.uuid}>
                   {supplier.name}
                 </option>
               ))}
             </select>
+            {!supplierUuid && (
+              <p className="mt-1 text-xs text-gray-500">Pembelian final tanpa supplier tidak dicatat sebagai hutang.</p>
+            )}
             {fieldErrors.supplier_uuid && <p className="mt-1 text-xs text-red-600">{fieldErrors.supplier_uuid[0]}</p>}
           </div>
 
@@ -762,9 +764,12 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                   step={1}
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(e.target.value)}
-                  disabled={isSubmitting || isLockedEdit}
+                  disabled={isSubmitting || isLockedEdit || !calculations.hasSupplier}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
                 />
+                {!calculations.hasSupplier && (
+                  <p className="mt-1 text-xs text-gray-500">Tanpa supplier, sistem otomatis set lunas saat final.</p>
+                )}
                 {fieldErrors.paid_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.paid_amount[0]}</p>}
               </div>
               <div className="flex items-center justify-between">

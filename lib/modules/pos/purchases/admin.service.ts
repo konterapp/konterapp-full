@@ -14,7 +14,7 @@ type PurchaseItemInput = {
 
 type PurchasePayloadInput = {
   branchUuid: string;
-  supplierUuid: string;
+  supplierUuid?: string | null;
   purchaseDate?: string | null;
   discountAmount?: number;
   paidAmount?: number;
@@ -93,8 +93,9 @@ function computeTotals(args: {
   discountAmount?: number;
   paidAmount?: number;
   forceDraft: boolean;
+  forcePaid: boolean;
 }) {
-  const { items, discountAmount, paidAmount, forceDraft } = args;
+  const { items, discountAmount, paidAmount, forceDraft, forcePaid } = args;
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
   const itemDiscountTotal = items.reduce((sum, item) => sum + item.discount, 0);
@@ -116,7 +117,7 @@ function computeTotals(args: {
     throw new ValidationApiError({ paid_amount: ['Nominal bayar tidak valid'] });
   }
 
-  const finalPaidAmount = forceDraft ? 0 : requestedPaidAmount;
+  const finalPaidAmount = forceDraft ? 0 : forcePaid ? totalAmount : requestedPaidAmount;
   if (!forceDraft && finalPaidAmount > totalAmount) {
     throw new ValidationApiError({ paid_amount: ['Nominal bayar tidak boleh melebihi total pembelian'] });
   }
@@ -150,7 +151,7 @@ async function assertPurchaseReferencesExist(
   tx: Prisma.TransactionClient,
   params: {
     branchUuid: string;
-    supplierUuid: string;
+    supplierUuid?: string | null;
     items: NormalizedPurchaseItem[];
   }
 ) {
@@ -158,7 +159,7 @@ async function assertPurchaseReferencesExist(
 
   const [branch, supplier, products] = await Promise.all([
     tx.posBranch.findFirst({ where: { uuid: branchUuid, isActive: true } }),
-    tx.posSupplier.findFirst({ where: { uuid: supplierUuid, isActive: true } }),
+    supplierUuid ? tx.posSupplier.findFirst({ where: { uuid: supplierUuid, isActive: true } }) : Promise.resolve(null),
     tx.posProduct.findMany({
       where: {
         uuid: { in: items.map((item) => item.productUuid) },
@@ -184,7 +185,7 @@ async function assertPurchaseReferencesExist(
   if (!branch) {
     throw new ApiError('Cabang tidak ditemukan atau tidak aktif', 404);
   }
-  if (!supplier) {
+  if (supplierUuid && !supplier) {
     throw new ApiError('Supplier tidak ditemukan atau tidak aktif', 404);
   }
   if (products.length !== items.length) {
@@ -430,23 +431,31 @@ export const posPurchaseService = {
     }
 
     const { branchUuid, supplierUuid, purchaseDate, discountAmount, paidAmount, notes } = payload;
-    if (!branchUuid || !supplierUuid || !Array.isArray(payload.items) || payload.items.length === 0) {
-      throw new ValidationApiError({ items: ['Cabang, supplier, dan item wajib diisi'] });
+    if (!branchUuid || !Array.isArray(payload.items) || payload.items.length === 0) {
+      throw new ValidationApiError({ items: ['Cabang dan item wajib diisi'] });
     }
+    const normalizedSupplierUuid = typeof supplierUuid === 'string' && supplierUuid.trim() ? supplierUuid.trim() : null;
+    const isDraft = Boolean(payload.isDraft);
+    const forcePaid = !isDraft && !normalizedSupplierUuid;
 
     const items = normalizeItems(payload.items);
     const totals = computeTotals({
       items,
       discountAmount,
       paidAmount,
-      forceDraft: Boolean(payload.isDraft),
+      forceDraft: isDraft,
+      forcePaid,
     });
 
     const parsedPurchaseDate = parsePurchaseDate(purchaseDate);
     const purchaseNumber = generatePurchaseNumber();
 
     const purchaseUuid = await posPurchaseRepository.runInTransaction(async (tx) => {
-      const refs = await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const refs = await assertPurchaseReferencesExist(tx, {
+        branchUuid,
+        supplierUuid: normalizedSupplierUuid,
+        items,
+      });
       const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
       const createdPurchase = await tx.posPurchase.create({
@@ -454,7 +463,7 @@ export const posPurchaseService = {
           companyUuid,
           purchaseNumber,
           branchUuid,
-          supplierUuid,
+          supplierUuid: normalizedSupplierUuid,
           purchaseDate: parsedPurchaseDate,
           subtotal: totals.subtotal,
           discountAmount: totals.totalDiscount,
@@ -482,7 +491,7 @@ export const posPurchaseService = {
         });
       }
 
-      if (!payload.isDraft) {
+      if (!isDraft) {
         await applyStockInForItems(tx, {
           companyUuid,
           branchUuid,
@@ -523,29 +532,36 @@ export const posPurchaseService = {
     }
 
     const { branchUuid, supplierUuid, purchaseDate, discountAmount, paidAmount, notes } = payload;
-    if (!branchUuid || !supplierUuid || !Array.isArray(payload.items) || payload.items.length === 0) {
-      throw new ValidationApiError({ items: ['Cabang, supplier, dan item wajib diisi'] });
+    if (!branchUuid || !Array.isArray(payload.items) || payload.items.length === 0) {
+      throw new ValidationApiError({ items: ['Cabang dan item wajib diisi'] });
     }
+    const normalizedSupplierUuid = typeof supplierUuid === 'string' && supplierUuid.trim() ? supplierUuid.trim() : null;
 
     const items = normalizeItems(payload.items);
     const finalize = Boolean(payload.finalize);
+    const forcePaid = finalize && !normalizedSupplierUuid;
     const totals = computeTotals({
       items,
       discountAmount,
       paidAmount,
       forceDraft: !finalize,
+      forcePaid,
     });
     const parsedPurchaseDate = parsePurchaseDate(purchaseDate);
 
     await posPurchaseRepository.runInTransaction(async (tx) => {
-      const refs = await assertPurchaseReferencesExist(tx, { branchUuid, supplierUuid, items });
+      const refs = await assertPurchaseReferencesExist(tx, {
+        branchUuid,
+        supplierUuid: normalizedSupplierUuid,
+        items,
+      });
       const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
       await tx.posPurchase.update({
         where: { uuid },
         data: {
           branchUuid,
-          supplierUuid,
+          supplierUuid: normalizedSupplierUuid,
           purchaseDate: parsedPurchaseDate,
           subtotal: totals.subtotal,
           discountAmount: totals.totalDiscount,

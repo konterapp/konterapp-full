@@ -183,7 +183,7 @@ export default function PurchaseDetailPage({ params }: { params: Promise<{ uuid:
                 <Truck className="mt-0.5 h-5 w-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Supplier</p>
-                  <p className="text-sm font-medium text-gray-900">{purchase.supplier?.name || '-'}</p>
+                  <p className="text-sm font-medium text-gray-900">{purchase.supplier?.name || 'Tanpa Supplier'}</p>
                   <p className="text-xs text-gray-500">{purchase.supplier?.code || ''}</p>
                 </div>
               </div>

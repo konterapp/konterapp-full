@@ -252,7 +252,7 @@ CREATE TABLE "pos_purchases" (
     "uuid" CHAR(36) NOT NULL,
     "purchase_number" VARCHAR(50) NOT NULL,
     "branch_uuid" CHAR(36) NOT NULL,
-    "supplier_uuid" CHAR(36) NOT NULL,
+    "supplier_uuid" CHAR(36),
     "purchase_date" DATE NOT NULL,
     "subtotal" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "discount_amount" DECIMAL(15,2) NOT NULL DEFAULT 0,
@@ -616,7 +616,7 @@ ALTER TABLE "pos_product_stocks" ADD CONSTRAINT "pos_product_stocks_branch_uuid_
 ALTER TABLE "pos_purchases" ADD CONSTRAINT "pos_purchases_branch_uuid_fkey" FOREIGN KEY ("branch_uuid") REFERENCES "pos_branches"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_purchases" ADD CONSTRAINT "pos_purchases_supplier_uuid_fkey" FOREIGN KEY ("supplier_uuid") REFERENCES "pos_suppliers"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "pos_purchases" ADD CONSTRAINT "pos_purchases_supplier_uuid_fkey" FOREIGN KEY ("supplier_uuid") REFERENCES "pos_suppliers"("uuid") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "pos_purchases" ADD CONSTRAINT "pos_purchases_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

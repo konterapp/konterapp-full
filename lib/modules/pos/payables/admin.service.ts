@@ -56,6 +56,7 @@ export const posPayableService = {
 
     const where: Prisma.PosPurchaseWhereInput = {
       paymentStatus: { in: statuses },
+      supplierUuid: { not: null },
     };
 
     if (search) {

@@ -21,7 +21,7 @@ const purchaseItemSchema = z
 
 export const createPurchaseSchema = z.object({
   branch_uuid: z.string({ error: 'Cabang wajib dipilih' }).min(1, 'Cabang wajib dipilih').max(36, 'Cabang tidak valid'),
-  supplier_uuid: z.string({ error: 'Supplier wajib dipilih' }).min(1, 'Supplier wajib dipilih').max(36, 'Supplier tidak valid'),
+  supplier_uuid: z.string().max(36, 'Supplier tidak valid').optional().nullable().or(z.literal('')),
   purchase_date: z.string().optional().nullable().or(z.literal('')),
   discount_amount: z.coerce.number().min(0, 'Diskon tidak boleh negatif').optional().default(0),
   paid_amount: z.coerce.number().min(0, 'Nominal bayar tidak boleh negatif').optional().default(0),
