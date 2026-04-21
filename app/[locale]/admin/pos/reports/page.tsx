@@ -16,7 +16,8 @@ import {
   Landmark,
 } from 'lucide-react';
 
-type ReportMode = 'profit-loss' | 'sales-summary' | 'purchase-summary';
+type ReportMode = 'profit-loss' | 'sales-summary' | 'purchase-summary' | 'receivables' | 'payables';
+type DebtMode = 'receivable' | 'payable';
 
 interface ProfitLossProduct {
   product_uuid: string;
@@ -125,18 +126,68 @@ interface PurchaseSummaryReport {
   recent_transactions: PurchaseRecentTransaction[];
 }
 
+type ReceivableItem = {
+  uuid: string;
+  sale_number: string;
+  sale_date: string;
+  total_amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  payment_status: string;
+  branch: { uuid: string; name: string; code?: string | null } | null;
+  customer: { uuid: string; name: string; phone?: string | null } | null;
+};
+
+type PayableItem = {
+  uuid: string;
+  purchase_number: string;
+  purchase_date: string;
+  total_amount: number;
+  paid_amount: number;
+  outstanding_amount: number;
+  payment_status: string;
+  branch: { uuid: string; name: string; code?: string | null } | null;
+  supplier: { uuid: string; name: string; code?: string | null; phone?: string | null } | null;
+};
+
+interface ReceivableReport {
+  summary: {
+    invoice_count: number;
+    customer_count: number;
+    total_amount: number;
+    paid_amount: number;
+    outstanding_amount: number;
+  };
+  data: ReceivableItem[];
+}
+
+interface PayableReport {
+  summary: {
+    invoice_count: number;
+    supplier_count: number;
+    total_amount: number;
+    paid_amount: number;
+    outstanding_amount: number;
+  };
+  data: PayableItem[];
+}
+
 const pad2 = (value: number) => String(value).padStart(2, '0');
 
-const reportModeTitle: Record<ReportMode, string> = {
+const reportModeTitle: Record<ReportMode | 'receivables' | 'payables', string> = {
   'profit-loss': 'Laporan Laba/Rugi',
   'sales-summary': 'Ringkasan Penjualan',
   'purchase-summary': 'Ringkasan Pembelian',
+  receivables: 'Ringkasan Piutang',
+  payables: 'Ringkasan Hutang',
 };
 
-const reportModeSubtitle: Record<ReportMode, string> = {
+const reportModeSubtitle: Record<ReportMode | 'receivables' | 'payables', string> = {
   'profit-loss': 'Analisis keuntungan berdasarkan penjualan dan harga beli',
   'sales-summary': 'Ringkasan transaksi penjualan berdasarkan periode dan cabang',
   'purchase-summary': 'Ringkasan transaksi pembelian berdasarkan periode dan cabang',
+  receivables: 'Monitoring invoice penjualan yang belum lunas',
+  payables: 'Monitoring invoice pembelian yang belum lunas',
 };
 
 const paymentStatusLabel: Record<string, string> = {
@@ -160,6 +211,8 @@ export default function ReportsPage() {
   const [profitLossReport, setProfitLossReport] = useState<ProfitLossReport | null>(null);
   const [salesSummaryReport, setSalesSummaryReport] = useState<SalesSummaryReport | null>(null);
   const [purchaseSummaryReport, setPurchaseSummaryReport] = useState<PurchaseSummaryReport | null>(null);
+  const [receivableReport, setReceivableReport] = useState<ReceivableReport | null>(null);
+  const [payableReport, setPayableReport] = useState<PayableReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -205,9 +258,18 @@ export default function ReportsPage() {
       setError('');
 
       const params = new URLSearchParams();
-      if (dateFrom) params.append('date_from', dateFrom);
-      if (dateTo) params.append('date_to', dateTo);
       if (branchUuid) params.append('branch_uuid', branchUuid);
+
+      if (activeReport === 'receivables' || activeReport === 'payables') {
+        if (dateFrom) params.append('start_date', dateFrom);
+        if (dateTo) params.append('end_date', dateTo);
+        params.append('page', '1');
+        params.append('per_page', '20');
+        params.append('sort_order', 'desc');
+      } else {
+        if (dateFrom) params.append('date_from', dateFrom);
+        if (dateTo) params.append('date_to', dateTo);
+      }
 
       const query = params.toString();
       const endpoint =
@@ -215,7 +277,11 @@ export default function ReportsPage() {
           ? '/api/admin/pos/reports/profit-loss'
           : activeReport === 'sales-summary'
             ? '/api/admin/pos/reports/sales-summary'
-            : '/api/admin/pos/reports/purchase-summary';
+            : activeReport === 'purchase-summary'
+              ? '/api/admin/pos/reports/purchase-summary'
+              : activeReport === 'receivables'
+                ? '/api/admin/pos/receivables'
+                : '/api/admin/pos/payables';
 
       const response = await fetch(endpoint + (query ? '?' + query : ''));
       const result = await response.json();
@@ -225,8 +291,12 @@ export default function ReportsPage() {
           setProfitLossReport(result.data as ProfitLossReport);
         } else if (activeReport === 'sales-summary') {
           setSalesSummaryReport(result.data as SalesSummaryReport);
-        } else {
+        } else if (activeReport === 'purchase-summary') {
           setPurchaseSummaryReport(result.data as PurchaseSummaryReport);
+        } else if (activeReport === 'receivables') {
+          setReceivableReport(result.data as ReceivableReport);
+        } else {
+          setPayableReport(result.data as PayableReport);
         }
       } else {
         setError(result.message || 'Gagal memuat laporan');
@@ -642,6 +712,123 @@ export default function ReportsPage() {
     );
   };
 
+  const renderDebtBlock = (report: ReceivableReport | PayableReport, mode: DebtMode) => {
+    const isReceivable = mode === 'receivable';
+    const relationLabel = isReceivable ? 'Pelanggan' : 'Supplier';
+    const relationCount = isReceivable
+      ? (report as ReceivableReport).summary.customer_count
+      : (report as PayableReport).summary.supplier_count;
+
+    return (
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{isReceivable ? 'Total Piutang' : 'Total Hutang'}</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(report.summary.total_amount)}</p>
+              </div>
+              <div className="p-3 bg-blue-50 rounded-full">
+                {isReceivable ? <Wallet className="w-5 h-5 text-blue-600" /> : <Landmark className="w-5 h-5 text-blue-600" />}
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">{report.summary.invoice_count} invoice</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Sudah Dibayar</p>
+                <p className="text-xl font-bold text-green-700 mt-1">{formatCurrency(report.summary.paid_amount)}</p>
+              </div>
+              <div className="p-3 bg-green-50 rounded-full">
+                <DollarSign className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Nilai pembayaran tercatat</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Outstanding</p>
+                <p className="text-xl font-bold text-red-600 mt-1">{formatCurrency(report.summary.outstanding_amount)}</p>
+              </div>
+              <div className="p-3 bg-red-50 rounded-full">
+                <TrendingDown className="w-5 h-5 text-red-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Belum terbayar</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Jumlah {relationLabel}</p>
+                <p className="text-xl font-bold text-gray-900 mt-1">{relationCount}</p>
+              </div>
+              <div className="p-3 bg-violet-50 rounded-full">
+                <BarChart3 className="w-5 h-5 text-violet-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Relasi unik pada periode ini</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <h2 className="text-sm font-semibold text-gray-700">
+              {isReceivable ? 'Daftar Piutang' : 'Daftar Hutang'}
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <th className="px-4 py-3 text-left font-medium">Nomor</th>
+                  <th className="px-4 py-3 text-left font-medium">{relationLabel}</th>
+                  <th className="px-4 py-3 text-left font-medium">Cabang</th>
+                  <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-right font-medium">Total</th>
+                  <th className="px-4 py-3 text-right font-medium">Dibayar</th>
+                  <th className="px-4 py-3 text-right font-medium">Outstanding</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {report.data.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                      Tidak ada data.
+                    </td>
+                  </tr>
+                ) : (
+                  report.data.map((row) => (
+                    <tr key={row.uuid}>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {'sale_number' in row ? row.sale_number : row.purchase_number}
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {formatDateTime('sale_date' in row ? row.sale_date : row.purchase_date)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        {'customer' in row ? row.customer?.name || 'Walk-in Customer' : row.supplier?.name || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{row.branch?.name || '-'}</td>
+                      <td className="px-4 py-3 text-sm">{getStatusBadge(row.payment_status)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(row.total_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(row.paid_amount)}</td>
+                      <td className="px-4 py-3 text-sm text-right font-medium text-red-600">{formatCurrency(row.outstanding_amount)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -652,7 +839,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-2">
           <button
             type="button"
             onClick={() => setActiveReport('profit-loss')}
@@ -685,6 +872,28 @@ export default function ReportsPage() {
             }`}
           >
             Ringkasan Pembelian
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveReport('receivables')}
+            className={`cursor-pointer px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border ${
+              activeReport === 'receivables'
+                ? 'bg-[#142D52] text-white border-[#142D52]'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Piutang
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveReport('payables')}
+            className={`cursor-pointer px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border ${
+              activeReport === 'payables'
+                ? 'bg-[#142D52] text-white border-[#142D52]'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            Hutang
           </button>
         </div>
       </div>
@@ -741,6 +950,8 @@ export default function ReportsPage() {
       {!isLoading && !error && activeReport === 'profit-loss' && renderProfitLoss()}
       {!isLoading && !error && activeReport === 'sales-summary' && salesSummaryReport && renderSummaryBlock(salesSummaryReport, 'sales')}
       {!isLoading && !error && activeReport === 'purchase-summary' && purchaseSummaryReport && renderSummaryBlock(purchaseSummaryReport, 'purchase')}
+      {!isLoading && !error && activeReport === 'receivables' && receivableReport && renderDebtBlock(receivableReport, 'receivable')}
+      {!isLoading && !error && activeReport === 'payables' && payableReport && renderDebtBlock(payableReport, 'payable')}
     </div>
   );
 }
