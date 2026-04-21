@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { mapPayablePurchase } from './payable.mapper';
 import { posPayableRepository } from './repository';
 
@@ -125,5 +126,64 @@ export const posPayableService = {
         totalPages: Math.ceil(total / perPage),
       },
     };
+  },
+
+  async settlePayable(params: {
+    purchaseUuid: string;
+    amount: number;
+    notes?: string | null;
+    userId: number;
+  }) {
+    const { purchaseUuid, amount, notes, userId } = params;
+    const paymentAmount = Number(amount);
+
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+      throw new ValidationApiError({ amount: ['Nominal bayar harus lebih dari 0'] });
+    }
+
+    const purchase = await posPayableRepository.findByUuid(purchaseUuid);
+    if (!purchase) {
+      throw new ApiError('Data hutang tidak ditemukan', 404);
+    }
+
+    if (!purchase.supplierUuid) {
+      throw new ApiError('Transaksi tanpa supplier tidak bisa diproses sebagai hutang', 400);
+    }
+
+    if (purchase.paymentStatus === 'draft' || purchase.paymentStatus === 'void') {
+      throw new ApiError('Transaksi ini tidak bisa diproses pembayaran hutang', 400);
+    }
+
+    const totalAmount = Number(purchase.totalAmount || 0);
+    const paidAmount = Number(purchase.paidAmount || 0);
+    const outstandingAmount = Math.max(totalAmount - paidAmount, 0);
+
+    if (outstandingAmount <= 0 || purchase.paymentStatus === 'paid') {
+      throw new ApiError('Transaksi ini sudah lunas', 400);
+    }
+
+    if (paymentAmount > outstandingAmount) {
+      throw new ValidationApiError({
+        amount: [`Nominal bayar melebihi sisa hutang (${outstandingAmount.toFixed(2)})`],
+      });
+    }
+
+    const nextPaidAmount = paidAmount + paymentAmount;
+    const nextPaymentStatus: 'partial' | 'paid' = nextPaidAmount >= totalAmount ? 'paid' : 'partial';
+
+    const normalizedNotes = notes?.trim() || null;
+    const paymentLog = `[PAYMENT] ${new Date().toISOString()} - +${paymentAmount.toFixed(2)} oleh user#${userId}${
+      normalizedNotes ? ` (${normalizedNotes})` : ''
+    }`;
+    const nextNotes = purchase.notes ? `${purchase.notes}\n${paymentLog}` : paymentLog;
+
+    const updatedPurchase = await posPayableRepository.updatePayment({
+      uuid: purchase.uuid,
+      paidAmount: nextPaidAmount,
+      paymentStatus: nextPaymentStatus,
+      notes: nextNotes,
+    });
+
+    return mapPayablePurchase(updatedPurchase);
   },
 };

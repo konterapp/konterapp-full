@@ -1,8 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Landmark } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { HandCoins, Landmark, Loader2, X } from 'lucide-react';
 import DataTable, { Column } from '../../_components/DataTable';
+import { useToast } from '@/components/toast/ToastContainer';
+import { usePermissions } from '@/lib/hooks/usePermissions';
 
 interface BranchOption {
   uuid: string;
@@ -43,6 +45,8 @@ const initialSummary: PayableSummary = {
 };
 
 export default function PayablesPage() {
+  const toast = useToast();
+  const { hasPermission } = usePermissions();
   const [rows, setRows] = useState<PayableRow[]>([]);
   const [summary, setSummary] = useState<PayableSummary>(initialSummary);
   const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -62,6 +66,21 @@ export default function PayablesPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+  const [paymentModal, setPaymentModal] = useState<{
+    isOpen: boolean;
+    row: PayableRow | null;
+    amount: string;
+    notes: string;
+    error: string;
+    isSubmitting: boolean;
+  }>({
+    isOpen: false,
+    row: null,
+    amount: '',
+    notes: '',
+    error: '',
+    isSubmitting: false,
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -181,6 +200,84 @@ export default function PayablesPage() {
     setCurrentPage(1);
   };
 
+  const openPaymentModal = (row: PayableRow) => {
+    setPaymentModal({
+      isOpen: true,
+      row,
+      amount: String(Math.max(row.outstanding_amount, 0)),
+      notes: '',
+      error: '',
+      isSubmitting: false,
+    });
+  };
+
+  const closePaymentModal = () => {
+    setPaymentModal({
+      isOpen: false,
+      row: null,
+      amount: '',
+      notes: '',
+      error: '',
+      isSubmitting: false,
+    });
+  };
+
+  const handlePaySubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!paymentModal.row) return;
+
+    const amount = Number(paymentModal.amount);
+    const outstandingAmount = paymentModal.row.outstanding_amount;
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setPaymentModal((prev) => ({ ...prev, error: 'Nominal bayar harus lebih dari 0' }));
+      return;
+    }
+
+    if (amount > outstandingAmount) {
+      setPaymentModal((prev) => ({
+        ...prev,
+        error: `Nominal bayar tidak boleh melebihi sisa hutang (${formatCurrency(outstandingAmount)})`,
+      }));
+      return;
+    }
+
+    setPaymentModal((prev) => ({ ...prev, error: '', isSubmitting: true }));
+
+    try {
+      const response = await fetch(`/api/admin/pos/payables/${paymentModal.row.uuid}/pay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          notes: paymentModal.notes.trim() || null,
+        }),
+      });
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        toast.success('Pembayaran hutang berhasil dicatat');
+        closePaymentModal();
+        await fetchPayables();
+        return;
+      }
+
+      const fieldError =
+        result?.errors && Array.isArray(result.errors.amount) ? String(result.errors.amount[0] || '') : '';
+      setPaymentModal((prev) => ({
+        ...prev,
+        error: fieldError || result.message || 'Gagal menyimpan pembayaran hutang',
+        isSubmitting: false,
+      }));
+    } catch {
+      setPaymentModal((prev) => ({
+        ...prev,
+        error: 'Terjadi kesalahan saat memproses pembayaran hutang',
+        isSubmitting: false,
+      }));
+    }
+  };
+
   const columns: Column<PayableRow>[] = [
     {
       key: 'no',
@@ -256,6 +353,29 @@ export default function PayablesPage() {
       sortValue: (row) => row.payment_status,
       width: '10rem',
       render: (_, row) => getStatusBadge(row.payment_status),
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '10rem',
+      className: 'whitespace-nowrap',
+      render: (_, row) =>
+        hasPermission('admin.pos.purchase.create') ? (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              openPaymentModal(row);
+            }}
+            disabled={row.outstanding_amount <= 0}
+            className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[#142D52] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0f2340] disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <HandCoins className="h-3.5 w-3.5" />
+            Bayar
+          </button>
+        ) : (
+          <span className="text-xs text-gray-400">-</span>
+        ),
     },
   ];
 
@@ -396,6 +516,101 @@ export default function PayablesPage() {
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
       />
+
+      {paymentModal.isOpen && paymentModal.row && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-[#142D52]">Bayar Hutang Supplier</h3>
+                <p className="mt-0.5 text-xs text-gray-500">{paymentModal.row.purchase_number}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentModal}
+                disabled={paymentModal.isSubmitting}
+                className="cursor-pointer rounded-lg p-1 text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePaySubmit} className="space-y-4 px-5 py-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs text-gray-500">Supplier</p>
+                <p className="text-sm font-semibold text-gray-900">{paymentModal.row.supplier?.name || '-'}</p>
+                <div className="mt-2 grid grid-cols-1 gap-2 text-xs text-gray-700 sm:grid-cols-3">
+                  <p>Total: {formatCurrency(paymentModal.row.total_amount)}</p>
+                  <p>Terbayar: {formatCurrency(paymentModal.row.paid_amount)}</p>
+                  <p className="font-semibold text-red-700">Sisa: {formatCurrency(paymentModal.row.outstanding_amount)}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Nominal Bayar</label>
+                <input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={paymentModal.amount}
+                  onChange={(event) =>
+                    setPaymentModal((prev) => ({
+                      ...prev,
+                      amount: event.target.value,
+                      error: '',
+                    }))
+                  }
+                  disabled={paymentModal.isSubmitting}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100"
+                  placeholder="Masukkan nominal pembayaran"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Catatan (Opsional)</label>
+                <textarea
+                  value={paymentModal.notes}
+                  onChange={(event) =>
+                    setPaymentModal((prev) => ({
+                      ...prev,
+                      notes: event.target.value,
+                    }))
+                  }
+                  disabled={paymentModal.isSubmitting}
+                  rows={3}
+                  maxLength={500}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100"
+                  placeholder="Contoh: transfer BCA tahap 1"
+                />
+              </div>
+
+              {paymentModal.error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{paymentModal.error}</div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
+                <button
+                  type="button"
+                  onClick={closePaymentModal}
+                  disabled={paymentModal.isSubmitting}
+                  className="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={paymentModal.isSubmitting}
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#142D52] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0f2340] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {paymentModal.isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Simpan Pembayaran
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

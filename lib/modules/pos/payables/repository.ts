@@ -73,4 +73,29 @@ export const posPayableRepository = {
       select: { uuid: true, name: true },
     });
   },
+
+  findByUuid(uuid: string) {
+    return prisma.posPurchase.findFirst({
+      where: { uuid },
+      include: payablePurchaseInclude,
+    });
+  },
+
+  updatePayment(params: {
+    uuid: string;
+    paidAmount: number;
+    paymentStatus: 'partial' | 'paid';
+    notes: string | null;
+  }) {
+    const { uuid, paidAmount, paymentStatus, notes } = params;
+    return prisma.posPurchase.update({
+      where: { uuid },
+      data: {
+        paidAmount,
+        paymentStatus,
+        notes,
+      },
+      include: payablePurchaseInclude,
+    });
+  },
 };
