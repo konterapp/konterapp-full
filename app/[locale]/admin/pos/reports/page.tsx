@@ -15,6 +15,19 @@ import {
   Wallet,
   Landmark,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  ReferenceLine,
+} from 'recharts';
 
 type ReportMode = 'profit-loss' | 'sales-summary' | 'purchase-summary' | 'receivables' | 'payables';
 type DebtMode = 'receivable' | 'payable';
@@ -206,6 +219,14 @@ const paymentStatusBadge: Record<string, string> = {
   void: 'bg-zinc-100 text-zinc-700 border-zinc-200',
 };
 
+const paymentStatusColor: Record<string, string> = {
+  paid: '#16a34a',
+  partial: '#f59e0b',
+  pending: '#dc2626',
+  draft: '#6b7280',
+  void: '#71717a',
+};
+
 export default function ReportsPage() {
   const [activeReport, setActiveReport] = useState<ReportMode>('profit-loss');
   const [profitLossReport, setProfitLossReport] = useState<ProfitLossReport | null>(null);
@@ -261,8 +282,6 @@ export default function ReportsPage() {
       if (branchUuid) params.append('branch_uuid', branchUuid);
 
       if (activeReport === 'receivables' || activeReport === 'payables') {
-        if (dateFrom) params.append('start_date', dateFrom);
-        if (dateTo) params.append('end_date', dateTo);
         params.append('page', '1');
         params.append('per_page', '20');
         params.append('sort_order', 'desc');
@@ -329,12 +348,182 @@ export default function ReportsPage() {
     }).format(date);
   };
 
+  const formatCurrencyTick = (amount: number) => {
+    const absAmount = Math.abs(amount);
+    if (absAmount >= 1_000_000_000) return `Rp${(amount / 1_000_000_000).toFixed(1)}M`;
+    if (absAmount >= 1_000_000) return `Rp${(amount / 1_000_000).toFixed(1)}jt`;
+    if (absAmount >= 1_000) return `Rp${(amount / 1_000).toFixed(1)}rb`;
+    return `Rp${Math.round(amount)}`;
+  };
+
+  const truncateLabel = (label: string, maxLength = 18) =>
+    label.length > maxLength ? `${label.slice(0, maxLength - 1)}…` : label;
+
   const getStatusBadge = (status: string) => {
     const tone = paymentStatusBadge[status] || 'bg-gray-100 text-gray-700 border-gray-200';
     return (
       <span className={`inline-flex items-center px-2 py-1 text-xs rounded-md border ${tone}`}>
         {paymentStatusLabel[status] || status}
       </span>
+    );
+  };
+
+  const renderStatusChart = (rows: PaymentStatusSummaryRow[]) => {
+    if (rows.length === 0) {
+      return <div className="py-8 text-sm text-gray-500 text-center">Tidak ada data status pembayaran.</div>;
+    }
+
+    const chartData = rows.map((row) => ({
+      key: row.payment_status,
+      label: paymentStatusLabel[row.payment_status] || row.payment_status,
+      invoices: row.count,
+      amount: row.total_amount,
+      color: paymentStatusColor[row.payment_status] || '#64748b',
+    }));
+
+    return (
+      <div className="space-y-3">
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
+              <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fill: '#334155' }} width={78} />
+              <Tooltip
+                formatter={(value: number | string, name: string) => {
+                  if (name === 'amount') return [formatCurrency(Number(value)), 'Nilai'];
+                  if (name === 'invoices') return [Number(value), 'Invoice'];
+                  return [value, name];
+                }}
+              />
+              <Bar dataKey="amount" radius={[0, 6, 6, 0]}>
+                {chartData.map((entry) => (
+                  <Cell key={entry.key} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {chartData.map((row) => (
+            <span key={row.key} className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-600">
+              <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: row.color }} />
+              {row.label}: {row.invoices}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDailyBarChart = (rows: DailySummaryRow[]) => {
+    if (rows.length === 0) {
+      return <div className="py-8 text-sm text-gray-500 text-center">Tidak ada data tren harian.</div>;
+    }
+
+    const sliced = rows.slice(-14);
+    const chartData = sliced.map((row) => ({
+      date: row.date,
+      dateLabel: row.date.length >= 10 ? `${row.date.slice(8, 10)}/${row.date.slice(5, 7)}` : row.date,
+      totalAmount: row.total_amount,
+      transactions: row.transactions,
+    }));
+
+    return (
+      <div className="space-y-3">
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="dateLabel" tick={{ fontSize: 11, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
+              <Tooltip
+                labelFormatter={(_, payload) => payload?.[0]?.payload?.date || '-'}
+                formatter={(value: number | string, name: string) => {
+                  if (name === 'totalAmount') return [formatCurrency(Number(value)), 'Nilai Transaksi'];
+                  if (name === 'transactions') return [Number(value), 'Transaksi'];
+                  return [value, name];
+                }}
+              />
+              <Line
+                type="monotone"
+                dataKey="totalAmount"
+                stroke="#1d4ed8"
+                strokeWidth={2}
+                dot={{ r: 3, strokeWidth: 1, fill: '#1d4ed8' }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="text-xs text-gray-500">Menampilkan {sliced.length} hari terakhir pada periode terpilih.</div>
+      </div>
+    );
+  };
+
+  const buildDebtStatusRows = (rows: Array<ReceivableItem | PayableItem>): PaymentStatusSummaryRow[] => {
+    const grouped = new Map<string, PaymentStatusSummaryRow>();
+
+    for (const row of rows) {
+      const key = row.payment_status;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.count += 1;
+        existing.total_amount += row.total_amount;
+        existing.paid_amount += row.paid_amount;
+      } else {
+        grouped.set(key, {
+          payment_status: key,
+          count: 1,
+          total_amount: row.total_amount,
+          paid_amount: row.paid_amount,
+        });
+      }
+    }
+
+    return Array.from(grouped.values()).sort((a, b) => b.total_amount - a.total_amount);
+  };
+
+  const renderOutstandingChart = (rows: Array<ReceivableItem | PayableItem>) => {
+    if (rows.length === 0) {
+      return <div className="py-8 text-sm text-gray-500 text-center">Tidak ada data outstanding.</div>;
+    }
+
+    const chartData = [...rows]
+      .sort((a, b) => b.outstanding_amount - a.outstanding_amount)
+      .slice(0, 8)
+      .map((row) => {
+        const relationName = 'customer' in row ? row.customer?.name || 'Walk-in Customer' : row.supplier?.name || '-';
+        const docNumber = 'sale_number' in row ? row.sale_number : row.purchase_number;
+
+        return {
+          key: row.uuid,
+          docNumber,
+          relationName,
+          outstanding: row.outstanding_amount,
+          label: truncateLabel(`${docNumber} · ${relationName}`, 30),
+        };
+      });
+
+    return (
+      <div className="h-72">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#fee2e2" />
+            <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
+            <YAxis type="category" dataKey="label" tick={{ fontSize: 11, fill: '#334155' }} width={150} />
+            <Tooltip
+              labelFormatter={(_, payload) => {
+                const row = payload?.[0]?.payload;
+                if (!row) return '-';
+                return `${row.docNumber} · ${row.relationName}`;
+              }}
+              formatter={(value: number | string) => [formatCurrency(Number(value)), 'Outstanding']}
+            />
+            <Bar dataKey="outstanding" fill="#dc2626" radius={[0, 6, 6, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     );
   };
 
@@ -429,6 +618,56 @@ export default function ReportsPage() {
             </div>
             <p className="text-xs text-gray-400 mt-2">Persentase keuntungan</p>
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-700">Grafik Profit per Produk</h2>
+            <span className="text-xs text-gray-500">Top 8 produk berdasarkan laba</span>
+          </div>
+          {profitLossReport.products.length === 0 ? (
+            <div className="py-8 text-sm text-gray-500 text-center">Tidak ada data untuk divisualisasikan.</div>
+          ) : (
+            <div className="h-80">
+              {(() => {
+                const chartData = [...profitLossReport.products]
+                  .sort((a, b) => b.profit - a.profit)
+                  .slice(0, 8)
+                  .map((row) => ({
+                    productUuid: row.product_uuid,
+                    productName: row.product_name,
+                    label: truncateLabel(row.product_name, 18),
+                    profit: row.profit,
+                    revenue: row.total_revenue,
+                    cogs: row.total_cogs,
+                    fill: row.profit >= 0 ? '#16a34a' : '#dc2626',
+                  }));
+
+                return (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
+                      <Tooltip
+                        labelFormatter={(_, payload) => payload?.[0]?.payload?.productName || '-'}
+                        formatter={(value: number | string, name: string) => {
+                          if (name === 'profit') return [formatCurrency(Number(value)), 'Laba'];
+                          return [value, name];
+                        }}
+                      />
+                      <ReferenceLine y={0} stroke="#94a3b8" />
+                      <Bar dataKey="profit" radius={[6, 6, 0, 0]}>
+                        {chartData.map((entry) => (
+                          <Cell key={entry.productUuid} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                );
+              })()}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -595,70 +834,20 @@ export default function ReportsPage() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-700">Distribusi Status Pembayaran</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700">Grafik Distribusi Status</h2>
+              <span className="text-xs text-gray-500">Berdasarkan nilai transaksi</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <th className="px-4 py-3 text-left font-medium">Status</th>
-                    <th className="px-4 py-3 text-right font-medium">Jumlah</th>
-                    <th className="px-4 py-3 text-right font-medium">Total</th>
-                    <th className="px-4 py-3 text-right font-medium">Dibayar</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {report.by_payment_status.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-6 text-center text-sm text-gray-500">Tidak ada data</td>
-                    </tr>
-                  ) : (
-                    report.by_payment_status.map((row) => (
-                      <tr key={row.payment_status}>
-                        <td className="px-4 py-3 text-sm">{getStatusBadge(row.payment_status)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700">{row.count}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(row.total_amount)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(row.paid_amount)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {renderStatusChart(report.by_payment_status)}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200">
-              <h2 className="text-sm font-semibold text-gray-700">Tren Harian</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700">Grafik Tren Harian</h2>
+              <span className="text-xs text-gray-500">Pergerakan nilai transaksi</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <th className="px-4 py-3 text-left font-medium">Tanggal</th>
-                    <th className="px-4 py-3 text-right font-medium">Transaksi</th>
-                    <th className="px-4 py-3 text-right font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {report.daily.length === 0 ? (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-6 text-center text-sm text-gray-500">Tidak ada data</td>
-                    </tr>
-                  ) : (
-                    report.daily.map((row) => (
-                      <tr key={row.date}>
-                        <td className="px-4 py-3 text-sm text-gray-700">{row.date}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700">{row.transactions}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700">{formatCurrency(row.total_amount)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            {renderDailyBarChart(report.daily)}
           </div>
         </div>
 
@@ -718,6 +907,7 @@ export default function ReportsPage() {
     const relationCount = isReceivable
       ? (report as ReceivableReport).summary.customer_count
       : (report as PayableReport).summary.supplier_count;
+    const statusRows = buildDebtStatusRows(report.data);
 
     return (
       <>
@@ -776,6 +966,28 @@ export default function ReportsPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200">
+            <h2 className="text-sm font-semibold text-gray-700">
+              Detail Invoice
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4 border-b border-gray-100 bg-gray-50/40">
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Grafik Status Pembayaran</h3>
+                <span className="text-xs text-gray-500">Distribusi invoice</span>
+              </div>
+              {renderStatusChart(statusRows)}
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700">Grafik Outstanding Tertinggi</h3>
+                <span className="text-xs text-gray-500">Top 8 dokumen</span>
+              </div>
+              {renderOutstandingChart(report.data)}
+            </div>
+          </div>
           <div className="px-4 py-3 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-gray-700">
               {isReceivable ? 'Daftar Piutang' : 'Daftar Hutang'}
