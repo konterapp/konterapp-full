@@ -210,13 +210,6 @@ export const allMenuItems: MenuItem[] = [
         icon: <Landmark className="w-5 h-5" />,
         permission: 'admin.pos.purchase.index'
     },
-    {
-        section: 'Inventori & Keuangan',
-        label: 'Accounting',
-        icon: <Landmark className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-
     // Laporan
     {
         section: 'Laporan',

@@ -48,7 +48,6 @@ const menuTranslations: Record<string, string> = {
   "Stok Opname": "Stok Opname",
   "Piutang": "Piutang",
   "Hutang": "Hutang",
-  "Accounting": "Accounting",
   "Audit Log": "Audit Log",
   "Segera": "Segera",
   "Logout": "Keluar",
