@@ -1,0 +1,33 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // AGENTS.md berisi aturan workflow tambahan. CLAUDE.md (aturan
+  // arsitektur project) sudah otomatis kebaca opencode tanpa perlu
+  // didaftarkan di sini.
+  "instructions": ["AGENTS.md"],
+  "permission": {
+    "bash": {
+      // Urutan penting: rule paling akhir yang match yang menang,
+      // jadi general dulu, spesifik/berbahaya di bawah.
+      "*": "allow",
+
+      // Migrasi & reset database -- destruktif, hapus semua data.
+      "*migrate reset*": "ask",
+      "*db push --force-reset*": "ask",
+      "dropdb*": "ask",
+      "*DROP TABLE*": "ask",
+      "*TRUNCATE*": "ask",
+
+      // Git destruktif -- bisa hilangkan histori/kerjaan.
+      "git push --force*": "ask",
+      "git push -f*": "ask",
+      "git reset --hard*": "ask",
+      "git clean*": "ask",
+      "git checkout -- .*": "ask",
+      "git branch -D*": "ask",
+
+      // Hapus file/direktori massal.
+      "rm -rf*": "ask",
+      "rm -r *": "ask"
+    }
+  }
+}
