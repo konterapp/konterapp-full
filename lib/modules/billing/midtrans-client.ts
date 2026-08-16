@@ -7,6 +7,7 @@ interface CreateSnapTransactionParams {
   customerEmail: string;
   customerPhone?: string;
   itemName: string;
+  redirectUrl?: string;
 }
 
 interface SnapTransactionData {
@@ -55,6 +56,7 @@ export async function createSnapTransaction(params: CreateSnapTransactionParams)
           name: params.itemName,
         },
       ],
+      callbacks: params.redirectUrl ? { finish: params.redirectUrl } : undefined,
     }),
   });
 
