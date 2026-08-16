@@ -528,7 +528,7 @@ export default function KasirPage() {
               </div>
               <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
                 <p className="text-xs text-gray-500">Kas Real</p>
-                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.closing_cash)}</p>
+                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.closing_cash ?? 0)}</p>
               </div>
               <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
                 <p className="text-xs text-gray-500">Selisih</p>
@@ -670,7 +670,7 @@ export default function KasirPage() {
                           <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                             {product.image ? (
                               <Image
-                                src={`${process.env.NEXT_PUBLIC_API_URL}${product.image}`}
+                                src={`${process.env.NEXT_PUBLIC_APP_URL}${product.image}`}
                                 alt={product.name}
                                 width={40}
                                 height={40}
@@ -750,8 +750,8 @@ export default function KasirPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const urls = item.product_images.length > 0
-                                  ? item.product_images.map(img => `${process.env.NEXT_PUBLIC_API_URL}${img.url}`)
-                                  : item.product_image ? [`${process.env.NEXT_PUBLIC_API_URL}${item.product_image}`] : [];
+                                  ? item.product_images.map(img => `${process.env.NEXT_PUBLIC_APP_URL}${img.url}`)
+                                  : item.product_image ? [`${process.env.NEXT_PUBLIC_APP_URL}${item.product_image}`] : [];
                                 if (urls.length > 0) {
                                   setImageGallery({ images: urls, name: item.product_name, index: 0 });
                                 }
@@ -759,7 +759,7 @@ export default function KasirPage() {
                             >
                               {item.product_image ? (
                                 <Image
-                                  src={`${process.env.NEXT_PUBLIC_API_URL}${item.product_image}`}
+                                  src={`${process.env.NEXT_PUBLIC_APP_URL}${item.product_image}`}
                                   alt={item.product_name}
                                   width={36}
                                   height={36}

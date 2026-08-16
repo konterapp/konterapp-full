@@ -28,7 +28,6 @@ Buat `.env` dari `.env.example` lalu sesuaikan:
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/konterapp_full"
 DIRECT_URL="postgresql://postgres:postgres@localhost:5432/konterapp_full"
 AUTH_SECRET="konterapp-full-secret-key-change-in-production"
-AUTH_URL="http://localhost:3002"
 NEXT_PUBLIC_APP_URL="http://localhost:3002"
 
 # PPOB Providers (isi jika ingin sync dari provider)
