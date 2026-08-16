@@ -72,8 +72,8 @@ export default function LoginClient() {
           return;
         }
 
-        // Intent pilih paket Tahunan dari landing → langsung ke halaman upgrade
-        if (!redirectParam && searchParams.get('plan') === 'yearly') {
+        // Intent pilih paket berbayar dari landing → langsung ke halaman upgrade
+        if (!redirectParam && (searchParams.get('plan') === 'yearly' || searchParams.get('plan') === 'monthly')) {
           router.push('/app/billing/upgrade');
           return;
         }

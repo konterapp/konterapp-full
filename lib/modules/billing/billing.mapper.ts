@@ -1,3 +1,8 @@
+import type { SubscriptionInvoice, Plan } from "@prisma/client";
+import { INVOICE_PAYMENT_EXPIRY_HOURS } from "./constants";
+
+type InvoiceWithPlan = SubscriptionInvoice & { plan: Plan };
+
 export function formatPlan(plan: any) {
   return {
     uuid: plan.uuid,
@@ -6,6 +11,16 @@ export function formatPlan(plan: any) {
     price: Number(plan.price),
     duration_days: plan.durationDays,
   };
+}
+
+function getInvoiceExpiry(invoice: InvoiceWithPlan) {
+  if (invoice.expiredAt) return new Date(invoice.expiredAt);
+  return new Date(new Date(invoice.createdAt).getTime() + INVOICE_PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000);
+}
+
+export function isInvoiceExpired(invoice: InvoiceWithPlan) {
+  if (invoice.status !== "pending") return false;
+  return getInvoiceExpiry(invoice) < new Date();
 }
 
 export function formatSubscription(subscription: any | null) {
@@ -23,12 +38,15 @@ export function formatSubscription(subscription: any | null) {
 }
 
 export function formatInvoice(invoice: any) {
+  const expired = isInvoiceExpired(invoice);
   return {
     uuid: invoice.uuid,
     plan: formatPlan(invoice.plan),
     amount: Number(invoice.amount),
-    status: invoice.status,
-    payment_link: invoice.paymentLink,
+    coupon_code: invoice.couponCode,
+    discount_amount: invoice.discountAmount != null ? Number(invoice.discountAmount) : null,
+    status: expired ? "expired" : invoice.status,
+    payment_link: expired ? null : invoice.paymentLink,
     paid_at: invoice.paidAt,
     expired_at: invoice.expiredAt,
     created_at: invoice.createdAt,
@@ -36,6 +54,7 @@ export function formatInvoice(invoice: any) {
 }
 
 export function formatAdminInvoice(invoice: any) {
+  const expired = isInvoiceExpired(invoice);
   return {
     uuid: invoice.uuid,
     provider: invoice.provider,
@@ -48,8 +67,10 @@ export function formatAdminInvoice(invoice: any) {
     },
     plan: formatPlan(invoice.plan),
     amount: Number(invoice.amount),
-    status: invoice.status,
-    payment_link: invoice.paymentLink,
+    coupon_code: invoice.couponCode,
+    discount_amount: invoice.discountAmount != null ? Number(invoice.discountAmount) : null,
+    status: expired ? "expired" : invoice.status,
+    payment_link: expired ? null : invoice.paymentLink,
     paid_at: invoice.paidAt,
     expired_at: invoice.expiredAt,
     created_at: invoice.createdAt,

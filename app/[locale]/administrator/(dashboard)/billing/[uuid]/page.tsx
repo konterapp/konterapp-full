@@ -2,7 +2,7 @@
 
 import { use, useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Building2, CreditCard, FileText, Hash, Link2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Building2, CreditCard, FileText, Hash, Link2, RefreshCw, Ticket } from 'lucide-react';
 import { getBillingInvoice, AdminBillingInvoice } from '@/lib/api/administrator/billing';
 
 const formatCurrency = (amount: number) => {
@@ -90,6 +90,15 @@ export default function BillingDetailPage({ params }: { params: Promise<{ uuid: 
     { icon: <FileText className="w-4 h-4 text-gray-400" />, label: 'Provider', value: invoice.provider || '-' },
     { icon: <Hash className="w-4 h-4 text-gray-400" />, label: 'ID Invoice', value: invoice.provider_invoice_id },
     { icon: <Hash className="w-4 h-4 text-gray-400" />, label: 'ID Transaksi', value: invoice.provider_transaction_id || '-' },
+    ...(invoice.coupon_code
+      ? [
+          {
+            icon: <Ticket className="w-4 h-4 text-gray-400" />,
+            label: 'Kupon',
+            value: `${invoice.coupon_code}${invoice.discount_amount != null ? ` (-${formatCurrency(invoice.discount_amount)})` : ''}`,
+          },
+        ]
+      : []),
     { icon: <CreditCard className="w-4 h-4 text-gray-400" />, label: 'Nominal', value: formatCurrency(invoice.amount) },
     { icon: <RefreshCw className="w-4 h-4 text-gray-400" />, label: 'Dibuat', value: formatDateTime(invoice.created_at) },
     { icon: <RefreshCw className="w-4 h-4 text-gray-400" />, label: 'Dibayar', value: formatDateTime(invoice.paid_at) },

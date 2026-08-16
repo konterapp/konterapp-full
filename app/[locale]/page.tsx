@@ -305,7 +305,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Free Trial Plan */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -340,6 +340,45 @@ export default function LandingPage() {
               >
                 Mulai Gratis
               </Link>
+            </motion.div>
+
+            {/* Monthly Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.08 }}
+              viewport={{ once: true }}
+              className="bg-white p-8 lg:p-10 rounded-2xl shadow-sm border-2 border-gray-100 flex flex-col"
+            >
+              <h3 className="text-xl font-bold text-[#142D52] font-poppins mb-2">Bulanan</h3>
+              <p className="text-gray-500 text-sm mb-6">Fleksibel, bayar per bulan.</p>
+              <div className="flex items-end gap-2 mb-8">
+                <span className="text-4xl lg:text-5xl font-bold text-[#142D52] font-poppins">Rp10.000</span>
+                <span className="text-gray-500 mb-1.5">/ bulan</span>
+              </div>
+              <ul className="space-y-4 mb-10 flex-1">
+                {[
+                  'Semua fitur Free Trial',
+                  'Pengguna tanpa batas',
+                  'Multi cabang & multi kasir',
+                  'Laporan laba-rugi detail',
+                  'Struk dengan nama toko sendiri',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-gray-600 text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/register?plan=monthly"
+                className="w-full px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-[#142D52] font-bold rounded-xl transition-all text-center cursor-pointer"
+              >
+                Pilih Bulanan
+              </Link>
+              <p className="mt-4 text-center text-xs text-gray-400">
+                Termasuk 30 hari free trial saat mendaftar
+              </p>
             </motion.div>
 
             {/* Yearly Plan */}

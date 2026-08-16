@@ -1,12 +1,18 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
-import { FREE_TRIAL_PLAN_CODE, YEARLY_PLAN_CODE } from "../../lib/modules/billing/constants";
+import { FREE_TRIAL_PLAN_CODE, MONTHLY_PLAN_CODE, YEARLY_PLAN_CODE } from "../../lib/modules/billing/constants";
 
 const PLANS_DATA = [
   {
     code: FREE_TRIAL_PLAN_CODE,
     name: "Free Trial",
     price: 0,
+    durationDays: 30,
+  },
+  {
+    code: MONTHLY_PLAN_CODE,
+    name: "Bulanan",
+    price: 10000,
     durationDays: 30,
   },
   {

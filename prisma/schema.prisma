@@ -190,6 +190,7 @@ model Coupon {
   code            String    @unique @db.VarChar(50)
   name            String    @db.VarChar(255)
   description     String?   @db.VarChar(255)
+  planCode        String?   @map("plan_code") @db.VarChar(50)
   discountPercent Decimal   @map("discount_percent") @db.Decimal(5, 2)
   maxDiscount     Decimal?  @map("max_discount") @db.Decimal(15, 2)
   usageLimit      Int?      @map("usage_limit")

@@ -46,12 +46,29 @@ export const billingRepository = {
     });
   },
 
+  async findInvoiceByCompanyAndUuid(companyUuid: string, invoiceUuid: string) {
+    return prisma.subscriptionInvoice.findFirst({
+      where: { companyUuid, uuid: invoiceUuid },
+      include: { plan: true },
+    });
+  },
+
+  async markInvoiceExpired(invoiceUuid: string) {
+    return prisma.subscriptionInvoice.update({
+      where: { uuid: invoiceUuid },
+      data: { status: "expired" },
+      include: { plan: true },
+    });
+  },
+
   async createInvoice(data: {
     companyUuid: string;
     planUuid: string;
     provider: string;
     providerInvoiceId: string;
     amount: number;
+    couponCode?: string | null;
+    discountAmount?: number | null;
     paymentLink?: string | null;
     expiredAt?: Date | null;
   }) {

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CreditCard, CheckCircle2, Clock, XCircle, Zap } from 'lucide-react';
-import { getBillingStatus, createCheckoutInvoice, BillingStatus } from '@/lib/api/app/billing';
-import { useToast } from '@/components/toast/ToastContainer';
+import { Link } from '@/i18n/navigation';
+import { CreditCard, CheckCircle2, Clock, XCircle, Zap, Ban } from 'lucide-react';
+import { getBillingStatus, cancelCheckoutInvoice, BillingStatus } from '@/lib/api/app/billing';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -37,12 +37,11 @@ const invoiceStatusIcon: Record<string, React.ReactNode> = {
 };
 
 export default function BillingPage() {
-  const toast = useToast();
   const searchParams = useSearchParams();
   const upgradeIntent = searchParams.get('upgrade') === 'yearly';
   const [data, setData] = useState<BillingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [cancelingUuid, setCancelingUuid] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
     setIsLoading(true);
@@ -60,19 +59,14 @@ export default function BillingPage() {
     fetchStatus();
   }, [fetchStatus]);
 
-  const handleUpgrade = async () => {
-    setIsCheckingOut(true);
+  const handleCancelInvoice = async (invoiceUuid: string) => {
+    if (!window.confirm('Batalkan invoice ini? Kupon yang dipakai akan dikembalikan.')) return;
+    setCancelingUuid(invoiceUuid);
     try {
-      const response = await createCheckoutInvoice();
-      if (response.status === 'success' && response.data?.payment_link) {
-        window.location.href = response.data.payment_link;
-      } else {
-        toast.error(response.message || 'Gagal membuat invoice pembayaran');
-      }
-    } catch {
-      toast.error('Terjadi kesalahan, silakan coba lagi');
+      await cancelCheckoutInvoice(invoiceUuid);
+      await fetchStatus();
     } finally {
-      setIsCheckingOut(false);
+      setCancelingUuid(null);
     }
   };
 
@@ -86,6 +80,7 @@ export default function BillingPage() {
 
   const subscription = data?.subscription;
   const badge = subscription ? statusBadge[subscription.status] ?? statusBadge.expired : null;
+  const canUpgrade = !subscription || subscription.status !== 'active';
 
   return (
     <div className="space-y-6">
@@ -95,24 +90,23 @@ export default function BillingPage() {
       </div>
 
       {/* Banner intent upgrade dari landing */}
-      {upgradeIntent && subscription && subscription.plan.code !== 'yearly' && (
+      {upgradeIntent && subscription && subscription.status !== 'active' && (
         <div className="bg-[#EBC170] border border-[#d6af63] rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
           <div className="flex-1">
             <h3 className="font-bold text-[#142D52] flex items-center gap-2">
               <Zap className="w-5 h-5" />
-              Anda memilih Paket Tahunan
+              Anda memilih paket berbayar
             </h3>
             <p className="text-sm text-[#142D52]/80 mt-1">
-              Selesaikan pembayaran Rp99.000 untuk mengaktifkan semua fitur paket Tahunan.
+              Pilih paket Bulanan atau Tahunan dan selesaikan pembayarannya.
             </p>
           </div>
-          <button
-            onClick={handleUpgrade}
-            disabled={isCheckingOut}
-            className="px-6 py-3 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-semibold rounded-lg transition-colors disabled:opacity-60 cursor-pointer whitespace-nowrap"
+          <Link
+            href="/app/billing/upgrade"
+            className="px-6 py-3 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap text-center"
           >
-            {isCheckingOut ? 'Memproses...' : 'Bayar & Aktifkan Sekarang'}
-          </button>
+            Pilih Paket
+          </Link>
         </div>
       )}
 
@@ -133,21 +127,27 @@ export default function BillingPage() {
               </p>
             </div>
 
-            {subscription.plan.code !== 'yearly' && (
-              <button
-                onClick={handleUpgrade}
-                disabled={isCheckingOut}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold disabled:opacity-60 cursor-pointer"
+            {canUpgrade && (
+              <Link
+                href="/app/billing/upgrade"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
-                {isCheckingOut ? 'Memproses...' : 'Upgrade ke Tahunan - Rp99.000'}
-              </button>
+                Upgrade Paket Berbayar
+              </Link>
             )}
           </div>
         ) : (
           <div className="text-center py-6">
             <CreditCard className="w-10 h-10 text-gray-300 mx-auto mb-3" />
             <p className="text-gray-500">Belum ada informasi langganan untuk perusahaan Anda.</p>
+            <Link
+              href="/app/billing/upgrade"
+              className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              Aktifkan Paket Berbayar
+            </Link>
           </div>
         )}
       </div>
@@ -166,18 +166,39 @@ export default function BillingPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-900">{invoice.plan.name}</p>
                     <p className="text-xs text-gray-500">{formatDate(invoice.created_at)}</p>
+                    {invoice.coupon_code && (
+                      <p className="text-xs text-green-700 mt-0.5">
+                        Kupon {invoice.coupon_code}
+                        {invoice.discount_amount != null
+                          ? ` (-${formatCurrency(invoice.discount_amount)})`
+                          : ''}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">{formatCurrency(invoice.amount)}</p>
                   {invoice.status === 'pending' && invoice.payment_link && (
-                    <a
-                      href={invoice.payment_link}
-                      className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 bg-[#142D52] hover:bg-[#0B1E3A] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" />
-                      Lanjutkan Pembayaran
-                    </a>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <button
+                        onClick={() => handleCancelInvoice(invoice.uuid)}
+                        disabled={cancelingUuid === invoice.uuid}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-60"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                        {cancelingUuid === invoice.uuid ? 'Membatalkan...' : 'Batalkan'}
+                      </button>
+                      <a
+                        href={invoice.payment_link}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#142D52] hover:bg-[#0B1E3A] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        Lanjutkan Pembayaran
+                      </a>
+                    </div>
+                  )}
+                  {invoice.status === 'expired' && (
+                    <p className="text-xs font-medium text-gray-400 mt-1">Kedaluwarsa</p>
                   )}
                 </div>
               </div>

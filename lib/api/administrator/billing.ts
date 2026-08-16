@@ -8,6 +8,8 @@ export interface AdminBillingInvoice {
   company: { uuid: string; code: string; name: string };
   plan: { uuid: string; code: string; name: string; price: number; duration_days: number };
   amount: number;
+  coupon_code?: string | null;
+  discount_amount?: number | null;
   status: string;
   payment_link?: string | null;
   paid_at?: string | null;

@@ -155,9 +155,10 @@ export default function RegisterClient() {
                   atau klik tombol di bawah untuk mengirim ulang.
                 </p>
               </div>
-              {planIntent === 'yearly' && (
+              {planIntent && (
                 <p className="text-sm text-gray-600 mb-4">
-                  Jangan lupa, setelah login Anda bisa mengaktifkan Paket Tahunan.
+                  Jangan lupa, setelah login Anda bisa mengaktifkan paket{' '}
+                  {planIntent === 'yearly' ? 'Tahunan' : planIntent === 'monthly' ? 'Bulanan' : 'berbayar'}.
                 </p>
               )}
               <div className="space-y-3">
@@ -180,7 +181,7 @@ export default function RegisterClient() {
                 )}
                 <button
                   type="button"
-                  onClick={() => router.push(planIntent === 'yearly' ? '/login?plan=yearly' : '/login')}
+                  onClick={() => router.push(planIntent ? `/login?plan=${planIntent}` : '/login')}
                   className="w-full py-3 px-4 rounded-lg font-bold text-white transition-all hover:opacity-90 cursor-pointer"
                   style={{ backgroundColor: '#142D52' }}
                 >
