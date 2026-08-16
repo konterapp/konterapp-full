@@ -83,6 +83,7 @@ export const appUserService = {
         email: normalizedEmail,
         password: hashedPassword,
         isActive: true,
+        emailVerifiedAt: new Date(),
       },
       roleId: role.id,
     });

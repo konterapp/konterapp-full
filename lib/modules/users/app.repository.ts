@@ -80,7 +80,7 @@ export const appUserRepository = {
 
   async createMember(payload: {
     companyUuid: string;
-    userData: { uuid: string; name: string; email: string; password: string; isActive: boolean };
+    userData: { uuid: string; name: string; email: string; password: string; isActive: boolean; emailVerifiedAt: Date };
     roleId: number;
   }) {
     const { companyUuid, userData, roleId } = payload;

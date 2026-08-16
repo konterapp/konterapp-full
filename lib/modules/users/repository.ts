@@ -62,7 +62,7 @@ export const userRepository = {
   },
 
   async createWithRole(payload: {
-    userData: { uuid: string; name: string; email: string; password: string; isActive: boolean };
+    userData: { uuid: string; name: string; email: string; password: string; isActive: boolean; emailVerifiedAt: Date };
     roleId: number;
     companyUuid: string;
   }) {

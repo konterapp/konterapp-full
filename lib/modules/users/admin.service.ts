@@ -98,6 +98,7 @@ export const userService = {
         email: payload.email,
         password: hashedPassword,
         isActive: true,
+        emailVerifiedAt: new Date(),
       },
       roleId: role.id,
       companyUuid,
