@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import PermissionGuard from './PermissionGuard';
 import SubscriptionGuard from './SubscriptionGuard';
+import FloatingWhatsApp from '@/components/FloatingWhatsApp';
 import { UserProvider } from '../_context/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
 
@@ -60,6 +61,7 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
             </SubscriptionGuard>
           </main>
         </div>
+        <FloatingWhatsApp />
       </div>
     </UserProvider>
   );
