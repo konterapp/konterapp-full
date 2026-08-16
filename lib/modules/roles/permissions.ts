@@ -6,6 +6,8 @@
  * role default. Tidak boleh diedit per tenant.
  */
 export const PERMISSIONS = [
+  // Company profile (identitas perusahaan tenant)
+  "company.update",
   // User management (kelola user tenant)
   "user.index",
   "user.create",

@@ -214,6 +214,10 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/roles/:id/edit',
     permission: 'role.update',
   },
+  'company.edit': {
+    path: '/app/company',
+    permission: 'company.update',
+  },
   'user.index': {
     path: '/app/users',
     permission: 'user.index',

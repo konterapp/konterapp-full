@@ -241,6 +241,13 @@ export const allMenuItems: MenuItem[] = [
     // Pengaturan
     {
         section: 'Pengaturan',
+        label: 'Perusahaan',
+        href: '/app/company',
+        icon: <Building2 className="w-5 h-5" />,
+        permission: 'company.update'
+    },
+    {
+        section: 'Pengaturan',
         label: 'User',
         href: '/app/users',
         icon: <UserRound className="w-5 h-5" />,

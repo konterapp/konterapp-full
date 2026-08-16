@@ -7,3 +7,13 @@ export const createCompanySchema = z.object({
 });
 
 export const updateCompanySchema = createCompanySchema;
+
+// Ubah profil perusahaan dari sisi tenant (/app): hanya nama yang boleh
+// diubah. Kode & status aktif dikelola administrator SaaS.
+export const updateTenantCompanySchema = z.object({
+  name: z
+    .string({ error: "Nama perusahaan wajib diisi" })
+    .trim()
+    .min(2, "Nama perusahaan minimal 2 karakter")
+    .max(255, "Nama perusahaan maksimal 255 karakter"),
+});
