@@ -683,3 +683,4 @@ ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transaction
 
 -- AddForeignKey
 ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

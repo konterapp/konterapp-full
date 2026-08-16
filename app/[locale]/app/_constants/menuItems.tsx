@@ -21,6 +21,7 @@ import {
     Scale,
     ScanLine,
     FileSearch,
+    CircleDollarSign,
 } from 'lucide-react';
 
 export type AdminScope = 'daerah' | 'nasional' | 'internasional' | 'mice';
@@ -64,6 +65,12 @@ export const allMenuItems: MenuItem[] = [
         label: 'Dashboard',
         href: '/app',
         icon: <LayoutDashboard className="w-5 h-5" />
+    },
+    {
+        section: 'Operasional',
+        label: 'Langganan',
+        href: '/app/billing',
+        icon: <CircleDollarSign className="w-5 h-5" />
     },
     {
         section: 'Operasional',

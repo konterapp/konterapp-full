@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 const companyInclude = {
   _count: { select: { memberships: true, branches: true } },
+  subscription: { include: { plan: true } },
 } as const;
 
 export const companyRepository = {

@@ -145,6 +145,39 @@ export default function CompaniesPage() {
          ),
       },
       {
+         key: 'subscription',
+         label: 'Paket',
+         sortable: false,
+         width: '12rem',
+         render: (_, row) => {
+            if (!row.subscription) {
+               return <span className="text-sm text-gray-400">-</span>;
+            }
+            const badgeClass: Record<string, string> = {
+               trial: 'bg-blue-100 text-blue-700',
+               active: 'bg-green-100 text-green-700',
+               expired: 'bg-red-100 text-red-700',
+               canceled: 'bg-gray-100 text-gray-600',
+            };
+            const expiresAt = new Date(row.subscription.expires_at).toLocaleDateString('id-ID', {
+               day: 'numeric',
+               month: 'short',
+               year: 'numeric',
+            });
+            return (
+               <div className="text-sm">
+                  <div className="flex items-center gap-1.5">
+                     <span className="font-medium text-gray-900">{row.subscription.plan.name}</span>
+                     <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${badgeClass[row.subscription.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {row.subscription.status}
+                     </span>
+                  </div>
+                  <p className="text-xs text-gray-500">s.d. {expiresAt}</p>
+               </div>
+            );
+         },
+      },
+      {
          key: 'actions',
          label: 'Actions',
          sortable: false,

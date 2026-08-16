@@ -3,6 +3,7 @@
 - validasi form harus di API (pakai zod + validationError), client hanya menampilkan message/errors dari API (jangan bikin validasi manual di client)
 - semua seeder WAJIB set `uuid` secara eksplisit pakai `uuidv7()` (jangan default `cuid`)
 - semua elemen UI yang bisa di-click (button, icon action, select, checkbox, clickable row/card) WAJIB pakai `cursor-pointer` agar konsisten UX.
+- tabel untuk tenant app (data operasional per-perusahaan, misal domain POS: products, sales, purchases, branches, dst) WAJIB pakai prefix `app_` (tabel fisik & model Prisma, contoh `AppPosProduct` -> `@@map("app_pos_products")`), dan WAJIB punya kolom `company_uuid` untuk scoping tenant. Tabel administrator SaaS (users, roles, permissions, administrators, companies, company_users, berita) TIDAK pakai prefix ini karena bukan data operasional tenant. Kolom `company_uuid` jangan diganti jadi `tenant_id` -- sudah konsep yang sama, tidak perlu nama baru.
 
 ## Architecture Rules (Backend Next.js)
 - Gunakan pola modular: `route.ts -> service -> (repository jika perlu)`.

@@ -8,6 +8,7 @@ export interface User {
   permissions: string[];
   active_company_uuid?: string;
   companies?: UserCompany[];
+  subscription?: UserSubscription | null;
   avatar?: string;
   avatar_url?: string;
   impersonating?: boolean;
@@ -19,6 +20,13 @@ export interface UserCompany {
   code: string;
   name: string;
   is_default?: boolean;
+}
+
+export interface UserSubscription {
+  plan: { uuid: string; code: string; name: string; price: number; duration_days: number };
+  status: string;
+  started_at: string;
+  expires_at: string;
 }
 
 export interface UserProfile {

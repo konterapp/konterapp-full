@@ -153,3 +153,83 @@ ALTER TABLE "app_pos_ppob_products" ADD CONSTRAINT "app_pos_ppob_products_compan
 
 -- AddForeignKey
 ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE "plans" (
+    "uuid" CHAR(36) NOT NULL,
+    "code" VARCHAR(50) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "price" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "duration_days" INTEGER NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "plans_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "company_subscriptions" (
+    "uuid" CHAR(36) NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
+    "plan_uuid" CHAR(36) NOT NULL,
+    "status" VARCHAR(20) NOT NULL,
+    "started_at" TIMESTAMP(3) NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "company_subscriptions_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "subscription_invoices" (
+    "uuid" CHAR(36) NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
+    "plan_uuid" CHAR(36) NOT NULL,
+    "provider" VARCHAR(20) NOT NULL DEFAULT 'mayar',
+    "provider_invoice_id" VARCHAR(100) NOT NULL,
+    "provider_transaction_id" VARCHAR(100),
+    "amount" DECIMAL(15,2) NOT NULL,
+    "status" VARCHAR(20) NOT NULL DEFAULT 'pending',
+    "payment_link" TEXT,
+    "paid_at" TIMESTAMP(3),
+    "expired_at" TIMESTAMP(3),
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "subscription_invoices_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plans_code_key" ON "plans"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "company_subscriptions_company_uuid_key" ON "company_subscriptions"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "company_subscriptions_plan_uuid_idx" ON "company_subscriptions"("plan_uuid");
+
+-- CreateIndex
+CREATE INDEX "company_subscriptions_expires_at_idx" ON "company_subscriptions"("expires_at");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscription_invoices_provider_invoice_id_key" ON "subscription_invoices"("provider_invoice_id");
+
+-- CreateIndex
+CREATE INDEX "subscription_invoices_company_uuid_idx" ON "subscription_invoices"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "subscription_invoices_status_idx" ON "subscription_invoices"("status");
+
+-- AddForeignKey
+ALTER TABLE "company_subscriptions" ADD CONSTRAINT "company_subscriptions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_subscriptions" ADD CONSTRAINT "company_subscriptions_plan_uuid_fkey" FOREIGN KEY ("plan_uuid") REFERENCES "plans"("uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_plan_uuid_fkey" FOREIGN KEY ("plan_uuid") REFERENCES "plans"("uuid") ON DELETE RESTRICT ON UPDATE CASCADE;

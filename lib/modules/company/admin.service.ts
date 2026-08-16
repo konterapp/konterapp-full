@@ -1,6 +1,8 @@
 import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { companyRepository } from "./repository";
 import { formatCompany } from "./company.mapper";
+import { billingRepository } from "@/lib/modules/billing/repository";
+import { FREE_TRIAL_PLAN_CODE } from "@/lib/modules/billing/constants";
 
 function getSortConfig(sortBy: string, sortOrder: string) {
   const allowedSorts = ["code", "name", "created_at"];
@@ -69,7 +71,25 @@ export const companyService = {
       isActive: payload.is_active ?? true,
     });
 
-    return formatCompany(company);
+    const trialPlan = await billingRepository.findPlanByCode(FREE_TRIAL_PLAN_CODE);
+    if (!trialPlan) {
+      return formatCompany(company);
+    }
+
+    const startedAt = new Date();
+    const expiresAt = new Date(startedAt);
+    expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
+
+    await billingRepository.createSubscription({
+      companyUuid: company.uuid,
+      planUuid: trialPlan.uuid,
+      status: "trial",
+      startedAt,
+      expiresAt,
+    });
+
+    const companyWithSubscription = await companyRepository.findByUuid(company.uuid);
+    return formatCompany(companyWithSubscription);
   },
 
   async updateCompany(uuid: string, payload: { code: string; name: string; is_active?: boolean }) {

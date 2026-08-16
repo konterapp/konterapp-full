@@ -4,6 +4,8 @@ import { successResponse, errorResponse } from "@/lib/response";
 import { getToken } from "next-auth/jwt";
 import { NextRequest } from "next/server";
 import { resolveUserActiveCompany } from "@/lib/company-access";
+import { billingRepository } from "@/lib/modules/billing/repository";
+import { formatSubscription } from "@/lib/modules/billing/billing.mapper";
 
 type AuthTokenShape = {
   id?: string;
@@ -40,6 +42,8 @@ export async function GET(req: NextRequest) {
   }
   const companies = companyContext.companies;
 
+  const subscription = await billingRepository.findSubscriptionByCompanyUuid(companyContext.activeCompanyUuid);
+
   // Check if impersonating
   const impersonatorId = tokenData.impersonatorId ?? null;
 
@@ -52,6 +56,7 @@ export async function GET(req: NextRequest) {
     permissions,
     active_company_uuid: companyContext.activeCompanyUuid,
     companies,
+    subscription: formatSubscription(subscription),
     impersonating: !!impersonatorId,
     avatar_url: user.profile?.avatar ?? null,
     profile: user.profile

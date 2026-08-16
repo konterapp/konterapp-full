@@ -5,6 +5,7 @@ import { seedPermissionRole } from "./seeders/permission-role";
 import { seedUsers } from "./seeders/users";
 import { ensureDefaultCompany } from "./seeders/company";
 import { seedAdministrators } from "./seeders/administrators";
+import { seedPlans } from "./seeders/plans";
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,7 @@ async function main() {
   await seedPermissionRole(prisma, roles);
   await seedUsers(prisma, roles);
   await seedAdministrators(prisma);
+  await seedPlans(prisma);
 }
 
 main()

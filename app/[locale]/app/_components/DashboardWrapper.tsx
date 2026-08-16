@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import PermissionGuard from './PermissionGuard';
+import SubscriptionGuard from './SubscriptionGuard';
 import { UserProvider } from '../_context/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
 
@@ -54,7 +55,9 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
         >
           <Navbar />
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-            <PermissionGuard>{children}</PermissionGuard>
+            <SubscriptionGuard>
+              <PermissionGuard>{children}</PermissionGuard>
+            </SubscriptionGuard>
           </main>
         </div>
       </div>

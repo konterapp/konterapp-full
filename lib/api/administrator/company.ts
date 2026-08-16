@@ -1,5 +1,12 @@
 import { apiRequest, ApiResponse, PaginatedData } from '../api';
 
+export interface CompanySubscription {
+  plan: { uuid: string; code: string; name: string; price: number; duration_days: number };
+  status: string;
+  started_at: string;
+  expires_at: string;
+}
+
 export interface Company {
   uuid: string;
   code: string;
@@ -7,6 +14,7 @@ export interface Company {
   is_active: boolean;
   users_count?: number;
   branches_count?: number;
+  subscription?: CompanySubscription | null;
   created_at?: string;
   updated_at?: string;
 }
