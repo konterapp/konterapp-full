@@ -13,7 +13,7 @@ const MODEL_TYPE_USER = "App\\Models\\User";
 
 const TENANT_DEFAULT_PAYMENT_METHODS = [
   { code: "CASH", name: "Tunai", type: "cash" },
-  { code: "BCA", name: "Transfer BCA", type: "bank" },
+  { code: "BCA", name: "Transfer BCA", type: "bank_transfer" },
   { code: "QRIS", name: "QRIS", type: "qris" },
   { code: "GOPAY", name: "GoPay", type: "e_wallet" },
 ];
