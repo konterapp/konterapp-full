@@ -143,9 +143,9 @@ export default function LoginClient() {
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
                 </label>
-                <a href="#" className="text-sm font-medium text-[#142D52] hover:text-[#0B1E3A]">
+                <Link href="/forgot-password" className="text-sm font-medium text-[#142D52] hover:text-[#0B1E3A] cursor-pointer">
                   Lupa Password?
-                </a>
+                </Link>
               </div>
               <div className="relative">
                 <input

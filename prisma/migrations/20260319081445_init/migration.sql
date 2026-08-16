@@ -56,6 +56,32 @@ ALTER TABLE "email_verification_tokens" ADD CONSTRAINT "email_verification_token
 
 
 -- CreateTable
+CREATE TABLE "password_reset_tokens" (
+    "id" SERIAL NOT NULL,
+    "uuid" CHAR(36) NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "token_hash" CHAR(64) NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "used_at" TIMESTAMP(3),
+
+    CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "password_reset_tokens_uuid_key" ON "password_reset_tokens"("uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "password_reset_tokens_token_hash_key" ON "password_reset_tokens"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_user_id_idx" ON "password_reset_tokens"("user_id");
+
+-- AddForeignKey
+ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- CreateTable
 CREATE TABLE "app_roles" (
     "id" SERIAL NOT NULL,
     "uuid" CHAR(36) NOT NULL,
