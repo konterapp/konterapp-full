@@ -3,8 +3,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Search, ChevronRight, Menu, X, Bell, Settings, Building2 } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, Menu, X, Bell, Settings, Building2, Check } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
+import { switchActiveCompany } from '@/lib/api/auth';
+import { useToast } from '@/components/toast/ToastContainer';
 import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -47,10 +49,14 @@ const tMenu = (key: string): string => menuTranslations[key] || key;
 const Navbar = () => {
   const { permissions } = usePermissions();
   const { isMobileOpen, setIsMobileOpen, isCollapsed, setIsCollapsed } = useSidebar();
+  const toast = useToast();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCompanyDropdownOpen, setIsCompanyDropdownOpen] = useState(false);
+  const [isSwitchingCompany, setIsSwitchingCompany] = useState(false);
   const mobileSearchRef = useRef<HTMLInputElement>(null);
+  const companyDropdownRef = useRef<HTMLDivElement>(null);
   const { user, activeCompanyUuid } = useUser();
 
   useEffect(() => {
@@ -58,6 +64,38 @@ const Navbar = () => {
       mobileSearchRef.current.focus();
     }
   }, [isMobileSearchOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (companyDropdownRef.current && !companyDropdownRef.current.contains(event.target as Node)) {
+        setIsCompanyDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleCompanySwitch = async (uuid: string) => {
+    if (uuid === activeCompanyUuid) {
+      setIsCompanyDropdownOpen(false);
+      return;
+    }
+    setIsSwitchingCompany(true);
+    try {
+      const response = await switchActiveCompany(uuid);
+      if (response.status === 'success') {
+        toast.success('Perusahaan aktif berhasil diganti');
+        setIsCompanyDropdownOpen(false);
+        window.location.reload();
+      } else {
+        toast.error(response.message || 'Gagal mengganti perusahaan');
+      }
+    } catch {
+      toast.error('Terjadi kesalahan, silakan coba lagi');
+    } finally {
+      setIsSwitchingCompany(false);
+    }
+  };
 
   // Filter search results
   const searchResults = useMemo(() => {
@@ -250,25 +288,70 @@ const Navbar = () => {
           <Search className="w-[18px] h-[18px] text-gray-600" />
         </button>
 
-        {/* Perusahaan Aktif - Mobile */}
-        <div
-          className="sm:hidden flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#142D52]"
-          title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
-        >
-          <Building2 className="h-4 w-4" />
-        </div>
+        {/* Perusahaan Aktif + Company Switcher */}
+        <div ref={companyDropdownRef} className="relative">
+          <button
+            onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
+            disabled={isSwitchingCompany}
+            className={`flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] max-w-[16rem] transition-colors cursor-pointer ${isSwitchingCompany ? 'opacity-60' : 'hover:border-gray-300'}`}
+            title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142D52]/10 text-[#142D52] shrink-0">
+              <Building2 className="h-4 w-4" />
+            </div>
+            <div className="text-left min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {activeCompany?.name || 'Perusahaan tidak tersedia'}
+              </p>
+              {user?.companies && user.companies.length > 1 && (
+                <p className="text-[10px] text-gray-400 leading-tight">Ganti perusahaan</p>
+              )}
+            </div>
+            {user?.companies && user.companies.length > 1 && (
+              <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+            )}
+          </button>
 
-        {/* Perusahaan Aktif - Desktop */}
-        <div
-          className="hidden sm:flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] max-w-[16rem] cursor-default"
-          title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142D52]/10 text-[#142D52] shrink-0">
-            <Building2 className="h-4 w-4" />
-          </div>
-          <p className="text-sm font-semibold text-gray-900 truncate">
-            {activeCompany?.name || 'Perusahaan tidak tersedia'}
-          </p>
+          {isCompanyDropdownOpen && user?.companies && user.companies.length > 1 && (
+            <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+              <p className="px-4 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                Pilih Perusahaan
+              </p>
+              {user.companies.map((company) => {
+                const isActive = company.uuid === activeCompanyUuid;
+                return (
+                  <button
+                    key={company.uuid}
+                    onClick={() => handleCompanySwitch(company.uuid)}
+                    disabled={isSwitchingCompany}
+                    className={`flex items-center gap-3 w-full px-4 py-2.5 text-left transition-colors cursor-pointer ${
+                      isSwitchingCompany ? 'opacity-60 cursor-not-allowed' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${
+                        isActive ? 'bg-[#EBC170]/20 text-[#B18B3B]' : 'bg-[#142D52]/10 text-[#142D52]'
+                      }`}
+                    >
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
+                        {company.name}
+                      </p>
+                      <p className="text-xs text-gray-400 font-mono">{company.code}</p>
+                    </div>
+                    {isActive && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-[#142D52] shrink-0">
+                        <Check className="w-3.5 h-3.5" />
+                        Aktif
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Divider */}
