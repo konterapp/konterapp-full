@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { seedCore } from "../core";
 import { seedBerita } from "./berita";
 import { seedCompanies } from "./companies";
+import { seedUserCompanies } from "./user-companies";
 import { seedSubscriptions } from "./subscriptions";
 import { seedBranches } from "./branches";
 import { seedCategories } from "./categories";
@@ -18,6 +19,7 @@ import { seedSales } from "./sales";
 async function seedDummy(prisma: PrismaClient) {
   await seedCore(prisma);
   await seedCompanies(prisma);
+  await seedUserCompanies(prisma);
   await seedSubscriptions(prisma);
 
   await seedBranches(prisma);
