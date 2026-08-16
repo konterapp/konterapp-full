@@ -11,7 +11,6 @@ import {
   TrendingUp,
   ShieldCheck,
   Zap,
-  CreditCard,
   Users,
   BarChart3,
   CheckCircle2,
@@ -294,6 +293,102 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 lg:py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#142D52] mb-4 font-poppins">
+              Harga yang Sederhana & Transparan
+            </h2>
+            <p className="text-gray-600 text-lg">
+              Mulai gratis tanpa kartu kredit. Upgrade kapan saja saat usaha Anda berkembang.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Trial Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+              className="bg-white p-8 lg:p-10 rounded-2xl shadow-sm border-2 border-gray-100 flex flex-col"
+            >
+              <h3 className="text-xl font-bold text-[#142D52] font-poppins mb-2">Free Trial</h3>
+              <p className="text-gray-500 text-sm mb-6">Coba semua fitur tanpa risiko.</p>
+              <div className="flex items-end gap-2 mb-8">
+                <span className="text-4xl lg:text-5xl font-bold text-[#142D52] font-poppins">Rp0</span>
+                <span className="text-gray-500 mb-1.5">/ 30 hari</span>
+              </div>
+              <ul className="space-y-4 mb-10 flex-1">
+                {[
+                  'Semua fitur dasar KonterApp',
+                  'Transaksi PPOB tanpa batas',
+                  'Kasir digital (POS) lengkap',
+                  'Laporan penjualan & stok',
+                  'Maksimal 2 pengguna',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-gray-600 text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/register"
+                className="w-full px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-[#142D52] font-bold rounded-xl transition-all text-center cursor-pointer"
+              >
+                Mulai Gratis
+              </Link>
+            </motion.div>
+
+            {/* Yearly Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15 }}
+              viewport={{ once: true }}
+              className="bg-[#142D52] p-8 lg:p-10 rounded-2xl shadow-xl border-2 border-[#EBC170] flex flex-col relative overflow-hidden"
+            >
+              <div className="absolute top-5 right-5 px-3 py-1 bg-[#EBC170] text-[#142D52] text-xs font-bold rounded-full">
+                Paling Hemat
+              </div>
+              <h3 className="text-xl font-bold text-white font-poppins mb-2">Tahunan</h3>
+              <p className="text-gray-400 text-sm mb-6">Untuk usaha yang serius berkembang.</p>
+              <div className="flex items-end gap-2 mb-8">
+                <span className="text-4xl lg:text-5xl font-bold text-white font-poppins">Rp99.000</span>
+                <span className="text-gray-400 mb-1.5">/ tahun</span>
+              </div>
+              <ul className="space-y-4 mb-10 flex-1">
+                {[
+                  'Semua fitur Free Trial',
+                  'Pengguna tanpa batas',
+                  'Multi cabang & multi kasir',
+                  'Laporan laba-rugi detail',
+                  'Prioritas dukungan 24 jam',
+                  'Struk dengan nama toko sendiri',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-gray-200 text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/register?plan=yearly"
+                className="w-full px-6 py-3.5 bg-[#EBC170] hover:bg-[#d6af63] text-[#142D52] font-bold rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Zap className="w-4 h-4" />
+                Daftar Sekarang
+              </Link>
+              <p className="mt-4 text-center text-xs text-gray-400">
+                Termasuk 30 hari free trial saat mendaftar
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Testimonials Section */}
       <section id="testimonials" className="py-20 lg:py-32 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -338,7 +433,7 @@ export default function LandingPage() {
                   ))}
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed italic">
-                  "{testimonial.content}"
+                  &ldquo;{testimonial.content}&rdquo;
                 </p>
               </motion.div>
             ))}

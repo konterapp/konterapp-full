@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { CreditCard, CheckCircle2, Clock, XCircle, Zap } from 'lucide-react';
 import { getBillingStatus, createCheckoutInvoice, BillingStatus } from '@/lib/api/app/billing';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -37,6 +38,8 @@ const invoiceStatusIcon: Record<string, React.ReactNode> = {
 
 export default function BillingPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const upgradeIntent = searchParams.get('upgrade') === 'yearly';
   const [data, setData] = useState<BillingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -90,6 +93,28 @@ export default function BillingPage() {
         <h1 className="text-2xl font-bold text-[#142D52]">Langganan</h1>
         <p className="text-gray-600 mt-1">Kelola paket langganan perusahaan Anda.</p>
       </div>
+
+      {/* Banner intent upgrade dari landing */}
+      {upgradeIntent && subscription && subscription.plan.code !== 'yearly' && (
+        <div className="bg-[#EBC170] border border-[#d6af63] rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4 shadow-sm">
+          <div className="flex-1">
+            <h3 className="font-bold text-[#142D52] flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Anda memilih Paket Tahunan
+            </h3>
+            <p className="text-sm text-[#142D52]/80 mt-1">
+              Selesaikan pembayaran Rp99.000 untuk mengaktifkan semua fitur paket Tahunan.
+            </p>
+          </div>
+          <button
+            onClick={handleUpgrade}
+            disabled={isCheckingOut}
+            className="px-6 py-3 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-semibold rounded-lg transition-colors disabled:opacity-60 cursor-pointer whitespace-nowrap"
+          >
+            {isCheckingOut ? 'Memproses...' : 'Bayar & Aktifkan Sekarang'}
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         {subscription ? (
@@ -148,9 +173,10 @@ export default function BillingPage() {
                   {invoice.status === 'pending' && invoice.payment_link && (
                     <a
                       href={invoice.payment_link}
-                      className="text-xs text-[#142D52] hover:underline"
+                      className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 bg-[#142D52] hover:bg-[#0B1E3A] text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
                     >
-                      Lanjutkan pembayaran
+                      <CreditCard className="w-3.5 h-3.5" />
+                      Lanjutkan Pembayaran
                     </a>
                   )}
                 </div>
