@@ -6,7 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Save, X, User } from 'lucide-react';
 import { createUser, updateUser, getUser, getRoles, toggleUserActive, UserCreateData, Role } from '@/lib/api/administrator/user';
 import { getWilayah, WilayahOption } from '@/lib/api/administrator/location';
-import { getCompanies, CompanyOption } from '@/lib/api/administrator/company';
+import { getCompanyOptions, CompanyOption } from '@/lib/api/administrator/company';
 import CountryCodeSelector from '@/components/ui/CountryCodeSelector';
 import Select2 from '@/components/ui/Select2';
 import Alert from '@/components/ui/Alert';
@@ -77,7 +77,7 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
 
    const fetchCompaniesList = async () => {
       try {
-         const response = await getCompanies();
+         const response = await getCompanyOptions();
          if (response.status === 'success' && response.data) {
             setCompanies(response.data);
          }

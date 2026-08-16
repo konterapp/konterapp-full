@@ -5,6 +5,7 @@ import { seedRoles } from "../roles";
 import { seedPermissionRole } from "../permission-role";
 import { seedUsers } from "../users";
 import { seedBerita } from "./berita";
+import { seedCompanies } from "./companies";
 import { seedBranches } from "./branches";
 import { seedCategories } from "./categories";
 import { seedUnits } from "./units";
@@ -23,6 +24,7 @@ async function seedDummy(prisma: PrismaClient) {
   const roles = await seedRoles(prisma);
   await seedPermissionRole(prisma, roles);
   await seedUsers(prisma, roles);
+  await seedCompanies(prisma);
 
   await seedBranches(prisma);
   await seedCategories(prisma);
