@@ -33,20 +33,10 @@ export default function LoginClient() {
       if (response.status === 'success' && response.data) {
         // Token is stored in cookie automatically by NextAuth
 
-        const userRoles = response.data.user.roles || [];
-        const isAdmin = userRoles.includes('admin') || userRoles.includes('super-admin');
-
         const redirectParam = searchParams.get('redirect');
 
-        if (redirectParam) {
-          router.push(redirectParam);
-        } else {
-          if (isAdmin) {
-            router.push('/app');
-          } else {
-            router.push('/user');
-          }
-        }
+        // Semua akun dari tabel users (/login) masuk ke area app (/app)
+        router.push(redirectParam || '/app');
       } else {
         setError(response.message || 'Email atau password salah');
       }
