@@ -30,7 +30,7 @@ export default function FloatingWhatsApp() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2">
+    <div className="fixed bottom-2 right-2 z-50 flex items-center gap-2">
       {showLabel && (
         <span className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-full pl-3 pr-1.5 py-1.5 shadow-md">
           Butuh Bantuan?
