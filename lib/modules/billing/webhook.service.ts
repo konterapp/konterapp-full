@@ -1,6 +1,18 @@
+import { createHash } from "crypto";
 import { ApiError } from "@/lib/api-errors";
 import { billingRepository } from "./repository";
-import { getMayarInvoice } from "./mayar-client";
+import { getMidtransServerKey } from "./midtrans-client";
+
+interface MidtransNotificationPayload {
+  order_id: string;
+  status_code: string;
+  gross_amount: string;
+  transaction_status: string;
+  fraud_status?: string;
+  signature_key: string;
+}
+
+const SUCCESS_STATUSES = new Set(["settlement", "capture"]);
 
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -9,16 +21,28 @@ function addDays(date: Date, days: number): Date {
 }
 
 export const billingWebhookService = {
-  async handleMayarInvoicePaid(providerInvoiceId: string) {
-    // Re-verify status directly against Mayar's API rather than trusting the
-    // webhook payload alone, since Mayar does not document signature
-    // verification for webhook requests.
-    const remoteInvoice = await getMayarInvoice(providerInvoiceId);
-    if (remoteInvoice.status !== "paid") {
-      return { processed: false, reason: "Invoice belum berstatus paid di Mayar" };
+  verifySignature(payload: MidtransNotificationPayload): boolean {
+    const serverKey = getMidtransServerKey();
+    const expected = createHash("sha512")
+      .update(`${payload.order_id}${payload.status_code}${payload.gross_amount}${serverKey}`)
+      .digest("hex");
+    return expected === payload.signature_key;
+  },
+
+  async handleNotification(payload: MidtransNotificationPayload) {
+    if (!this.verifySignature(payload)) {
+      throw new ApiError("Signature tidak valid", 401);
     }
 
-    const invoice = await billingRepository.findInvoiceByProviderInvoiceId(providerInvoiceId);
+    const isSuccess =
+      SUCCESS_STATUSES.has(payload.transaction_status) &&
+      (!payload.fraud_status || payload.fraud_status === "accept");
+
+    if (!isSuccess) {
+      return { processed: false, reason: `Status transaksi: ${payload.transaction_status}` };
+    }
+
+    const invoice = await billingRepository.findInvoiceByProviderInvoiceId(payload.order_id);
     if (!invoice) {
       throw new ApiError("Invoice tidak ditemukan", 404);
     }
@@ -28,7 +52,7 @@ export const billingWebhookService = {
     }
 
     const now = new Date();
-    await billingRepository.markInvoicePaid(providerInvoiceId, now);
+    await billingRepository.markInvoicePaid(payload.order_id, now);
 
     const existingSubscription = await billingRepository.findSubscriptionByCompanyUuid(invoice.companyUuid);
     const plan = await billingRepository.findPlanByUuid(invoice.planUuid);

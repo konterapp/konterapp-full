@@ -48,6 +48,7 @@ export const billingRepository = {
   async createInvoice(data: {
     companyUuid: string;
     planUuid: string;
+    provider: string;
     providerInvoiceId: string;
     amount: number;
     paymentLink?: string | null;
