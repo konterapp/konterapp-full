@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { getUserRoles, getUserPermissions } from "./permissions";
 import { resolveUserActiveCompany, UserCompanySummary } from "./company-access";
+import { findOrCreateGoogleUser } from "./modules/auth/provisioning";
 
 type SessionCompany = UserCompanySummary;
 
@@ -88,13 +90,56 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
       },
     }),
+    Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      // Email Google sudah terverifikasi, jadi aman untuk dipetakan ke
+      // akun existing dengan email yang sama (misal hasil register password).
+      allowDangerousEmailAccountLinking: true,
+    }),
   ],
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, profile }) {
+      if (account?.provider === "google" && profile?.email) {
+        const dbUser = await findOrCreateGoogleUser({
+          email: profile.email,
+          name: profile.name,
+        });
+
+        if (!dbUser.isActive) {
+          throw new Error("Akun Anda tidak aktif");
+        }
+
+        token.id = String(dbUser.id);
+        token.name = dbUser.name;
+        token.email = dbUser.email;
+
+        // User belum punya perusahaan (login Google pertama kali):
+        // session kosong, middleware akan arahkan ke halaman onboarding
+        // untuk input nama perusahaan sendiri.
+        let companyContext;
+        try {
+          companyContext = await resolveUserActiveCompany(dbUser.id);
+        } catch {
+          token.roles = [];
+          token.permissions = [];
+          token.activeCompanyUuid = "";
+          token.companies = [];
+          return token;
+        }
+
+        token.roles = await getUserRoles(dbUser.id, companyContext.activeCompanyUuid);
+        token.permissions = await getUserPermissions(dbUser.id, companyContext.activeCompanyUuid);
+        token.activeCompanyUuid = companyContext.activeCompanyUuid;
+        token.companies = companyContext.companies;
+        return token;
+      }
+
       if (user) {
         token.id = user.id;
         token.roles = user.roles;

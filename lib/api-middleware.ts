@@ -12,6 +12,26 @@ type RouteHandler = (
   context: { params: Promise<Record<string, string>>; userId: number; companyUuid: string }
 ) => Promise<Response>;
 
+type SessionRouteHandler = (
+  req: NextRequest,
+  context: { params: Promise<Record<string, string>>; userId: number }
+) => Promise<Response>;
+
+/**
+ * Wrapper auth tanpa company context -- untuk rute yang valid sebelum user
+ * punya perusahaan (misal onboarding buat perusahaan pertama).
+ */
+export function withSession(handler: SessionRouteHandler) {
+  return async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return errorResponse("Unauthenticated", 401);
+    }
+    const userId = Number(session.user.id);
+    return handler(req, { ...context, userId });
+  };
+}
+
 export function withAuth(handler: RouteHandler) {
   return async (req: NextRequest, context: { params: Promise<Record<string, string>> }) => {
     const session = await auth();

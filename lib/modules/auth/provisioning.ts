@@ -1,0 +1,269 @@
+import { hash } from "bcryptjs";
+import { v7 as uuidv7 } from "uuid";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import {
+  seedTenantDefaultRoles,
+  TENANT_DEFAULT_ROLE_ADMINISTRATOR,
+} from "@/lib/modules/roles/templates";
+import { FREE_TRIAL_PLAN_CODE } from "@/lib/modules/billing/constants";
+
+const MODEL_TYPE_USER = "App\\Models\\User";
+
+// Alphabet tanpa karakter ambigu (0/O, 1/I/L) supaya kode mudah dibaca
+// dan disebarkan via telepon/chat.
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const CODE_LENGTH = 6;
+
+/**
+ * Generate kode company acak berformat KTR-XXXXXX (30^6 ~= 729 juta
+ * kombinasi). Tidak sekuensial: tidak bocor jumlah tenant dan tidak
+ * perlu query max -- cukup cek unique constraint + retry saat tabrakan.
+ */
+function generateCompanyCode(): string {
+  const bytes = crypto.getRandomValues(new Uint32Array(CODE_LENGTH));
+  let code = "";
+  for (let i = 0; i < CODE_LENGTH; i++) {
+    code += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  }
+  return `KTR-${code}`;
+}
+
+async function createCompanyWithUniqueCode(tx: Prisma.TransactionClient, name: string) {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = generateCompanyCode();
+    try {
+      return await tx.company.create({
+        data: { code, name, isActive: true },
+        select: { uuid: true, code: true, name: true },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error("Gagal membuat kode perusahaan unik, silakan coba lagi");
+}
+
+/**
+ * Provisioning tenant untuk user yang SUDAH ada: bikin perusahaan, role
+ * default tenant, membership user sebagai administrator tenant, dan
+ * subscription free trial. Dipakai oleh onboarding setelah login Google
+ * pertama kali (nama perusahaan diinput user sendiri).
+ */
+export async function provisionCompanyForUser(params: {
+  userId: number;
+  companyName: string;
+}): Promise<{ uuid: string; code: string; name: string }> {
+  const { userId, companyName } = params;
+
+  return (prisma as unknown as PrismaClient).$transaction(async (tx) => {
+    const company = await createCompanyWithUniqueCode(tx, companyName);
+
+    await seedTenantDefaultRoles(tx, company.uuid);
+
+    const adminRole = await tx.role.findFirst({
+      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
+      select: { id: true },
+    });
+    if (!adminRole) {
+      throw new Error("Role administrator tenant tidak ditemukan");
+    }
+
+    await tx.modelHasRole.create({
+      data: {
+        roleId: adminRole.id,
+        modelType: MODEL_TYPE_USER,
+        modelId: userId,
+        companyUuid: company.uuid,
+      },
+    });
+
+    await tx.companyUser.create({
+      data: {
+        companyUuid: company.uuid,
+        userId,
+        isDefault: true,
+        isActive: true,
+      },
+    });
+
+    const trialPlan = await tx.plan.findUnique({
+      where: { code: FREE_TRIAL_PLAN_CODE },
+    });
+    if (trialPlan) {
+      const startedAt = new Date();
+      const expiresAt = new Date(startedAt);
+      expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
+
+      await tx.companySubscription.create({
+        data: {
+          companyUuid: company.uuid,
+          planUuid: trialPlan.uuid,
+          status: "trial",
+          startedAt,
+          expiresAt,
+        },
+      });
+    }
+
+    return company;
+  });
+}
+
+/**
+ * Provisioning user + tenant baru dalam satu transaksi: bikin user lalu
+ * perusahaan lengkap dengan role default, subscription free trial, dan
+ * user sebagai administrator tenant. Dipakai oleh registrasi password.
+ */
+export async function provisionTenantUser(params: {
+  name: string;
+  email: string;
+  passwordHash: string;
+  companyName?: string;
+}): Promise<{
+  user: { id: number; uuid: string; name: string; email: string };
+  company: { uuid: string; code: string; name: string };
+}> {
+  const { name, email, passwordHash, companyName } = params;
+
+  return (prisma as unknown as PrismaClient).$transaction(async (tx) => {
+    const company = await createCompanyWithUniqueCode(tx, companyName || `Konter ${name}`);
+
+    await seedTenantDefaultRoles(tx, company.uuid);
+
+    const adminRole = await tx.role.findFirst({
+      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
+      select: { id: true },
+    });
+    if (!adminRole) {
+      throw new Error("Role administrator tenant tidak ditemukan");
+    }
+
+    const user = await tx.user.create({
+      data: {
+        uuid: uuidv7(),
+        name,
+        email,
+        password: passwordHash,
+        isActive: true,
+        emailVerifiedAt: new Date(),
+      },
+      select: {
+        id: true,
+        uuid: true,
+        name: true,
+        email: true,
+      },
+    });
+
+    await tx.modelHasRole.create({
+      data: {
+        roleId: adminRole.id,
+        modelType: MODEL_TYPE_USER,
+        modelId: user.id,
+        companyUuid: company.uuid,
+      },
+    });
+
+    await tx.companyUser.create({
+      data: {
+        companyUuid: company.uuid,
+        userId: user.id,
+        isDefault: true,
+        isActive: true,
+      },
+    });
+
+    const trialPlan = await tx.plan.findUnique({
+      where: { code: FREE_TRIAL_PLAN_CODE },
+    });
+    if (trialPlan) {
+      const startedAt = new Date();
+      const expiresAt = new Date(startedAt);
+      expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
+
+      await tx.companySubscription.create({
+        data: {
+          companyUuid: company.uuid,
+          planUuid: trialPlan.uuid,
+          status: "trial",
+          startedAt,
+          expiresAt,
+        },
+      });
+    }
+
+    return { user, company };
+  });
+}
+
+/**
+ * Cari user berdasarkan email; kalau belum ada (login Google pertama kali),
+ * buat user TANPA perusahaan -- nama perusahaan diinput user sendiri
+ * lewat halaman onboarding setelah login.
+ */
+export async function findOrCreateGoogleUser(params: {
+  email: string;
+  name?: string | null;
+}): Promise<{
+  id: number;
+  uuid: string;
+  name: string;
+  email: string;
+  isActive: boolean;
+  isNewUser: boolean;
+}> {
+  const email = params.email.trim().toLowerCase();
+  const name = (params.name?.trim() || email.split("@")[0]).slice(0, 255);
+
+  const existingUser = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+  });
+
+  if (existingUser) {
+    // Email Google sudah terverifikasi; tandai kalau belum.
+    if (!existingUser.emailVerifiedAt) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: { emailVerifiedAt: new Date() },
+      });
+    }
+    return {
+      id: existingUser.id,
+      uuid: existingUser.uuid,
+      name: existingUser.name,
+      email: existingUser.email,
+      isActive: existingUser.isActive,
+      isNewUser: false,
+    };
+  }
+
+  // Password acak yang tidak diketahui siapa pun -> akun ini hanya bisa
+  // diakses lewat login Google sampai user set password (bila ada fiturnya).
+  const randomPasswordHash = await hash(crypto.randomUUID(), 10);
+
+  const user = await prisma.user.create({
+    data: {
+      uuid: uuidv7(),
+      name,
+      email,
+      password: randomPasswordHash,
+      isActive: true,
+      emailVerifiedAt: new Date(),
+    },
+    select: {
+      id: true,
+      uuid: true,
+      name: true,
+      email: true,
+    },
+  });
+
+  return { ...user, isActive: true, isNewUser: true };
+}

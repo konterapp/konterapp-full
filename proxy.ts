@@ -27,6 +27,27 @@ export default async function middleware(req: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
+    // User belum punya perusahaan (misal baru login Google pertama kali):
+    // wajib isi nama perusahaan dulu lewat onboarding.
+    if (!token.activeCompanyUuid) {
+      return NextResponse.redirect(new URL('/onboarding', req.url));
+    }
+  }
+
+  // Halaman onboarding hanya untuk user yang sudah login
+  const isOnboardingRoute = pathname.match(/^(\/[a-z]{2})?\/onboarding\/?$/);
+  if (isOnboardingRoute) {
+    const isSecure = req.nextUrl.protocol === 'https:' || process.env.NODE_ENV === 'production';
+    const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+    const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
+    if (!token) {
+      const loginUrl = new URL('/login', req.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    // Sudah punya perusahaan -> tidak perlu onboarding lagi
+    if (token.activeCompanyUuid) {
+      return NextResponse.redirect(new URL('/app', req.url));
+    }
   }
 
   // Check if SaaS administrator route (with or without locale prefix), excluding the login page itself

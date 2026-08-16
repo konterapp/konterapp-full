@@ -137,7 +137,7 @@ export default function CompanyForm({ companyUuid, mode }: CompanyFormProps) {
                         ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                         : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
                         }`}
-                     placeholder="Ex. CMP-002"
+                     placeholder="Ex. KTR-7F3QX2"
                   />
                   {fieldErrors.code && (
                      <div className="mt-1 text-sm text-red-600">
