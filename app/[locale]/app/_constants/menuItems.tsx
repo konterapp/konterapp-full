@@ -241,6 +241,13 @@ export const allMenuItems: MenuItem[] = [
     // Pengaturan
     {
         section: 'Pengaturan',
+        label: 'User',
+        href: '/app/users',
+        icon: <UserRound className="w-5 h-5" />,
+        permission: 'user.index'
+    },
+    {
+        section: 'Pengaturan',
         label: 'Role',
         href: '/app/roles',
         icon: <Shield className="w-5 h-5" />,
