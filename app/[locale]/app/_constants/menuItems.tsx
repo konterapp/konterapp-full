@@ -22,6 +22,7 @@ import {
     ScanLine,
     FileSearch,
     CircleDollarSign,
+    Shield,
 } from 'lucide-react';
 
 export type MenuSection =
@@ -29,7 +30,8 @@ export type MenuSection =
     | 'Master Data'
     | 'Inventori & Keuangan'
     | 'Laporan'
-    | 'PPOB';
+    | 'PPOB'
+    | 'Pengaturan';
 
 export interface SubMenuItem {
     key?: string;
@@ -234,5 +236,14 @@ export const allMenuItems: MenuItem[] = [
         href: '/app/pos/ppob/products',
         icon: <Package className="w-5 h-5" />,
         permission: 'pos.ppob.index'
+    },
+
+    // Pengaturan
+    {
+        section: 'Pengaturan',
+        label: 'Role',
+        href: '/app/roles',
+        icon: <Shield className="w-5 h-5" />,
+        permission: 'role.index'
     },
 ];

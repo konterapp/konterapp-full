@@ -202,4 +202,16 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/pos/branches/:id/edit',
     permission: 'pos.branch.update',
   },
+  'role.index': {
+    path: '/app/roles',
+    permission: 'role.index',
+  },
+  'role.create': {
+    path: '/app/roles/create',
+    permission: 'role.create',
+  },
+  'role.edit': {
+    path: '/app/roles/:id/edit',
+    permission: 'role.update',
+  },
 };
