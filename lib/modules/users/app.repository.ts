@@ -53,9 +53,9 @@ export const appUserRepository = {
     });
   },
 
-  async findRolesByUuids(companyUuid: string, uuids: string[]) {
-    return prisma.role.findMany({
-      where: { companyUuid, uuid: { in: uuids } },
+  async findRoleByUuid(companyUuid: string, uuid: string) {
+    return prisma.role.findFirst({
+      where: { companyUuid, uuid },
     });
   },
 
@@ -65,18 +65,6 @@ export const appUserRepository = {
       select: { uuid: true, name: true },
       orderBy: { name: "asc" },
     });
-  },
-
-  async hasAdminRole(companyUuid: string, userId: number) {
-    const count = await prisma.modelHasRole.count({
-      where: {
-        modelId: userId,
-        modelType: MODEL_TYPE_USER,
-        companyUuid,
-        role: { name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
-      },
-    });
-    return count > 0;
   },
 
   async countAdmins(companyUuid: string, excludeUserId?: number) {
@@ -93,9 +81,9 @@ export const appUserRepository = {
   async createMember(payload: {
     companyUuid: string;
     userData: { uuid: string; name: string; email: string; password: string; isActive: boolean };
-    roleIds: number[];
+    roleId: number;
   }) {
-    const { companyUuid, userData, roleIds } = payload;
+    const { companyUuid, userData, roleId } = payload;
 
     return prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({ data: userData });
@@ -111,11 +99,9 @@ export const appUserRepository = {
         },
       });
 
-      for (const roleId of roleIds) {
-        await tx.modelHasRole.create({
-          data: { roleId, modelType: MODEL_TYPE_USER, modelId: newUser.id, companyUuid },
-        });
-      }
+      await tx.modelHasRole.create({
+        data: { roleId, modelType: MODEL_TYPE_USER, modelId: newUser.id, companyUuid },
+      });
 
       return newUser;
     });
@@ -125,16 +111,14 @@ export const appUserRepository = {
     return prisma.user.update({ where: { id: userId }, data: userData });
   },
 
-  async replaceCompanyRoles(companyUuid: string, userId: number, roleIds: number[]) {
+  async replaceCompanyRole(companyUuid: string, userId: number, roleId: number) {
     await prisma.modelHasRole.deleteMany({
       where: { modelId: userId, modelType: MODEL_TYPE_USER, companyUuid },
     });
 
-    for (const roleId of roleIds) {
-      await prisma.modelHasRole.create({
-        data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
-      });
-    }
+    await prisma.modelHasRole.create({
+      data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
+    });
   },
 
   async removeFromCompany(companyUuid: string, userId: number) {

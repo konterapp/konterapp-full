@@ -62,7 +62,7 @@ export const appUserService = {
 
   async createUser(
     companyUuid: string,
-    payload: { name: string; email: string; password: string; role_uuids: string[] }
+    payload: { name: string; email: string; password: string; role_uuid: string }
   ) {
     const normalizedEmail = payload.email.trim().toLowerCase();
 
@@ -71,7 +71,7 @@ export const appUserService = {
       throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
     }
 
-    const roles = await this.resolveRoles(companyUuid, payload.role_uuids);
+    const role = await this.resolveRole(companyUuid, payload.role_uuid);
 
     const hashedPassword = await hash(payload.password, 10);
 
@@ -84,7 +84,7 @@ export const appUserService = {
         password: hashedPassword,
         isActive: true,
       },
-      roleIds: roles.map((role) => role.id),
+      roleId: role.id,
     });
 
     return this.getUserDetail(companyUuid, created.uuid);
@@ -97,7 +97,7 @@ export const appUserService = {
       name?: string;
       email?: string;
       password?: string;
-      role_uuids?: string[];
+      role_uuid?: string;
       is_active?: boolean;
     },
     currentUserId: number
@@ -130,12 +130,12 @@ export const appUserService = {
       (assignment: any) => assignment.role.name === TENANT_DEFAULT_ROLE_ADMINISTRATOR
     );
 
-    let roleIds: number[] | null = null;
+    let roleId: number | null = null;
     let losesAdmin = false;
-    if (payload.role_uuids !== undefined) {
-      const roles = await this.resolveRoles(companyUuid, payload.role_uuids);
-      roleIds = roles.map((role) => role.id);
-      losesAdmin = hasCurrentAdminRole && !roles.some((role) => role.name === TENANT_DEFAULT_ROLE_ADMINISTRATOR);
+    if (payload.role_uuid !== undefined) {
+      const role = await this.resolveRole(companyUuid, payload.role_uuid);
+      roleId = role.id;
+      losesAdmin = hasCurrentAdminRole && role.name !== TENANT_DEFAULT_ROLE_ADMINISTRATOR;
     }
 
     const deactivating = payload.is_active === false && user.isActive;
@@ -154,8 +154,8 @@ export const appUserService = {
       await appUserRepository.updateUserData(user.id, userData);
     }
 
-    if (roleIds !== null) {
-      await appUserRepository.replaceCompanyRoles(companyUuid, user.id, roleIds);
+    if (roleId !== null) {
+      await appUserRepository.replaceCompanyRole(companyUuid, user.id, roleId);
     }
 
     return this.getUserDetail(companyUuid, uuid);
@@ -183,12 +183,11 @@ export const appUserService = {
     await appUserRepository.removeFromCompany(companyUuid, user.id);
   },
 
-  async resolveRoles(companyUuid: string, roleUuids: string[]) {
-    const uniqueUuids = [...new Set(roleUuids)];
-    const roles = await appUserRepository.findRolesByUuids(companyUuid, uniqueUuids);
-    if (roles.length !== uniqueUuids.length || roles.length === 0) {
-      throw new ValidationApiError({ role_uuids: ["Role tidak valid untuk perusahaan ini"] });
+  async resolveRole(companyUuid: string, roleUuid: string) {
+    const role = await appUserRepository.findRoleByUuid(companyUuid, roleUuid);
+    if (!role) {
+      throw new ValidationApiError({ role_uuid: ["Role tidak valid untuk perusahaan ini"] });
     }
-    return roles;
+    return role;
   },
 };

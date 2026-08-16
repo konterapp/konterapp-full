@@ -16,7 +16,7 @@ interface UserFormData {
   name: string;
   email: string;
   password: string;
-  roleUuids: string[];
+  roleUuid: string;
   isActive: boolean;
 }
 
@@ -37,7 +37,7 @@ export default function UserForm({ userId, mode }: UserFormProps) {
     name: '',
     email: '',
     password: '',
-    roleUuids: [],
+    roleUuid: '',
     isActive: true,
   });
 
@@ -73,7 +73,7 @@ export default function UserForm({ userId, mode }: UserFormProps) {
           name: result.data.name,
           email: result.data.email,
           password: '',
-          roleUuids: (result.data.roles || []).map((r: { uuid: string }) => r.uuid),
+          roleUuid: result.data.roles?.[0]?.uuid || '',
           isActive: result.data.is_active ?? true,
         });
       } else {
@@ -103,13 +103,19 @@ export default function UserForm({ userId, mode }: UserFormProps) {
     }
   };
 
-  const toggleRole = (uuid: string) => {
+  const selectRole = (uuid: string) => {
     setFormData(prev => ({
       ...prev,
-      roleUuids: prev.roleUuids.includes(uuid)
-        ? prev.roleUuids.filter(id => id !== uuid)
-        : [...prev.roleUuids, uuid],
+      roleUuid: uuid,
     }));
+
+    if (fieldErrors.role_uuid) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.role_uuid;
+        return newErrors;
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,9 +124,9 @@ export default function UserForm({ userId, mode }: UserFormProps) {
     setError('');
     setFieldErrors({});
 
-    if (formData.roleUuids.length === 0) {
-      setFieldErrors({ role_uuids: ['Pilih minimal satu role'] });
-      toast.error('Pilih minimal satu role');
+    if (!formData.roleUuid) {
+      setFieldErrors({ role_uuid: ['Pilih salah satu role'] });
+      toast.error('Pilih salah satu role');
       return;
     }
 
@@ -133,7 +139,7 @@ export default function UserForm({ userId, mode }: UserFormProps) {
       const payload: Record<string, unknown> = {
         name: formData.name,
         email: formData.email,
-        role_uuids: formData.roleUuids,
+        role_uuid: formData.roleUuid,
       };
 
       if (mode === 'edit') {
@@ -293,14 +299,14 @@ export default function UserForm({ userId, mode }: UserFormProps) {
             Role <span className="text-red-500">*</span>
           </label>
           <p className="text-xs text-gray-500 mb-4">
-            Pilih satu atau lebih role untuk user ini.
+            Pilih satu role untuk user ini.
           </p>
-          {fieldErrors.role_uuids && (
-            <div className="mt-1 mb-2 text-sm text-red-600">{fieldErrors.role_uuids[0]}</div>
+          {fieldErrors.role_uuid && (
+            <div className="mt-1 mb-2 text-sm text-red-600">{fieldErrors.role_uuid[0]}</div>
           )}
           <div className="flex flex-wrap gap-3">
             {roles.map(role => {
-              const selected = formData.roleUuids.includes(role.uuid);
+              const selected = formData.roleUuid === role.uuid;
               return (
                 <label
                   key={role.uuid}
@@ -311,9 +317,10 @@ export default function UserForm({ userId, mode }: UserFormProps) {
                   }`}
                 >
                   <input
-                    type="checkbox"
+                    type="radio"
+                    name="role_uuid"
                     checked={selected}
-                    onChange={() => toggleRole(role.uuid)}
+                    onChange={() => selectRole(role.uuid)}
                     className="w-4 h-4 cursor-pointer"
                   />
                   {role.name}
