@@ -34,3 +34,25 @@ export function formatInvoice(invoice: any) {
     created_at: invoice.createdAt,
   };
 }
+
+export function formatAdminInvoice(invoice: any) {
+  return {
+    uuid: invoice.uuid,
+    provider: invoice.provider,
+    provider_invoice_id: invoice.providerInvoiceId,
+    provider_transaction_id: invoice.providerTransactionId,
+    company: {
+      uuid: invoice.company?.uuid,
+      code: invoice.company?.code,
+      name: invoice.company?.name,
+    },
+    plan: formatPlan(invoice.plan),
+    amount: Number(invoice.amount),
+    status: invoice.status,
+    payment_link: invoice.paymentLink,
+    paid_at: invoice.paidAt,
+    expired_at: invoice.expiredAt,
+    created_at: invoice.createdAt,
+    updated_at: invoice.updatedAt,
+  };
+}

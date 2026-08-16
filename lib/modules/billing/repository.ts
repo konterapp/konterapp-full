@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const billingRepository = {
@@ -55,6 +56,33 @@ export const billingRepository = {
     expiredAt?: Date | null;
   }) {
     return prisma.subscriptionInvoice.create({ data, include: { plan: true } });
+  },
+
+  async listInvoices(params: {
+    where: Prisma.SubscriptionInvoiceWhereInput;
+    orderBy: Prisma.SubscriptionInvoiceOrderByWithRelationInput;
+    skip: number;
+    take: number;
+  }) {
+    const { where, orderBy, skip, take } = params;
+    return prisma.subscriptionInvoice.findMany({
+      where,
+      include: { company: true, plan: true },
+      orderBy,
+      skip,
+      take,
+    });
+  },
+
+  async countInvoices(where: Prisma.SubscriptionInvoiceWhereInput) {
+    return prisma.subscriptionInvoice.count({ where });
+  },
+
+  async findInvoiceByUuid(uuid: string) {
+    return prisma.subscriptionInvoice.findUnique({
+      where: { uuid },
+      include: { company: true, plan: true },
+    });
   },
 
   async findInvoiceByProviderInvoiceId(providerInvoiceId: string) {
