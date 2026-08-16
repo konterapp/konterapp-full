@@ -30,7 +30,7 @@ export const PUT = withPermission(
     const result = validateSchema(updateBranchSchema, body);
     if (!('data' in result)) return result;
 
-    const branch = await posBranchService.updateBranch(uuid, result.data);
+    const branch = await posBranchService.updateBranch(uuid, context.companyUuid, result.data);
     return successResponse('Branch updated successfully', branch);
   })
 );

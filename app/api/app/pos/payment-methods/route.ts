@@ -32,7 +32,7 @@ export const GET = withPermission(
 
 export const POST = withPermission(
   'pos.payment-method.create',
-  withApiErrorHandling(async (req: NextRequest) => {
+  withApiErrorHandling(async (req: NextRequest, context) => {
     const rawBody = await req.json();
     const body = {
       ...rawBody,
@@ -44,7 +44,7 @@ export const POST = withPermission(
     const result = validateSchema(createPaymentMethodSchema, body);
     if (!('data' in result)) return result;
 
-    const paymentMethod = await posPaymentMethodService.createPaymentMethod(result.data);
+    const paymentMethod = await posPaymentMethodService.createPaymentMethod(context.companyUuid, result.data);
     return successResponse('Payment method created successfully', paymentMethod);
   })
 );

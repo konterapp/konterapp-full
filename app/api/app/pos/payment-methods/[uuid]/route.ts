@@ -30,7 +30,7 @@ export const PUT = withPermission(
     const result = validateSchema(updatePaymentMethodSchema, body);
     if (!('data' in result)) return result;
 
-    const paymentMethod = await posPaymentMethodService.updatePaymentMethod(uuid, result.data);
+    const paymentMethod = await posPaymentMethodService.updatePaymentMethod(uuid, context.companyUuid, result.data);
     return successResponse('Payment method updated successfully', paymentMethod);
   })
 );

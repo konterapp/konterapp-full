@@ -17,11 +17,17 @@
 -- AlterTable
 ALTER TABLE "app_pos_branches" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
+-- DropIndex
+DROP INDEX IF EXISTS "app_pos_branches_code_key";
+
 -- AlterTable
 ALTER TABLE "app_pos_customers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
 ALTER TABLE "app_pos_payment_methods" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- DropIndex
+DROP INDEX IF EXISTS "app_pos_payment_methods_code_key";
 
 -- AlterTable
 ALTER TABLE "app_pos_ppob_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
@@ -86,10 +92,16 @@ CREATE UNIQUE INDEX "company_users_company_uuid_user_id_key" ON "company_users"(
 CREATE INDEX "app_pos_branches_company_uuid_idx" ON "app_pos_branches"("company_uuid");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "app_pos_branches_company_uuid_code_key" ON "app_pos_branches"("company_uuid", "code");
+
+-- CreateIndex
 CREATE INDEX "app_pos_customers_company_uuid_idx" ON "app_pos_customers"("company_uuid");
 
 -- CreateIndex
 CREATE INDEX "app_pos_payment_methods_company_uuid_idx" ON "app_pos_payment_methods"("company_uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "app_pos_payment_methods_company_uuid_code_key" ON "app_pos_payment_methods"("company_uuid", "code");
 
 -- CreateIndex
 CREATE INDEX "app_pos_ppob_products_company_uuid_idx" ON "app_pos_ppob_products"("company_uuid");

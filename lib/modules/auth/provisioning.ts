@@ -6,9 +6,43 @@ import {
   seedTenantDefaultRoles,
   TENANT_DEFAULT_ROLE_ADMINISTRATOR,
 } from "@/lib/modules/roles/templates";
-import { FREE_TRIAL_PLAN_CODE } from "@/lib/modules/billing/constants";
+import { FREE_PLAN_CODE } from "@/lib/modules/billing/constants";
+import { generateReferralCode } from "@/lib/modules/referral/constants";
 
 const MODEL_TYPE_USER = "App\\Models\\User";
+
+const TENANT_DEFAULT_PAYMENT_METHODS = [
+  { code: "CASH", name: "Tunai", type: "cash" },
+  { code: "BCA", name: "Transfer BCA", type: "bank" },
+  { code: "QRIS", name: "QRIS", type: "qris" },
+  { code: "GOPAY", name: "GoPay", type: "e_wallet" },
+];
+
+async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: string) {
+  await tx.appPosBranch.create({
+    data: {
+      uuid: uuidv7(),
+      companyUuid,
+      code: "MAIN",
+      name: "Kantor Pusat",
+      isMain: true,
+      isActive: true,
+    },
+  });
+
+  for (const pm of TENANT_DEFAULT_PAYMENT_METHODS) {
+    await tx.appPosPaymentMethod.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        code: pm.code,
+        name: pm.name,
+        type: pm.type,
+        isActive: true,
+      },
+    });
+  }
+}
 
 // Alphabet tanpa karakter ambigu (0/O, 1/I/L) supaya kode mudah dibaca
 // dan disebarkan via telepon/chat.
@@ -66,6 +100,7 @@ export async function provisionCompanyForUser(params: {
     const company = await createCompanyWithUniqueCode(tx, companyName);
 
     await seedTenantDefaultRoles(tx, company.uuid);
+    await seedTenantDefaults(tx, company.uuid);
 
     const adminRole = await tx.role.findFirst({
       where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
@@ -94,20 +129,18 @@ export async function provisionCompanyForUser(params: {
     });
 
     const trialPlan = await tx.plan.findUnique({
-      where: { code: FREE_TRIAL_PLAN_CODE },
+      where: { code: FREE_PLAN_CODE },
     });
     if (trialPlan) {
       const startedAt = new Date();
-      const expiresAt = new Date(startedAt);
-      expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
-
       await tx.companySubscription.create({
         data: {
           companyUuid: company.uuid,
           planUuid: trialPlan.uuid,
-          status: "trial",
+          status: "active",
           startedAt,
-          expiresAt,
+          // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
+          expiresAt: null,
         },
       });
     }
@@ -126,16 +159,18 @@ export async function provisionTenantUser(params: {
   email: string;
   passwordHash: string;
   companyName?: string;
+  referredByUserId?: number;
 }): Promise<{
   user: { id: number; uuid: string; name: string; email: string };
   company: { uuid: string; code: string; name: string };
 }> {
-  const { name, email, passwordHash, companyName } = params;
+  const { name, email, passwordHash, companyName, referredByUserId } = params;
 
   return (prisma as unknown as PrismaClient).$transaction(async (tx) => {
     const company = await createCompanyWithUniqueCode(tx, companyName || `Konter ${name}`);
 
     await seedTenantDefaultRoles(tx, company.uuid);
+    await seedTenantDefaults(tx, company.uuid);
 
     const adminRole = await tx.role.findFirst({
       where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
@@ -145,6 +180,23 @@ export async function provisionTenantUser(params: {
       throw new Error("Role administrator tenant tidak ditemukan");
     }
 
+    // Generate kode referral unik untuk user baru (retry jika tabrakan).
+    let referralCode: string | undefined;
+    for (let i = 0; i < 10; i++) {
+      const candidate = generateReferralCode();
+      const exists = await tx.user.findUnique({
+        where: { referralCode: candidate },
+        select: { id: true },
+      });
+      if (!exists) {
+        referralCode = candidate;
+        break;
+      }
+    }
+    if (!referralCode) {
+      throw new Error("Gagal membuat kode referral unik");
+    }
+
     const user = await tx.user.create({
       data: {
         uuid: uuidv7(),
@@ -152,6 +204,8 @@ export async function provisionTenantUser(params: {
         email,
         password: passwordHash,
         isActive: true,
+        referralCode,
+        referredByUserId: referredByUserId ?? undefined,
         // Registrasi password: wajib verifikasi email sebelum bisa login.
         emailVerifiedAt: null,
       },
@@ -182,20 +236,18 @@ export async function provisionTenantUser(params: {
     });
 
     const trialPlan = await tx.plan.findUnique({
-      where: { code: FREE_TRIAL_PLAN_CODE },
+      where: { code: FREE_PLAN_CODE },
     });
     if (trialPlan) {
       const startedAt = new Date();
-      const expiresAt = new Date(startedAt);
-      expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
-
       await tx.companySubscription.create({
         data: {
           companyUuid: company.uuid,
           planUuid: trialPlan.uuid,
-          status: "trial",
+          status: "active",
           startedAt,
-          expiresAt,
+          // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
+          expiresAt: null,
         },
       });
     }

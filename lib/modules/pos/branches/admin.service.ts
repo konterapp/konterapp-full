@@ -1,6 +1,7 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posBranchRepository } from './repository';
 import { mapBranch, mapBranchListSimple } from './branch.mapper';
+import { assertBranchLimit } from '@/lib/modules/billing/plan-limits';
 
 export const posBranchService = {
   async listBranches(params: {
@@ -55,25 +56,32 @@ export const posBranchService = {
     return mapBranch(branch);
   },
 
-  async createBranch(payload: {
-    code: string;
-    name: string;
-    address?: string | null;
-    phone?: string | null;
-    email?: string | null;
-    isActive?: boolean;
-    isMain?: boolean;
-  }) {
-    const existing = await posBranchRepository.findByCode(payload.code);
+  async createBranch(
+    companyUuid: string,
+    payload: {
+      code: string;
+      name: string;
+      address?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      isActive?: boolean;
+      isMain?: boolean;
+    }
+  ) {
+    const existing = await posBranchRepository.findByCode(companyUuid, payload.code);
     if (existing) {
       throw new ValidationApiError({ code: ['Kode cabang sudah digunakan'] });
     }
+
+    const branchCount = await posBranchRepository.count({ companyUuid });
+    await assertBranchLimit(companyUuid, branchCount);
 
     if (payload.isMain) {
       await posBranchRepository.unsetOtherMainBranches();
     }
 
     const branch = await posBranchRepository.create({
+      companyUuid,
       code: payload.code,
       name: payload.name,
       address: payload.address || null,
@@ -87,6 +95,7 @@ export const posBranchService = {
 
   async updateBranch(
     uuid: string,
+    companyUuid: string,
     payload: {
       code?: string;
       name?: string;
@@ -103,7 +112,7 @@ export const posBranchService = {
     }
 
     if (payload.code && payload.code !== existing.code) {
-      const codeExists = await posBranchRepository.findByCode(payload.code);
+      const codeExists = await posBranchRepository.findByCode(companyUuid, payload.code);
       if (codeExists) {
         throw new ValidationApiError({ code: ['Kode cabang sudah digunakan'] });
       }

@@ -19,11 +19,12 @@ export const posBranchRepository = {
     return prisma.appPosBranch.findFirst({ where: { uuid } });
   },
 
-  findByCode(code: string) {
-    return prisma.appPosBranch.findUnique({ where: { code } });
+  findByCode(companyUuid: string, code: string) {
+    return prisma.appPosBranch.findFirst({ where: { companyUuid, code } });
   },
 
   create(data: {
+    companyUuid: string;
     code: string;
     name: string;
     address: string | null;

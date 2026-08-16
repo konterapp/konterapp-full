@@ -14,11 +14,12 @@ export const posPaymentMethodRepository = {
     return prisma.appPosPaymentMethod.findFirst({ where: { uuid } });
   },
 
-  findByCode(code: string) {
-    return prisma.appPosPaymentMethod.findUnique({ where: { code } });
+  findByCode(companyUuid: string, code: string) {
+    return prisma.appPosPaymentMethod.findFirst({ where: { companyUuid, code } });
   },
 
   create(data: {
+    companyUuid: string;
     code: string;
     name: string;
     type: string;

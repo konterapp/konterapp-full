@@ -67,21 +67,25 @@ export const posPaymentMethodService = {
     return mapPaymentMethod(paymentMethod);
   },
 
-  async createPaymentMethod(payload: {
-    code: string;
-    name: string;
-    type: string;
-    accountNumber?: string | null;
-    accountName?: string | null;
-    description?: string | null;
-    isActive?: boolean;
-  }) {
-    const existingMethod = await posPaymentMethodRepository.findByCode(payload.code);
+async createPaymentMethod(
+    companyUuid: string,
+    payload: {
+      code: string;
+      name: string;
+      type: string;
+      accountNumber?: string | null;
+      accountName?: string | null;
+      description?: string | null;
+      isActive?: boolean;
+    }
+  ) {
+    const existingMethod = await posPaymentMethodRepository.findByCode(companyUuid, payload.code);
     if (existingMethod) {
       throw new ValidationApiError({ code: ['Kode metode sudah digunakan'] });
     }
 
     const paymentMethod = await posPaymentMethodRepository.create({
+      companyUuid,
       code: payload.code,
       name: payload.name,
       type: payload.type || 'cash',
@@ -95,6 +99,7 @@ export const posPaymentMethodService = {
 
   async updatePaymentMethod(
     uuid: string,
+    companyUuid: string,
     payload: {
       code?: string;
       name?: string;
@@ -111,7 +116,7 @@ export const posPaymentMethodService = {
     }
 
     if (payload.code && payload.code !== existingMethod.code) {
-      const codeExists = await posPaymentMethodRepository.findByCode(payload.code);
+      const codeExists = await posPaymentMethodRepository.findByCode(companyUuid, payload.code);
       if (codeExists) {
         throw new ValidationApiError({ code: ['Kode metode sudah digunakan'] });
       }

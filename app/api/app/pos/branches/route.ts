@@ -28,7 +28,7 @@ export const GET = withPermission(
 
 export const POST = withPermission(
   'pos.branch.create',
-  withApiErrorHandling(async (req: NextRequest) => {
+  withApiErrorHandling(async (req: NextRequest, context: { companyUuid: string }) => {
     const rawBody = await req.json();
     const body = {
       ...rawBody,
@@ -39,7 +39,7 @@ export const POST = withPermission(
     const result = validateSchema(createBranchSchema, body);
     if (!('data' in result)) return result;
 
-    const branch = await posBranchService.createBranch(result.data);
+    const branch = await posBranchService.createBranch(context.companyUuid, result.data);
     return successResponse('Branch created successfully', branch);
   })
 );
