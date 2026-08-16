@@ -31,17 +31,6 @@ CREATE TABLE "administrators" (
 );
 
 -- CreateTable
-CREATE TABLE "user_profiles" (
-    "id" SERIAL NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "deleted_at" TIMESTAMP(3),
-    "user_id" INTEGER NOT NULL,
-
-    CONSTRAINT "user_profiles_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "roles" (
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
@@ -428,9 +417,6 @@ CREATE UNIQUE INDEX "administrators_uuid_key" ON "administrators"("uuid");
 CREATE UNIQUE INDEX "administrators_email_key" ON "administrators"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "user_profiles_user_id_key" ON "user_profiles"("user_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "roles_name_guard_name_key" ON "roles"("name", "guard_name");
 
 -- CreateIndex
@@ -537,9 +523,6 @@ CREATE INDEX "app_pos_ppob_transactions_status_idx" ON "app_pos_ppob_transaction
 
 -- CreateIndex
 CREATE INDEX "app_pos_ppob_transactions_created_at_idx" ON "app_pos_ppob_transactions"("created_at");
-
--- AddForeignKey
-ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "model_has_roles" ADD CONSTRAINT "model_has_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;

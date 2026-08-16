@@ -21,7 +21,6 @@ model User {
   password        String    @db.VarChar(255)
   rememberToken   String?   @map("remember_token") @db.VarChar(100)
 
-  profile             UserProfile?
   modelHasRoles       ModelHasRole[]
   companyMemberships  CompanyUser[]
   berita              Berita[]
@@ -149,18 +148,6 @@ model SubscriptionInvoice {
   @@index([companyUuid])
   @@index([status])
   @@map("subscription_invoices")
-}
-
-model UserProfile {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-  userId    Int       @unique @map("user_id")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_profiles")
 }
 
 model Role {

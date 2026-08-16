@@ -29,7 +29,6 @@ export const POST = withAuth(async (req, context) => {
     // Find target user
     const targetUser = await prisma.user.findFirst({
       where: { id: targetId, deletedAt: null },
-      include: { profile: true },
     });
 
     if (!targetUser) {

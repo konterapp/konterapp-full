@@ -88,7 +88,7 @@ export const userService = {
 
     const hashedPassword = await hash(payload.password, 10);
 
-    const user = await userRepository.createWithProfileAndRole({
+    const user = await userRepository.createWithRole({
       userData: {
         uuid: uuidv7(),
         name: payload.name,
@@ -96,7 +96,6 @@ export const userService = {
         password: hashedPassword,
         isActive: true,
       },
-      profileData: {},
       roleId: role.id,
       companyUuid,
     });
@@ -129,13 +128,10 @@ export const userService = {
       userData.password = await hash(payload.password, 10);
     }
 
-    const profileData: Record<string, unknown> = {};
-
-    const updated = await userRepository.updateWithProfileAndRole({
+    const updated = await userRepository.updateWithRole({
       userId: user.id,
       roleId: role.id,
       userData,
-      profileData,
     });
 
     return formatUser(updated);

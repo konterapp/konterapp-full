@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
 const userInclude = {
-  profile: true,
   modelHasRoles: { include: { role: true } },
   companyMemberships: { include: { company: true } },
 } as const;
@@ -31,7 +30,6 @@ export const userRepository = {
   async findByUuidBasic(uuid: string) {
     return prisma.user.findFirst({
       where: { uuid, deletedAt: null },
-      include: { profile: true },
     });
   },
 
@@ -56,23 +54,15 @@ export const userRepository = {
     });
   },
 
-  async createWithProfileAndRole(payload: {
+  async createWithRole(payload: {
     userData: { uuid: string; name: string; email: string; password: string; isActive: boolean };
-    profileData: any;
     roleId: number;
     companyUuid: string;
   }) {
-    const { userData, profileData, roleId, companyUuid } = payload;
+    const { userData, roleId, companyUuid } = payload;
 
     return prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({ data: userData });
-
-      await tx.userProfile.create({
-        data: {
-          userId: newUser.id,
-          ...profileData,
-        },
-      });
 
       await tx.modelHasRole.create({
         data: {
@@ -98,13 +88,12 @@ export const userRepository = {
     });
   },
 
-  async updateWithProfileAndRole(payload: {
+  async updateWithRole(payload: {
     userId: number;
     roleId: number;
     userData: Record<string, unknown>;
-    profileData: Record<string, unknown>;
   }) {
-    const { userId, roleId, userData, profileData } = payload;
+    const { userId, roleId, userData } = payload;
 
     return prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id: userId }, data: userData });
@@ -119,12 +108,6 @@ export const userRepository = {
           modelType: "App\\Models\\User",
           modelId: userId,
         },
-      });
-
-      await tx.userProfile.upsert({
-        where: { userId },
-        update: profileData,
-        create: { userId, ...profileData },
       });
 
       return tx.user.findUnique({
