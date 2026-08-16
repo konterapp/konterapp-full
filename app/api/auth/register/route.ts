@@ -6,6 +6,7 @@ import { errorResponse, successResponse } from "@/lib/response";
 import { validateSchema } from "@/lib/validation";
 import { registerSchema } from "@/lib/validations/auth";
 import { provisionTenantUser } from "@/lib/modules/auth/provisioning";
+import { emailVerificationService } from "@/lib/modules/auth/verification";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,15 +34,24 @@ export async function POST(req: NextRequest) {
     // Registrasi = membuat tenant (company) baru milik user tersebut,
     // lengkap dengan role default, subscription free trial, dan user
     // sebagai administrator tenant.
-    const { user, company } = await provisionTenantUser({
+    const { user } = await provisionTenantUser({
       name: normalizedName,
       email: normalizedEmail,
       passwordHash: hashedPassword,
       companyName,
     });
 
+    // Kirim email verifikasi (di dev tanpa SMTP, link dilog ke console).
+    // Gagal kirim tidak membatalkan registrasi -- user bisa minta kirim ulang
+    // dari halaman login.
+    try {
+      await emailVerificationService.sendForUser(user.id);
+    } catch (error) {
+      console.error("Gagal kirim email verifikasi:", error);
+    }
+
     return successResponse(
-      `Registrasi berhasil, silakan login. Perusahaan ${company.name} siap digunakan.`,
+      `Registrasi berhasil. Email verifikasi telah dikirim ke ${normalizedEmail}, silakan verifikasi sebelum login.`,
       { user },
       201
     );

@@ -6,6 +6,7 @@ export interface User {
   name: string;
   email: string;
   is_active?: boolean;
+  email_verified_at?: string | null;
   roles?: string[];
   permissions?: string[];
   companies?: { uuid: string; code: string; name: string; is_default: boolean }[];

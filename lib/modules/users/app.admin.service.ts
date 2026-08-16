@@ -4,6 +4,7 @@ import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { appUserRepository } from "./app.repository";
 import { mapAppUser } from "./app.user.mapper";
 import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "@/lib/modules/roles/templates";
+import { emailVerificationService } from "@/lib/modules/auth/verification";
 
 export interface AppUserListParams {
   page: number;
@@ -83,10 +84,18 @@ export const appUserService = {
         email: normalizedEmail,
         password: hashedPassword,
         isActive: true,
-        emailVerifiedAt: new Date(),
+        // User buatan tenant wajib verifikasi email sebelum login.
+        emailVerifiedAt: null,
       },
       roleId: role.id,
     });
+
+    // Kirim email verifikasi; gagal kirim tidak membatalkan pembuatan user.
+    try {
+      await emailVerificationService.sendForUser(created.id);
+    } catch (error) {
+      console.error("Gagal kirim email verifikasi:", error);
+    }
 
     return this.getUserDetail(companyUuid, created.uuid);
   },

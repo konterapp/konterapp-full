@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter, Link } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
-import { login } from '@/lib/api/auth';
+import { login, resendVerification } from '@/lib/api/auth';
 import { signIn } from 'next-auth/react';
-import { CheckCircle2, Eye, EyeOff, Zap } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, Zap, RefreshCw } from 'lucide-react';
 
 function GoogleIcon() {
   return (
@@ -36,6 +36,9 @@ export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isEmailUnverified, setIsEmailUnverified] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
   const [recaptchaChecked, setRecaptchaChecked] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -50,6 +53,8 @@ export default function LoginClient() {
     }
 
     setIsLoading(true);
+    setIsEmailUnverified(false);
+    setResendMessage('');
 
     try {
       const response = await login(email, password);
@@ -67,9 +72,9 @@ export default function LoginClient() {
           return;
         }
 
-        // Intent pilih paket Tahunan dari landing → langsung ke halaman langganan
+        // Intent pilih paket Tahunan dari landing → langsung ke halaman upgrade
         if (!redirectParam && searchParams.get('plan') === 'yearly') {
-          router.push('/app/billing?upgrade=yearly');
+          router.push('/app/billing/upgrade');
           return;
         }
 
@@ -77,11 +82,26 @@ export default function LoginClient() {
         router.push(redirectParam || '/app');
       } else {
         setError(response.message || 'Email atau password salah');
+        const errorCode = (response.errors as Record<string, string[]> | undefined)?.error_code?.[0];
+        setIsEmailUnverified(errorCode === 'EMAIL_NOT_VERIFIED');
       }
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setResendMessage('');
+    try {
+      const response = await resendVerification(email);
+      setResendMessage(response.message || 'Email verifikasi dikirim');
+    } catch {
+      setResendMessage('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -154,6 +174,23 @@ export default function LoginClient() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {error}
+              </div>
+            )}
+
+            {isEmailUnverified && (
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={isResending || !email}
+                  className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-bold text-[#142D52] bg-white border border-gray-300 hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer text-sm"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isResending ? 'animate-spin' : ''}`} />
+                  {isResending ? 'Mengirim...' : 'Kirim Ulang Email Verifikasi'}
+                </button>
+                {resendMessage && (
+                  <p className="text-xs text-gray-500 text-center">{resendMessage}</p>
+                )}
               </div>
             )}
 

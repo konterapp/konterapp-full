@@ -4,6 +4,7 @@ import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { getUserPermissions } from "@/lib/permissions";
 import { formatUser } from "./user.mapper";
 import { userRepository } from "./repository";
+import { emailVerificationService } from "@/lib/modules/auth/verification";
 
 function getSortConfig(sortBy: string, sortOrder: string) {
   const allowedSorts = ["id", "name", "email", "created_at"];
@@ -98,11 +99,25 @@ export const userService = {
         email: payload.email,
         password: hashedPassword,
         isActive: true,
-        emailVerifiedAt: new Date(),
+        // User buatan administrator wajib verifikasi email sebelum login.
+        emailVerifiedAt: null,
       },
       roleId: role.id,
       companyUuid,
     });
+
+    // Kirim email verifikasi; gagal kirim tidak membatalkan pembuatan user.
+    if (user) {
+      try {
+        await emailVerificationService.sendForUser(user.id);
+      } catch (error) {
+        console.error("Gagal kirim email verifikasi:", error);
+      }
+    }
+
+    if (!user) {
+      throw new ApiError("Gagal membuat user", 500);
+    }
 
     return formatUser(user);
   },

@@ -152,7 +152,8 @@ export async function provisionTenantUser(params: {
         email,
         password: passwordHash,
         isActive: true,
-        emailVerifiedAt: new Date(),
+        // Registrasi password: wajib verifikasi email sebelum bisa login.
+        emailVerifiedAt: null,
       },
       select: {
         id: true,

@@ -14,6 +14,7 @@ export function formatUser(user: any, permissions?: string[]) {
     name: user.name,
     email: user.email,
     is_active: user.isActive,
+    email_verified_at: user.emailVerifiedAt ?? null,
     roles,
     companies,
     created_at: user.createdAt,

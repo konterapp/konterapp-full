@@ -183,7 +183,30 @@ export default function UsersPage() {
          ),
       },
       {
-         key: 'companies',
+          key: 'email_verified',
+          label: 'Verifikasi Email',
+          sortable: false,
+          width: '10rem',
+          render: (_, row) => (
+             row.email_verified_at ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                   </svg>
+                   Terverifikasi
+                </span>
+             ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                   </svg>
+                   Belum
+                </span>
+             )
+          ),
+       },
+      {
+          key: 'companies',
          label: 'Perusahaan (Tenant)',
          sortable: false,
          width: '14rem',
