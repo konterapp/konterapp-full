@@ -6,7 +6,6 @@ import { useUser } from '@/app/[locale]/app/_context/UserContext';
 interface UsePermissionsReturn {
     permissions: string[];
     roles: string[];
-    adminScope: 'daerah' | 'nasional' | 'internasional' | 'mice' | null;
     isLoading: boolean;
     hasPermission: (permission: string) => boolean;
     hasAnyPermission: (permissions: string[]) => boolean;
@@ -14,7 +13,7 @@ interface UsePermissionsReturn {
 }
 
 export function usePermissions(): UsePermissionsReturn {
-    const { permissions, roles, adminScope, isLoading } = useUser();
+    const { permissions, roles, isLoading } = useUser();
 
     const hasPermission = useCallback((permission: string): boolean => {
         return permissions.includes(permission);
@@ -31,7 +30,6 @@ export function usePermissions(): UsePermissionsReturn {
     return {
         permissions,
         roles,
-        adminScope,
         isLoading,
         hasPermission,
         hasAnyPermission,

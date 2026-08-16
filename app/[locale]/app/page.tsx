@@ -151,7 +151,7 @@ function formatDateTime(value: string) {
 export default function DashboardPage() {
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
-  const { user, roles, permissions, adminScope, isLoading } = useUser();
+  const { user, roles, permissions, isLoading } = useUser();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
@@ -163,13 +163,12 @@ export default function DashboardPage() {
     const filtered = filterMenuByAccess(allMenuItems, {
       permissions,
       roles,
-      adminScope,
     });
 
     return filtered
       .filter((item) => !item.isPlaceholder && item.href)
       .slice(0, 10);
-  }, [permissions, roles, adminScope]);
+  }, [permissions, roles]);
 
   const loadDashboardData = useCallback(async () => {
     if (isLoading) return;

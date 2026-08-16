@@ -62,7 +62,7 @@ export default function Sidebar() {
     collapsedWidth, collapseThreshold,
     isMobileOpen, setIsMobileOpen,
   } = useSidebar();
-  const { permissions, roles, adminScope, isLoading: isLoadingPermissions } = usePermissions();
+  const { permissions, roles, isLoading: isLoadingPermissions } = usePermissions();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -146,8 +146,7 @@ export default function Sidebar() {
   // Filter menu items menggunakan helper
   const menuItems = filterMenuByAccess(allMenuItems, {
     permissions,
-    roles,
-    adminScope
+    roles
   });
   const sectionOrder: MenuSection[] = ['Operasional', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'PPOB'];
   const groupedMenuItems = sectionOrder

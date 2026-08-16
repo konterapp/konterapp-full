@@ -1,29 +1,23 @@
-import { MenuItem, SubMenuItem, AdminScope } from '@/app/[locale]/app/_constants/menuItems';
+import { MenuItem, SubMenuItem } from '@/app/[locale]/app/_constants/menuItems';
 
 interface MenuFilterOptions {
     permissions: string[];
     roles: string[];
-    adminScope: AdminScope | null;
 }
 
 /**
- * Filter menu berdasarkan permission, role, dan scope user
+ * Filter menu berdasarkan permission dan role user
  */
 export function filterMenuByAccess(
     items: MenuItem[],
     options: MenuFilterOptions
 ): MenuItem[] {
-    const { permissions, roles, adminScope } = options;
+    const { permissions, roles } = options;
 
     return items
         .map(item => {
             // Check role requirement
             if (item.roleRequired && !hasRole(roles, item.roleRequired)) {
-                return null;
-            }
-
-            // Check scope requirement
-            if (item.scopeRequired && !hasScope(adminScope, item.scopeRequired)) {
                 return null;
             }
 
@@ -54,12 +48,11 @@ function filterSubmenu(
     submenu: SubMenuItem[],
     options: MenuFilterOptions
 ): SubMenuItem[] {
-    const { permissions, roles, adminScope } = options;
+    const { permissions, roles } = options;
 
     return submenu.filter(sub => {
         if (sub.roleRequired && !hasRole(roles, sub.roleRequired)) return false;
         if (sub.excludeRole && hasRole(roles, sub.excludeRole)) return false;
-        if (sub.scopeRequired && !hasScope(adminScope, sub.scopeRequired)) return false;
         if (sub.permission && !hasPermission(permissions, sub.permission)) return false;
         return true;
     });
@@ -83,9 +76,4 @@ function hasPermission(userPermissions: string[], requiredPermission: string): b
         return requiredPermission.split('|').some(p => userPermissions.includes(p.trim()));
     }
     return userPermissions.includes(requiredPermission);
-}
-
-function hasScope(userScope: AdminScope | null, requiredScopes: AdminScope[]): boolean {
-    if (!userScope) return false;
-    return requiredScopes.includes(userScope);
 }

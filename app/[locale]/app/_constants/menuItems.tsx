@@ -24,7 +24,6 @@ import {
     CircleDollarSign,
 } from 'lucide-react';
 
-export type AdminScope = 'daerah' | 'nasional' | 'internasional' | 'mice';
 export type MenuSection =
     | 'Operasional'
     | 'Master Data'
@@ -41,7 +40,6 @@ export interface SubMenuItem {
     permission?: string;
     roleRequired?: string | string[];
     excludeRole?: string | string[];
-    scopeRequired?: AdminScope[];
 }
 
 export interface MenuItem {
@@ -54,7 +52,6 @@ export interface MenuItem {
     badge?: number | null;
     permission?: string;
     roleRequired?: string | string[];
-    scopeRequired?: AdminScope[];
     submenu?: SubMenuItem[];
 }
 
