@@ -4,10 +4,13 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
+import { useSearchParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api/api';
 
 export default function RegisterClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planIntent = searchParams.get('plan');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,9 +21,9 @@ export default function RegisterClient() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    company_name: '',
     password: '',
     password_confirmation: '',
-    phone: '',
   });
 
   const updateField = (field: string, value: string) => {
@@ -36,29 +39,34 @@ export default function RegisterClient() {
     setError('');
     setFieldErrors({});
 
-    try {
-      const response = await apiRequest<{ message: string }>('/api/register', {
-        method: 'POST',
-        data: formData,
-      });
-
-      if (response.status === 'success') {
-        setSuccessMessage(response.message || 'Pendaftaran berhasil! Silakan login.');
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      }
-    } catch (err: any) {
-      if (err.errors) {
-        setFieldErrors(err.errors);
-      } else if (err.message) {
-        setError(err.message);
-      } else {
-        setError('Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
+    if (formData.password !== formData.password_confirmation) {
+      setFieldErrors({ password_confirmation: ['Konfirmasi password tidak cocok'] });
       setIsLoading(false);
+      return;
     }
+
+    const response = await apiRequest<{ user: { name: string } }>('/api/auth/register', {
+      method: 'POST',
+      data: formData,
+    });
+
+    if (response.status === 'success') {
+      const isYearlyIntent = planIntent === 'yearly';
+      setSuccessMessage(
+        isYearlyIntent
+          ? 'Pendaftaran berhasil! Silakan login untuk mengaktifkan Paket Tahunan Anda.'
+          : response.message || 'Pendaftaran berhasil! Silakan login.'
+      );
+      setTimeout(() => {
+        router.push(isYearlyIntent ? '/login?plan=yearly' : '/login');
+      }, 2000);
+    } else if (response.errors && Object.keys(response.errors).length > 0) {
+      setFieldErrors(response.errors);
+    } else {
+      setError(response.message || 'Pendaftaran gagal. Silakan coba lagi.');
+    }
+
+    setIsLoading(false);
   };
 
   return (
@@ -130,21 +138,22 @@ export default function RegisterClient() {
               )}
             </div>
 
-            {/* Phone Input */}
+            {/* Company Name Input */}
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Nomor WhatsApp
+              <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nama Toko/Perusahaan <span className="text-gray-400 font-normal">(opsional)</span>
               </label>
               <input
-                type="tel"
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => updateField('phone', e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent ${fieldErrors.phone ? 'border-red-500' : 'border-gray-300'}`}
-                placeholder="081234567890"
+                type="text"
+                id="company_name"
+                value={formData.company_name}
+                onChange={(e) => updateField('company_name', e.target.value)}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent ${fieldErrors.company_name ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Toko Berkah"
               />
-              {fieldErrors.phone && (
-                <p className="mt-1 text-sm text-red-600">{fieldErrors.phone[0]}</p>
+              <p className="mt-1 text-xs text-gray-400">Perusahaan baru akan dibuat untuk Anda. Kosongkan untuk memakai nama dari nama Anda.</p>
+              {fieldErrors.company_name && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.company_name[0]}</p>
               )}
             </div>
 
