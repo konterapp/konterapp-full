@@ -22,7 +22,7 @@ export const billingTenantService = {
   async createCheckoutInvoice(companyUuid: string, userId: number) {
     const [company, user, plan] = await Promise.all([
       prisma.company.findUnique({ where: { uuid: companyUuid } }),
-      prisma.user.findUnique({ where: { id: userId }, include: { profile: true } }),
+      prisma.user.findUnique({ where: { id: userId } }),
       billingRepository.findPlanByCode(YEARLY_PLAN_CODE),
     ]);
 
@@ -44,7 +44,6 @@ export const billingTenantService = {
       grossAmount,
       customerName: user.name,
       customerEmail: user.email,
-      customerPhone: user.profile?.phone ?? undefined,
       itemName: `Paket ${plan.name} - ${company.name}`,
     });
 

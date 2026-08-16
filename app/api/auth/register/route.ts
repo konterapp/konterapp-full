@@ -68,15 +68,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await prisma.userProfile.upsert({
-      where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
-        userType: 4,
-      },
-    });
-
     await prisma.modelHasRole.upsert({
       where: {
         roleId_modelType_modelId: {

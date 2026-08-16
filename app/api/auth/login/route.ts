@@ -92,18 +92,6 @@ export async function POST(req: NextRequest) {
         permissions,
         active_company_uuid: companyContext.activeCompanyUuid,
         companies,
-        avatar_url: user.profile?.avatar ?? null,
-        profile: user.profile
-          ? {
-              phone_without_dc: user.profile.phoneWithoutDc,
-              dc: user.profile.dc,
-              iso: user.profile.iso,
-              title: user.profile.title,
-              company: user.profile.company,
-              work_unit: user.profile.workUnit,
-              admin_scope: user.profile.adminScope,
-            }
-          : null,
       },
     });
   } catch (error) {

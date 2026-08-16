@@ -22,15 +22,11 @@ export const PATCH = withAdministratorAuth(
 
     const contentType = req.headers.get("content-type") ?? "";
     let body: any;
-    let profilePhotoFile: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       body = Object.fromEntries(formData.entries());
-      profilePhotoFile = formData.get("profile_photo") as File | null;
       if (body.roles) body.roles = Number(body.roles);
-      if (body.province_id) body.province_id = Number(body.province_id);
-      if (body.city_id) body.city_id = Number(body.city_id);
     } else {
       body = await req.json();
     }
@@ -38,7 +34,7 @@ export const PATCH = withAdministratorAuth(
     const validated = validateSchema(updateUserSchema, body);
     if (!("data" in validated)) return validated;
 
-    const result = await userService.updateUser(uuid, validated.data, profilePhotoFile);
+    const result = await userService.updateUser(uuid, validated.data);
     return successResponse("User updated successfully", result);
   })
 );

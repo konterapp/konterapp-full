@@ -5,8 +5,6 @@ CREATE TABLE "users" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
-    "source_db" VARCHAR(50),
-    "source_id" VARCHAR(50),
     "name" VARCHAR(255) NOT NULL,
     "email" VARCHAR(255) NOT NULL,
     "email_verified_at" TIMESTAMP(3),
@@ -38,31 +36,7 @@ CREATE TABLE "user_profiles" (
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
-    "source_db" VARCHAR(50),
-    "source_id" VARCHAR(50),
     "user_id" INTEGER NOT NULL,
-    "user_type" SMALLINT,
-    "admin_scope" VARCHAR(50),
-    "country_id" INTEGER,
-    "province_id" INTEGER,
-    "city_id" INTEGER,
-    "district_id" INTEGER,
-    "village_id" INTEGER,
-    "phone" VARCHAR(20),
-    "address" TEXT,
-    "avatar" TEXT,
-    "avatar_s3_sync" BOOLEAN,
-    "title" VARCHAR(255),
-    "work_unit" VARCHAR(255),
-    "company" VARCHAR(255),
-    "phone_without_dc" VARCHAR(255),
-    "dc" VARCHAR(255),
-    "iso" VARCHAR(255),
-    "fcm" TEXT,
-    "company_logo" TEXT,
-    "company_logo_s3_sync" BOOLEAN,
-    "description" TEXT,
-    "wilayah_kode" VARCHAR(20),
 
     CONSTRAINT "user_profiles_pkey" PRIMARY KEY ("id")
 );
@@ -454,31 +428,7 @@ CREATE UNIQUE INDEX "administrators_uuid_key" ON "administrators"("uuid");
 CREATE UNIQUE INDEX "administrators_email_key" ON "administrators"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_source_db_source_id_key" ON "users"("source_db", "source_id");
-
--- CreateIndex
 CREATE UNIQUE INDEX "user_profiles_user_id_key" ON "user_profiles"("user_id");
-
--- CreateIndex
-CREATE INDEX "idx_user_profiles_country_id" ON "user_profiles"("country_id");
-
--- CreateIndex
-CREATE INDEX "idx_user_profiles_province_id" ON "user_profiles"("province_id");
-
--- CreateIndex
-CREATE INDEX "idx_user_profiles_city_id" ON "user_profiles"("city_id");
-
--- CreateIndex
-CREATE INDEX "idx_user_profiles_type_province" ON "user_profiles"("user_type", "province_id");
-
--- CreateIndex
-CREATE INDEX "idx_user_profiles_province_type" ON "user_profiles"("province_id", "user_type");
-
--- CreateIndex
-CREATE INDEX "user_profiles_admin_scope_idx" ON "user_profiles"("admin_scope");
-
--- CreateIndex
-CREATE INDEX "user_profiles_user_type_admin_scope_idx" ON "user_profiles"("user_type", "admin_scope");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "roles_name_guard_name_key" ON "roles"("name", "guard_name");

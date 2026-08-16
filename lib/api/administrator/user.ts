@@ -5,23 +5,10 @@ export interface User {
   uuid: string;
   name: string;
   email: string;
-  source?: string;
   is_active?: boolean;
   roles?: string[];
   permissions?: string[];
   companies?: { uuid: string; code: string; name: string; is_default: boolean }[];
-  phone?: string;
-  phone_without_dc?: string;
-  dc?: string;
-  iso?: string;
-  title?: string;
-  company?: string;
-  work_unit?: string;
-  admin_scope?: string;
-  wilayah_kode?: string;
-  province?: string;
-  city?: string;
-  avatar_url?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -32,17 +19,6 @@ export interface UserCreateData {
   password: string;
   company_uuid?: string;
   roles: number | '';
-  phone?: string;
-  phone_without_dc?: string;
-  dc?: string;
-  iso?: string;
-  title?: string;
-  company?: string;
-  work_unit?: string;
-  admin_scope?: string;
-  wilayah_kode?: string;
-  profile_photo?: File;
-  profile_photo_formated?: boolean;
 }
 
 export async function getUsers(
@@ -74,13 +50,7 @@ export async function createUser(data: UserCreateData): Promise<ApiResponse<User
   const formData = new FormData();
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      if (value instanceof File) {
-        formData.append(key, value);
-      } else if (typeof value === 'boolean') {
-        formData.append(key, value ? '1' : '0');
-      } else {
-        formData.append(key, String(value));
-      }
+      formData.append(key, String(value));
     }
   });
 
@@ -94,13 +64,7 @@ export async function updateUser(uuid: string, data: Partial<UserCreateData>): P
   const formData = new FormData();
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
-      if (value instanceof File) {
-        formData.append(key, value);
-      } else if (typeof value === 'boolean') {
-        formData.append(key, value ? '1' : '0');
-      } else {
-        formData.append(key, String(value));
-      }
+      formData.append(key, String(value));
     }
   });
 

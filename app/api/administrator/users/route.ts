@@ -14,7 +14,6 @@ export const GET = withAdministratorAuth(
     const sortBy = url.searchParams.get("sort_by") ?? "id";
     const sortOrder = url.searchParams.get("sort_order") ?? "desc";
     const role = url.searchParams.get("role") ?? "";
-    const source = url.searchParams.get("source") ?? "";
 
     const result = await userService.listUsers({
       page,
@@ -23,7 +22,6 @@ export const GET = withAdministratorAuth(
       sortBy,
       sortOrder,
       role,
-      source,
     });
 
     return paginatedResponse("List User", result.users, {
@@ -39,16 +37,12 @@ export const POST = withAdministratorAuth(
   withApiErrorHandling(async (req) => {
     const contentType = req.headers.get("content-type") ?? "";
     let body: any;
-    let profilePhotoFile: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await req.formData();
       body = Object.fromEntries(formData.entries());
-      profilePhotoFile = formData.get("profile_photo") as File | null;
 
       if (body.roles) body.roles = Number(body.roles);
-      if (body.province_id) body.province_id = Number(body.province_id);
-      if (body.city_id) body.city_id = Number(body.city_id);
     } else {
       body = await req.json();
     }
@@ -56,7 +50,7 @@ export const POST = withAdministratorAuth(
     const validated = validateSchema(createUserSchema, body);
     if (!("data" in validated)) return validated;
 
-    const created = await userService.createUser(validated.data, profilePhotoFile);
+    const created = await userService.createUser(validated.data);
     return successResponse("User created successfully", created, 201);
   })
 );

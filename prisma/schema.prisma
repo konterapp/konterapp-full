@@ -14,8 +14,6 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
-  sourceDb        String?   @map("source_db") @db.VarChar(50)
-  sourceId        String?   @map("source_id") @db.VarChar(50)
   name            String    @db.VarChar(255)
   email           String    @unique @db.VarChar(255)
   emailVerifiedAt DateTime? @map("email_verified_at")
@@ -33,7 +31,6 @@ model User {
   posCashierShifts    AppPosCashierShift[]
   posPpobTransactions AppPosPpobTransaction[]
 
-  @@unique([sourceDb, sourceId], name: "users_source_db_source_id_unique")
   @@map("users")
 }
 
@@ -155,45 +152,14 @@ model SubscriptionInvoice {
 }
 
 model UserProfile {
-  id                Int       @id @default(autoincrement())
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
-  sourceDb          String?   @map("source_db") @db.VarChar(50)
-  sourceId          String?   @map("source_id") @db.VarChar(50)
-  userId            Int       @unique @map("user_id")
-  userType          Int?      @map("user_type") @db.SmallInt
-  adminScope        String?   @map("admin_scope") @db.VarChar(50)
-  countryId         Int?      @map("country_id")
-  provinceId        Int?      @map("province_id")
-  cityId            Int?      @map("city_id")
-  districtId        Int?      @map("district_id")
-  villageId         Int?      @map("village_id")
-  phone             String?   @db.VarChar(20)
-  address           String?   @db.Text
-  avatar            String?   @db.Text
-  avatarS3Sync      Boolean?  @map("avatar_s3_sync")
-  title             String?   @db.VarChar(255)
-  workUnit          String?   @map("work_unit") @db.VarChar(255)
-  company           String?   @db.VarChar(255)
-  phoneWithoutDc    String?   @map("phone_without_dc") @db.VarChar(255)
-  dc                String?   @db.VarChar(255)
-  iso               String?   @db.VarChar(255)
-  fcm               String?   @db.Text
-  companyLogo       String?   @map("company_logo") @db.Text
-  companyLogoS3Sync Boolean?  @map("company_logo_s3_sync")
-  description       String?   @db.Text
-  wilayahKode       String?   @map("wilayah_kode") @db.VarChar(20)
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  userId    Int       @unique @map("user_id")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([countryId], name: "idx_user_profiles_country_id")
-  @@index([provinceId], name: "idx_user_profiles_province_id")
-  @@index([cityId], name: "idx_user_profiles_city_id")
-  @@index([userType, provinceId], name: "idx_user_profiles_type_province")
-  @@index([provinceId, userType], name: "idx_user_profiles_province_type")
-  @@index([adminScope])
-  @@index([userType, adminScope])
   @@map("user_profiles")
 }
 

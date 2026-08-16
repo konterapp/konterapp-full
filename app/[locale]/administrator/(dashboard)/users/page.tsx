@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Users, Plus, Edit, Trash2, User as UserIcon, ToggleLeft, ToggleRight } from 'lucide-react';
-import Image from '@/components/ui/Image';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { getUsers, deleteUser, getRoles, toggleUserActive, User, Role } from '@/lib/api/administrator/user';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -30,7 +29,6 @@ export default function UsersPage() {
       user: null,
       isLoading: false,
    });
-   const [brokenAvatars, setBrokenAvatars] = useState<Set<string>>(new Set());
 
    // Debounce search
    useEffect(() => {
@@ -168,48 +166,16 @@ export default function UsersPage() {
          width: '20rem',
          render: (_, row) => (
             <div className="flex items-center gap-3">
-               {/* Avatar */}
                <div className="shrink-0">
-                  {row.avatar_url && !brokenAvatars.has(row.uuid) ? (
-                     <Image
-                        src={row.avatar_url}
-                        alt={row.name}
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 rounded-full object-cover border border-gray-200"
-                        onError={() => setBrokenAvatars(prev => new Set(prev).add(row.uuid))}
-                     />
-                  ) : (
-                     <div className="w-10 h-10 rounded-full bg-[#142D52] flex items-center justify-center">
-                        <UserIcon className="w-5 h-5 text-white" />
-                     </div>
-                  )}
+                  <div className="w-10 h-10 rounded-full bg-[#142D52] flex items-center justify-center">
+                     <UserIcon className="w-5 h-5 text-white" />
+                  </div>
                </div>
                {/* Name and Email */}
                <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{row.name}</p>
                   <p className="text-xs text-gray-500 truncate">{row.email}</p>
                </div>
-            </div>
-         ),
-      },
-      {
-         key: 'organization',
-         label: 'Organisasi',
-         sortable: false,
-         width: '15rem',
-         render: (_, row) => (
-            <div className="text-sm">
-               {row.company ? (
-                  <>
-                     <p className="font-medium text-gray-900">{row.company}</p>
-                     {row.work_unit && (
-                        <p className="text-xs text-gray-500">{row.work_unit}</p>
-                     )}
-                  </>
-               ) : (
-                  <span className="text-gray-400">-</span>
-               )}
             </div>
          ),
       },

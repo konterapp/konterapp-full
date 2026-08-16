@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findFirst({
     where: { id: Number(token.id), deletedAt: null },
-    include: { profile: true },
   });
 
   if (!user) {
@@ -58,25 +57,5 @@ export async function GET(req: NextRequest) {
     companies,
     subscription: formatSubscription(subscription),
     impersonating: !!impersonatorId,
-    avatar_url: user.profile?.avatar ?? null,
-    profile: user.profile
-      ? {
-          phone_without_dc: user.profile.phoneWithoutDc,
-          dc: user.profile.dc,
-          iso: user.profile.iso,
-          address: user.profile.address,
-          avatar: user.profile.avatar,
-          title: user.profile.title,
-          company: user.profile.company,
-          work_unit: user.profile.workUnit,
-          description: user.profile.description,
-          company_logo: user.profile.companyLogo,
-          country_id: user.profile.countryId,
-          wilayah_kode: user.profile.wilayahKode,
-          province_id: user.profile.provinceId,
-          city_id: user.profile.cityId,
-          admin_scope: user.profile.adminScope,
-        }
-      : null,
   });
 }

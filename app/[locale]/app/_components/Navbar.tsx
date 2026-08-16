@@ -300,11 +300,9 @@ const Navbar = () => {
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-[#EBC170] transition-all">
             <Image
               src={
-                user?.avatar_url && user.avatar_url.trim() !== ''
-                  ? user.avatar_url
-                  : user?.name
-                    ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=142D52&color=fff`
-                    : 'https://ui-avatars.com/api/?name=Guest&background=142D52&color=fff'
+                user?.name
+                  ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=142D52&color=fff`
+                  : 'https://ui-avatars.com/api/?name=Guest&background=142D52&color=fff'
               }
               alt="User Avatar"
               width={36}

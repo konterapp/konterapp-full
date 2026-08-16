@@ -9,10 +9,7 @@ export interface User {
   active_company_uuid?: string;
   companies?: UserCompany[];
   subscription?: UserSubscription | null;
-  avatar?: string;
-  avatar_url?: string;
   impersonating?: boolean;
-  profile?: UserProfile;
 }
 
 export interface UserCompany {
@@ -27,24 +24,6 @@ export interface UserSubscription {
   status: string;
   started_at: string;
   expires_at: string;
-}
-
-export interface UserProfile {
-  phone_without_dc?: string;
-  dc?: string;
-  iso?: string;
-  address?: string;
-  avatar?: string;
-  title?: string;
-  company?: string;
-  work_unit?: string;
-  description?: string;
-  company_logo?: string;
-  country_id?: number;
-  wilayah_kode?: string;
-  province_id?: number;
-  city_id?: number;
-  admin_scope?: 'daerah' | 'nasional' | 'internasional' | 'mice' | null;
 }
 
 export async function login(email: string, password: string): Promise<ApiResponse<{ user: User }>> {

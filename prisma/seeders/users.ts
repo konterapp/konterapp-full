@@ -8,7 +8,7 @@ export const DEFAULT_USER_EMAIL = "kasir@konterapp.com";
 
 async function createUserWithRole(
   prisma: PrismaClient,
-  data: { name: string; email: string; password: string; userType: number },
+  data: { name: string; email: string; password: string },
   role: Role,
   companyUuid: string
 ) {
@@ -24,15 +24,6 @@ async function createUserWithRole(
       password: hashedPassword,
       isActive: true,
       emailVerifiedAt: new Date(),
-    },
-  });
-
-  await prisma.userProfile.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: {
-      userId: user.id,
-      userType: data.userType,
     },
   });
 
@@ -83,7 +74,7 @@ export async function seedUsers(
 
   await createUserWithRole(
     prisma,
-    { name: "Budi Santoso", email: DEFAULT_ADMIN_EMAIL, password: "password", userType: 2 },
+    { name: "Budi Santoso", email: DEFAULT_ADMIN_EMAIL, password: "password" },
     roles.adminRole,
     companyUuid
   );
@@ -91,7 +82,7 @@ export async function seedUsers(
 
   await createUserWithRole(
     prisma,
-    { name: "Siti Rahayu", email: DEFAULT_USER_EMAIL, password: "password", userType: 4 },
+    { name: "Siti Rahayu", email: DEFAULT_USER_EMAIL, password: "password" },
     roles.userRole,
     companyUuid
   );
