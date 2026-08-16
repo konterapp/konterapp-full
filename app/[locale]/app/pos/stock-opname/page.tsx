@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { ClipboardCheck, History, Plus } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 interface BranchOption {
   uuid: string;

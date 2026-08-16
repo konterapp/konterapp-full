@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw, X, Zap } from 'lucide-react';
-import DataTable, { Column } from '../../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/components/toast/ToastContainer';
 

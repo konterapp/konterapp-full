@@ -7,6 +7,7 @@ export const createUserSchema = z.object({
   name: z.string({ error: "Nama wajib diisi" }).min(1, "Nama wajib diisi").max(255, "Nama maksimal 255 karakter"),
   email: z.string({ error: "Email wajib diisi" }).min(1, "Email wajib diisi").includes("@", { message: "Email tidak valid" }),
   password: z.string({ error: "Password wajib diisi" }).min(8, "Password minimal 8 karakter"),
+  company_uuid: z.string({ error: "Perusahaan (tenant) wajib dipilih" }).min(1, "Perusahaan (tenant) wajib dipilih"),
   phone_without_dc: z.string({ error: "Nomor telepon wajib diisi" }).min(1, "Nomor telepon wajib diisi"),
   dc: z.string({ error: "Kode negara wajib dipilih" }).min(1, "Kode negara wajib dipilih"),
   iso: z.string({ error: "Kode ISO wajib dipilih" }).min(1, "Kode ISO wajib dipilih"),

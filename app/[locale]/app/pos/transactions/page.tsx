@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { Eye, Receipt, X } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 interface Branch {
   uuid: string;

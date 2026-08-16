@@ -54,38 +54,6 @@ export function getPermissionByPath(pathname: string): string | null {
 
 // Routes mapping dengan permission
 const routes: Record<string, RouteInfo> = {
-  'admin.user.index': {
-    path: '/app/users',
-    permission: 'admin.user.index',
-  },
-  'admin.user.create': {
-    path: '/app/users/create',
-    permission: 'admin.user.create',
-  },
-  'admin.user.edit': {
-    path: '/app/users/:id/edit',
-    permission: 'admin.user.update',
-  },
-  'admin.user.detail': {
-    path: '/app/users/:id',
-    permission: 'admin.user.update',
-  },
-  'admin.role.index': {
-    path: '/app/roles',
-    permission: 'admin.role.index',
-  },
-  'admin.role.create': {
-    path: '/app/roles/create',
-    permission: 'admin.role.create',
-  },
-  'admin.role.edit': {
-    path: '/app/roles/:id/edit',
-    permission: 'admin.role.update',
-  },
-  'admin.role.detail': {
-    path: '/app/roles/:id',
-    permission: 'admin.role.index',
-  },
   'admin.berita.index': {
     path: '/app/berita',
     permission: 'admin.berita.index',

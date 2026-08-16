@@ -5,7 +5,7 @@ import { useRouter } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
 import Image from '@/components/ui/Image';
 import { ArrowLeft, Edit, Trash2, Calendar, User, Tag } from 'lucide-react';
-import ConfirmModal from '../../_components/ConfirmModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getBerita, deleteBerita, Berita } from '@/lib/api/app/berita';
 import { usePermissions } from '@/lib/hooks/usePermissions';

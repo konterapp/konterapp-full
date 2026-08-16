@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { HandCoins, Landmark, Loader2, X } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 

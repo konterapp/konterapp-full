@@ -117,7 +117,8 @@ export const userService = {
     return formatUser(user, permissions);
   },
 
-  async createUser(payload: any, profilePhotoFile: File | null, companyUuid: string) {
+  async createUser(payload: any, profilePhotoFile: File | null) {
+    const companyUuid: string = payload.company_uuid;
     const existingEmail = await userRepository.findByEmail(payload.email);
     if (existingEmail) {
       throw new ValidationApiError({ email: ["Email sudah terdaftar"] });

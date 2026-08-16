@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Archive, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 interface BranchOption {
   uuid: string;

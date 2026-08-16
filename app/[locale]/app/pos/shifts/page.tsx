@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { CircleDot } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { useToast } from '@/components/toast/ToastContainer';
 
 interface BranchOption {

@@ -1,7 +1,5 @@
 import {
     LayoutDashboard,
-    Users,
-    Shield,
     ShoppingCart,
     Package,
     Receipt,
@@ -152,20 +150,6 @@ export const allMenuItems: MenuItem[] = [
         href: '/app/pos/branches', 
         icon: <Building2 className="w-5 h-5" />,
         permission: 'admin.pos.branch.index'
-    },
-    {
-        section: 'Master Data',
-        label: 'User',
-        href: '/app/users', 
-        icon: <Users className="w-5 h-5" />,
-        permission: 'admin.user.index'
-    },
-    {
-        section: 'Master Data',
-        label: 'Role',
-        href: '/app/roles',
-        icon: <Shield className="w-5 h-5" />,
-        permission: 'admin.role.index'
     },
     {
         section: 'Master Data',

@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Package, Plus, RefreshCw, Pencil, Trash2, X } from 'lucide-react';
-import DataTable, { Column } from '../../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getPpobProductsList, deletePpobProduct, PpobProductLocal } from '@/lib/api/app/ppob';
 import ProductFormModal from './_components/ProductFormModal';
 import SyncModal from './_components/SyncModal';
-import ConfirmModal from '../../../_components/ConfirmModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const CATEGORIES = ['PULSA', 'DATA', 'PLNPRA', 'PLNPASCA', 'TELKOM', 'PDAM', 'BPJS', 'EMONEY', 'GAME'];
 

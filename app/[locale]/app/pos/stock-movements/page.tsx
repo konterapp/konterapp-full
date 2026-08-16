@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { History } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
+import DataTable, { Column } from '@/components/ui/DataTable';
 
 interface BranchOption {
   uuid: string;

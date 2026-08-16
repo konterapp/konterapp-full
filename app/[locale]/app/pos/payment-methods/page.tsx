@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { CreditCard, Plus, Edit, Trash2 } from 'lucide-react';
-import DataTable, { Column } from '../../_components/DataTable';
-import ConfirmModal from '../../_components/ConfirmModal';
+import DataTable, { Column } from '@/components/ui/DataTable';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 

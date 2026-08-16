@@ -1,7 +1,8 @@
 'use client';
 
-import { AdministratorProvider } from '../_context/AdministratorContext';
-import AdministratorNavbar from './AdministratorNavbar';
+// Client wrapper untuk administrator layout -- menyediakan SidebarProvider dan DashboardWrapper
+import DashboardWrapper from './DashboardWrapper';
+import { SidebarProvider } from '../contexts/SidebarContext';
 
 export default function AdministratorClientLayout({
   children,
@@ -9,11 +10,8 @@ export default function AdministratorClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AdministratorProvider>
-      <div className="min-h-screen bg-gray-50">
-        <AdministratorNavbar />
-        <main className="p-6">{children}</main>
-      </div>
-    </AdministratorProvider>
+    <SidebarProvider>
+      <DashboardWrapper>{children}</DashboardWrapper>
+    </SidebarProvider>
   );
 }
