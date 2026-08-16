@@ -148,7 +148,7 @@ export default function Sidebar() {
     permissions,
     roles
   });
-  const sectionOrder: MenuSection[] = ['Operasional', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'PPOB'];
+  const sectionOrder: MenuSection[] = ['Operasional', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'PPOB', 'Pengaturan'];
   const groupedMenuItems = sectionOrder
     .map(section => ({
       section,
