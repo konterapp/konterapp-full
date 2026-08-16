@@ -54,7 +54,7 @@ export const posReceivableService = {
     const skip = (page - 1) * perPage;
     const statuses = normalizeStatuses(paymentStatus);
 
-    const where: Prisma.PosSaleWhereInput = {
+    const where: Prisma.AppPosSaleWhereInput = {
       paymentStatus: { in: statuses },
     };
 
@@ -80,7 +80,7 @@ export const posReceivableService = {
     }
 
     const safeSortOrder: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
-    const sortMap: Record<string, Prisma.PosSaleOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosSaleOrderByWithRelationInput> = {
       sale_number: { saleNumber: safeSortOrder },
       sale_date: { saleDate: safeSortOrder },
       total_amount: { totalAmount: safeSortOrder },

@@ -14,21 +14,21 @@ export const receivableSaleInclude = {
   creator: {
     select: { id: true, name: true, email: true },
   },
-} satisfies Prisma.PosSaleInclude;
+} satisfies Prisma.AppPosSaleInclude;
 
-export type ReceivableSaleRow = Prisma.PosSaleGetPayload<{
+export type ReceivableSaleRow = Prisma.AppPosSaleGetPayload<{
   include: typeof receivableSaleInclude;
 }>;
 
 export const posReceivableRepository = {
   findMany(params: {
-    where: Prisma.PosSaleWhereInput;
+    where: Prisma.AppPosSaleWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosSaleOrderByWithRelationInput;
+    orderBy: Prisma.AppPosSaleOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posSale.findMany({
+    return prisma.appPosSale.findMany({
       where,
       skip,
       take,
@@ -37,12 +37,12 @@ export const posReceivableRepository = {
     });
   },
 
-  count(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.count({ where });
+  count(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.count({ where });
   },
 
-  aggregateAmounts(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.aggregate({
+  aggregateAmounts(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.aggregate({
       where,
       _sum: {
         totalAmount: true,
@@ -51,8 +51,8 @@ export const posReceivableRepository = {
     });
   },
 
-  async countDistinctCustomers(where: Prisma.PosSaleWhereInput) {
-    const rows = await prisma.posSale.findMany({
+  async countDistinctCustomers(where: Prisma.AppPosSaleWhereInput) {
+    const rows = await prisma.appPosSale.findMany({
       where: {
         ...where,
         customerUuid: { not: null },
@@ -65,7 +65,7 @@ export const posReceivableRepository = {
   },
 
   listBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
@@ -73,7 +73,7 @@ export const posReceivableRepository = {
   },
 
   listCustomers() {
-    return prisma.posCustomer.findMany({
+    return prisma.appPosCustomer.findMany({
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
     });

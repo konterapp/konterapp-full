@@ -65,13 +65,13 @@ async function ensureAdminUser(prisma: PrismaClient) {
 }
 
 async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posBranch.findFirst({
+  const existing = await prisma.appPosBranch.findFirst({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
 
-  return prisma.posBranch.create({
+  return prisma.appPosBranch.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -87,13 +87,13 @@ async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
 }
 
 async function ensureSupplier(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posSupplier.findFirst({
+  const existing = await prisma.appPosSupplier.findFirst({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
 
-  return prisma.posSupplier.create({
+  return prisma.appPosSupplier.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -109,13 +109,13 @@ async function ensureSupplier(prisma: PrismaClient, companyUuid: string) {
 }
 
 async function ensureCategory(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posProductCategory.findFirst({
+  const existing = await prisma.appPosProductCategory.findFirst({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
 
-  return prisma.posProductCategory.create({
+  return prisma.appPosProductCategory.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -131,12 +131,12 @@ async function ensureProduct(
   categoryUuid: string,
   data: { code: string; name: string; sellingPrice: number }
 ) {
-  const existing = await prisma.posProduct.findUnique({
+  const existing = await prisma.appPosProduct.findUnique({
     where: { sku: data.code },
   });
   if (existing) return existing;
 
-  return prisma.posProduct.create({
+  return prisma.appPosProduct.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -175,7 +175,7 @@ export async function seedPurchases(prisma: PrismaClient) {
   }
 
   for (const purchase of PURCHASES_DATA) {
-    const existing = await prisma.posPurchase.findUnique({
+    const existing = await prisma.appPosPurchase.findUnique({
       where: { purchaseNumber: purchase.purchaseNumber },
     });
 
@@ -189,7 +189,7 @@ export async function seedPurchases(prisma: PrismaClient) {
     );
     const hasSupplier = purchase.supplierMode !== "none";
 
-    const createdPurchase = await prisma.posPurchase.create({
+    const createdPurchase = await prisma.appPosPurchase.create({
       data: {
         uuid: uuidv7(),
         companyUuid,
@@ -213,7 +213,7 @@ export async function seedPurchases(prisma: PrismaClient) {
 
       const subtotal = item.qty * item.unitPrice;
 
-      await prisma.posPurchaseItem.create({
+      await prisma.appPosPurchaseItem.create({
         data: {
           uuid: uuidv7(),
           purchaseUuid: createdPurchase.uuid,
@@ -228,7 +228,7 @@ export async function seedPurchases(prisma: PrismaClient) {
         },
       });
 
-      const stock = await prisma.posProductStock.findFirst({
+      const stock = await prisma.appPosProductStock.findFirst({
         where: {
           productUuid: product.uuid,
           branchUuid: branch.uuid,
@@ -239,12 +239,12 @@ export async function seedPurchases(prisma: PrismaClient) {
       const quantityAfter = quantityBefore + item.qty;
 
       if (stock) {
-        await prisma.posProductStock.update({
+        await prisma.appPosProductStock.update({
           where: { uuid: stock.uuid },
           data: { stock: quantityAfter },
         });
       } else {
-        await prisma.posProductStock.create({
+        await prisma.appPosProductStock.create({
           data: {
             uuid: uuidv7(),
             productUuid: product.uuid,
@@ -254,7 +254,7 @@ export async function seedPurchases(prisma: PrismaClient) {
         });
       }
 
-      await prisma.posStockMovement.create({
+      await prisma.appPosStockMovement.create({
         data: {
           uuid: uuidv7(),
           companyUuid,

@@ -158,9 +158,9 @@ async function assertPurchaseReferencesExist(
   const { branchUuid, supplierUuid, items } = params;
 
   const [branch, supplier, products] = await Promise.all([
-    tx.posBranch.findFirst({ where: { uuid: branchUuid, isActive: true } }),
-    supplierUuid ? tx.posSupplier.findFirst({ where: { uuid: supplierUuid, isActive: true } }) : Promise.resolve(null),
-    tx.posProduct.findMany({
+    tx.appPosBranch.findFirst({ where: { uuid: branchUuid, isActive: true } }),
+    supplierUuid ? tx.appPosSupplier.findFirst({ where: { uuid: supplierUuid, isActive: true } }) : Promise.resolve(null),
+    tx.appPosProduct.findMany({
       where: {
         uuid: { in: items.map((item) => item.productUuid) },
         isActive: true,
@@ -279,7 +279,7 @@ async function applyStockInForItems(
   const { companyUuid, branchUuid, purchaseUuid, purchaseNumber, userId, items } = params;
 
   for (const item of items) {
-    const stock = await tx.posProductStock.findFirst({
+    const stock = await tx.appPosProductStock.findFirst({
       where: {
         productUuid: item.productUuid,
         branchUuid,
@@ -290,12 +290,12 @@ async function applyStockInForItems(
     const newStock = previousStock + item.quantityBase;
 
     if (stock) {
-      await tx.posProductStock.update({
+      await tx.appPosProductStock.update({
         where: { uuid: stock.uuid },
         data: { stock: newStock },
       });
     } else {
-      await tx.posProductStock.create({
+      await tx.appPosProductStock.create({
         data: {
           productUuid: item.productUuid,
           branchUuid,
@@ -304,7 +304,7 @@ async function applyStockInForItems(
       });
     }
 
-    await tx.posStockMovement.create({
+    await tx.appPosStockMovement.create({
       data: {
         companyUuid,
         branchUuid,
@@ -336,7 +336,7 @@ export const posPurchaseService = {
     const { page, perPage, search, sortBy, sortOrder, branchUuid, supplierUuid, paymentStatus } = params;
     const skip = (page - 1) * perPage;
 
-    const where: Prisma.PosPurchaseWhereInput = {};
+    const where: Prisma.AppPosPurchaseWhereInput = {};
     if (search) {
       where.OR = [
         { purchaseNumber: { contains: search, mode: 'insensitive' } },
@@ -347,7 +347,7 @@ export const posPurchaseService = {
     if (supplierUuid) where.supplierUuid = supplierUuid;
     if (paymentStatus) where.paymentStatus = paymentStatus;
 
-    const sortMap: Record<string, Prisma.PosPurchaseOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosPurchaseOrderByWithRelationInput> = {
       created_at: { createdAt: sortOrder },
       purchase_date: { purchaseDate: sortOrder },
       total_amount: { totalAmount: sortOrder },
@@ -458,7 +458,7 @@ export const posPurchaseService = {
       });
       const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
-      const createdPurchase = await tx.posPurchase.create({
+      const createdPurchase = await tx.appPosPurchase.create({
         data: {
           companyUuid,
           purchaseNumber,
@@ -476,7 +476,7 @@ export const posPurchaseService = {
       });
 
       for (const item of resolvedItems) {
-        await tx.posPurchaseItem.create({
+        await tx.appPosPurchaseItem.create({
           data: {
             purchaseUuid: createdPurchase.uuid,
             productUuid: item.productUuid,
@@ -557,7 +557,7 @@ export const posPurchaseService = {
       });
       const resolvedItems = resolveItemsWithConversion({ items, products: refs.products });
 
-      await tx.posPurchase.update({
+      await tx.appPosPurchase.update({
         where: { uuid },
         data: {
           branchUuid,
@@ -572,10 +572,10 @@ export const posPurchaseService = {
         },
       });
 
-      await tx.posPurchaseItem.deleteMany({ where: { purchaseUuid: uuid } });
+      await tx.appPosPurchaseItem.deleteMany({ where: { purchaseUuid: uuid } });
 
       for (const item of resolvedItems) {
-        await tx.posPurchaseItem.create({
+        await tx.appPosPurchaseItem.create({
           data: {
             purchaseUuid: uuid,
             productUuid: item.productUuid,
@@ -637,7 +637,7 @@ export const posPurchaseService = {
     await posPurchaseRepository.runInTransaction(async (tx) => {
       if (purchase.paymentStatus !== 'draft') {
         for (const item of purchase.items) {
-          const stock = await tx.posProductStock.findFirst({
+          const stock = await tx.appPosProductStock.findFirst({
             where: {
               productUuid: item.productUuid,
               branchUuid: purchase.branchUuid,
@@ -660,12 +660,12 @@ export const posPurchaseService = {
 
           const quantityAfter = quantityBefore - quantityRollback;
 
-          await tx.posProductStock.update({
+          await tx.appPosProductStock.update({
             where: { uuid: stock.uuid },
             data: { stock: quantityAfter },
           });
 
-          await tx.posStockMovement.create({
+          await tx.appPosStockMovement.create({
             data: {
               companyUuid,
               productUuid: item.productUuid,
@@ -683,7 +683,7 @@ export const posPurchaseService = {
         }
       }
 
-      await tx.posPurchase.update({
+      await tx.appPosPurchase.update({
         where: { uuid },
         data: {
           paymentStatus: 'void',

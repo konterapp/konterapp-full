@@ -32,7 +32,7 @@ export const posTransactionService = {
     const { page, perPage, search, branchUuid, paymentMethodUuid, startDate, endDate, paymentStatus, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
 
-    const where: Prisma.PosSaleWhereInput = {};
+    const where: Prisma.AppPosSaleWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -65,7 +65,7 @@ export const posTransactionService = {
     }
 
     const safeSortOrder: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
-    const sortMap: Record<string, Prisma.PosSaleOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosSaleOrderByWithRelationInput> = {
       sale_number: { saleNumber: safeSortOrder },
       sale_date: { saleDate: safeSortOrder },
       total_amount: { totalAmount: safeSortOrder },
@@ -160,7 +160,7 @@ export const posTransactionService = {
 
     const sale = await posTransactionRepository.runInTransaction(async (tx: Prisma.TransactionClient) => {
       for (const item of items) {
-        const stock = await tx.posProductStock.findFirst({
+        const stock = await tx.appPosProductStock.findFirst({
           where: {
             productUuid: item.productUuid,
             branchUuid,
@@ -172,7 +172,7 @@ export const posTransactionService = {
         }
       }
 
-      const createdSale = await tx.posSale.create({
+      const createdSale = await tx.appPosSale.create({
         data: {
           saleNumber,
           branchUuid,
@@ -205,7 +205,7 @@ export const posTransactionService = {
       });
 
       for (const item of items) {
-        await tx.posSaleItem.create({
+        await tx.appPosSaleItem.create({
           data: {
             saleUuid: createdSale.uuid,
             productUuid: item.productUuid,
@@ -216,14 +216,14 @@ export const posTransactionService = {
           },
         });
 
-        const stock = await tx.posProductStock.findFirst({
+        const stock = await tx.appPosProductStock.findFirst({
           where: {
             productUuid: item.productUuid,
             branchUuid,
           },
         });
 
-        await tx.posProductStock.updateMany({
+        await tx.appPosProductStock.updateMany({
           where: {
             productUuid: item.productUuid,
             branchUuid,
@@ -235,7 +235,7 @@ export const posTransactionService = {
           },
         });
 
-        await tx.posStockMovement.create({
+        await tx.appPosStockMovement.create({
           data: {
             branchUuid,
             productUuid: item.productUuid,

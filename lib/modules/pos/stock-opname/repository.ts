@@ -5,7 +5,7 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export const posStockOpnameRepository = {
   listBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
@@ -13,7 +13,7 @@ export const posStockOpnameRepository = {
   },
 
   listProducts() {
-    return prisma.posProduct.findMany({
+    return prisma.appPosProduct.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true, sku: true, unit: true },
@@ -21,7 +21,7 @@ export const posStockOpnameRepository = {
   },
 
   listProductsWithStock(branchUuid: string) {
-    return prisma.posProduct.findMany({
+    return prisma.appPosProduct.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: {
@@ -38,11 +38,11 @@ export const posStockOpnameRepository = {
   },
 
   findOpnameMovements(params: {
-    where: Prisma.PosStockMovementWhereInput;
-    orderBy: Prisma.PosStockMovementOrderByWithRelationInput;
+    where: Prisma.AppPosStockMovementWhereInput;
+    orderBy: Prisma.AppPosStockMovementOrderByWithRelationInput;
   }) {
     const { where, orderBy } = params;
-    return prisma.posStockMovement.findMany({
+    return prisma.appPosStockMovement.findMany({
       where,
       orderBy,
       include: {

@@ -3,30 +3,30 @@ import { prisma } from '@/lib/prisma';
 export const posPpobProductRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posPpobProduct.findMany({ where, skip, take, orderBy });
+    return prisma.appPosPpobProduct.findMany({ where, skip, take, orderBy });
   },
 
   count(where: any) {
-    return prisma.posPpobProduct.count({ where });
+    return prisma.appPosPpobProduct.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posPpobProduct.findFirst({ where: { uuid } });
+    return prisma.appPosPpobProduct.findFirst({ where: { uuid } });
   },
 
   findByProviderCode(provider: string, providerProductCode: string) {
-    return prisma.posPpobProduct.findFirst({
+    return prisma.appPosPpobProduct.findFirst({
       where: { provider, providerProductCode },
     });
   },
 
   findManyByFilter(params: { where: any; orderBy?: any }) {
     const { where, orderBy } = params;
-    return prisma.posPpobProduct.findMany({ where, orderBy });
+    return prisma.appPosPpobProduct.findMany({ where, orderBy });
   },
 
   findDistinctBrandsByCategory(category: string) {
-    return prisma.posPpobProduct.findMany({
+    return prisma.appPosPpobProduct.findMany({
       where: { category, isActive: true, brand: { not: null } },
       distinct: ['brand'],
       select: { brand: true },
@@ -35,18 +35,18 @@ export const posPpobProductRepository = {
   },
 
   create(data: Record<string, unknown>) {
-    return prisma.posPpobProduct.create({ data: data as any });
+    return prisma.appPosPpobProduct.create({ data: data as any });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.posPpobProduct.update({ where: { uuid }, data: data as any });
+    return prisma.appPosPpobProduct.update({ where: { uuid }, data: data as any });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posPpobProduct.delete({ where: { uuid } });
+    return prisma.appPosPpobProduct.delete({ where: { uuid } });
   },
 
   deleteManyByUuids(uuids: string[]) {
-    return prisma.posPpobProduct.deleteMany({ where: { uuid: { in: uuids } } });
+    return prisma.appPosPpobProduct.deleteMany({ where: { uuid: { in: uuids } } });
   },
 };

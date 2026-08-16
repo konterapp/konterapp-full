@@ -21,7 +21,7 @@ export async function seedUnits(prisma: PrismaClient) {
   let createdOrUpdated = 0;
 
   for (const data of UNITS_DATA) {
-    const existing = await prisma.posProductUnit.findFirst({
+    const existing = await prisma.appPosProductUnit.findFirst({
       where: {
         companyUuid,
         name: data.name,
@@ -29,7 +29,7 @@ export async function seedUnits(prisma: PrismaClient) {
     });
 
     if (existing) {
-      await prisma.posProductUnit.update({
+      await prisma.appPosProductUnit.update({
         where: { uuid: existing.uuid },
         data: { description: data.description },
       });
@@ -37,7 +37,7 @@ export async function seedUnits(prisma: PrismaClient) {
       continue;
     }
 
-    await prisma.posProductUnit.create({
+    await prisma.appPosProductUnit.create({
       data: {
         uuid: uuidv7(),
         companyUuid,

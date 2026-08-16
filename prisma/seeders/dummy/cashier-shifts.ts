@@ -51,14 +51,14 @@ async function ensureAdminUser(prisma: PrismaClient) {
 }
 
 async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posBranch.findFirst({
+  const existing = await prisma.appPosBranch.findFirst({
     where: { companyUuid, isActive: true },
     orderBy: { createdAt: "asc" },
   });
 
   if (existing) return existing;
 
-  return prisma.posBranch.create({
+  return prisma.appPosBranch.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -88,7 +88,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
     const expectedCash = seed.openingCash + seed.totalSales;
     const variance = seed.closingCash - expectedCash;
 
-    const existing = await prisma.posCashierShift.findFirst({
+    const existing = await prisma.appPosCashierShift.findFirst({
       where: {
         companyUuid,
         userId: admin.id,
@@ -97,7 +97,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
     });
 
     if (existing) {
-      await prisma.posCashierShift.update({
+      await prisma.appPosCashierShift.update({
         where: { uuid: existing.uuid },
         data: {
           branchUuid: branch.uuid,
@@ -116,7 +116,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
       continue;
     }
 
-    await prisma.posCashierShift.create({
+    await prisma.appPosCashierShift.create({
       data: {
         uuid: uuidv7(),
         companyUuid,
@@ -137,7 +137,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
     createdOrUpdated += 1;
   }
 
-  const existingOpen = await prisma.posCashierShift.findFirst({
+  const existingOpen = await prisma.appPosCashierShift.findFirst({
     where: {
       companyUuid,
       userId: admin.id,
@@ -146,7 +146,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
   });
 
   if (!existingOpen) {
-    await prisma.posCashierShift.create({
+    await prisma.appPosCashierShift.create({
       data: {
         uuid: uuidv7(),
         companyUuid,

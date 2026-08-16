@@ -81,7 +81,7 @@ export async function seedCustomers(prisma: PrismaClient) {
   let createdOrUpdated = 0;
 
   for (const data of CUSTOMERS_DATA) {
-    const existing = await prisma.posCustomer.findFirst({
+    const existing = await prisma.appPosCustomer.findFirst({
       where: {
         companyUuid,
         phone: data.phone,
@@ -89,7 +89,7 @@ export async function seedCustomers(prisma: PrismaClient) {
     });
 
     if (existing) {
-      await prisma.posCustomer.update({
+      await prisma.appPosCustomer.update({
         where: { uuid: existing.uuid },
         data: {
           name: data.name,
@@ -101,7 +101,7 @@ export async function seedCustomers(prisma: PrismaClient) {
       continue;
     }
 
-    await prisma.posCustomer.create({
+    await prisma.appPosCustomer.create({
       data: {
         uuid: uuidv7(),
         companyUuid,

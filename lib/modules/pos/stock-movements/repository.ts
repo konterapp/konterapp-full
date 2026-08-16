@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 export const posStockMovementRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posStockMovement.findMany({
+    return prisma.appPosStockMovement.findMany({
       where,
       skip,
       take,
@@ -16,6 +16,6 @@ export const posStockMovementRepository = {
   },
 
   count(where: any) {
-    return prisma.posStockMovement.count({ where });
+    return prisma.appPosStockMovement.count({ where });
   },
 };

@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 export const posCategoryRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posProductCategory.findMany({
+    return prisma.appPosProductCategory.findMany({
       where,
       skip,
       take,
@@ -17,11 +17,11 @@ export const posCategoryRepository = {
   },
 
   count(where: any) {
-    return prisma.posProductCategory.count({ where });
+    return prisma.appPosProductCategory.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posProductCategory.findFirst({
+    return prisma.appPosProductCategory.findFirst({
       where: { uuid },
       include: {
         _count: {
@@ -32,22 +32,22 @@ export const posCategoryRepository = {
   },
 
   findByName(name: string) {
-    return prisma.posProductCategory.findFirst({ where: { name } });
+    return prisma.appPosProductCategory.findFirst({ where: { name } });
   },
 
   create(data: { name: string; description: string | null }) {
-    return prisma.posProductCategory.create({ data });
+    return prisma.appPosProductCategory.create({ data });
   },
 
   updateByUuid(uuid: string, data: { name: string; description: string | null }) {
-    return prisma.posProductCategory.update({ where: { uuid }, data });
+    return prisma.appPosProductCategory.update({ where: { uuid }, data });
   },
 
   countProducts(uuid: string) {
-    return prisma.posProduct.count({ where: { categoryUuid: uuid } });
+    return prisma.appPosProduct.count({ where: { categoryUuid: uuid } });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posProductCategory.delete({ where: { uuid } });
+    return prisma.appPosProductCategory.delete({ where: { uuid } });
   },
 };

@@ -50,13 +50,13 @@ export const posReportService = {
     const { dateFromParam, dateToParam, branchUuid } = params;
     const { dateFrom, dateTo, rangeStart, rangeEnd } = resolveDateRange(dateFromParam, dateToParam);
 
-    const saleWhere: Prisma.PosSaleWhereInput = {
+    const saleWhere: Prisma.AppPosSaleWhereInput = {
       saleDate: {
         gte: rangeStart,
         lte: rangeEnd,
       },
     };
-    const purchaseWhere: Prisma.PosPurchaseWhereInput = {
+    const purchaseWhere: Prisma.AppPosPurchaseWhereInput = {
       purchaseDate: {
         lte: rangeEnd,
       },
@@ -145,7 +145,7 @@ export const posReportService = {
     const { dateFromParam, dateToParam, branchUuid } = params;
     const { dateFrom, dateTo, rangeStart, rangeEnd } = resolveDateRange(dateFromParam, dateToParam);
 
-    const saleWhere: Prisma.PosSaleWhereInput = {
+    const saleWhere: Prisma.AppPosSaleWhereInput = {
       saleDate: {
         gte: rangeStart,
         lte: rangeEnd,
@@ -224,7 +224,7 @@ export const posReportService = {
     const { dateFromParam, dateToParam, branchUuid } = params;
     const { dateFrom, dateTo, rangeStart, rangeEnd } = resolveDateRange(dateFromParam, dateToParam);
 
-    const purchaseWhere: Prisma.PosPurchaseWhereInput = {
+    const purchaseWhere: Prisma.AppPosPurchaseWhereInput = {
       purchaseDate: {
         gte: rangeStart,
         lte: rangeEnd,

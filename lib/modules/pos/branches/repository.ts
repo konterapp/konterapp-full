@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 export const posBranchRepository = {
   findMany(params: { where: any; skip: number; take: number }) {
     const { where, skip, take } = params;
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where,
       skip,
       take,
@@ -12,15 +12,15 @@ export const posBranchRepository = {
   },
 
   count(where: any) {
-    return prisma.posBranch.count({ where });
+    return prisma.appPosBranch.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posBranch.findFirst({ where: { uuid } });
+    return prisma.appPosBranch.findFirst({ where: { uuid } });
   },
 
   findByCode(code: string) {
-    return prisma.posBranch.findUnique({ where: { code } });
+    return prisma.appPosBranch.findUnique({ where: { code } });
   },
 
   create(data: {
@@ -32,19 +32,19 @@ export const posBranchRepository = {
     isActive: boolean;
     isMain: boolean;
   }) {
-    return prisma.posBranch.create({ data });
+    return prisma.appPosBranch.create({ data });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.posBranch.update({ where: { uuid }, data });
+    return prisma.appPosBranch.update({ where: { uuid }, data });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posBranch.delete({ where: { uuid } });
+    return prisma.appPosBranch.delete({ where: { uuid } });
   },
 
   unsetOtherMainBranches(uuidToKeep?: string) {
-    return prisma.posBranch.updateMany({
+    return prisma.appPosBranch.updateMany({
       where: {
         isMain: true,
         ...(uuidToKeep ? { NOT: { uuid: uuidToKeep } } : {}),
@@ -55,14 +55,14 @@ export const posBranchRepository = {
 
   countDependencies(uuid: string) {
     return Promise.all([
-      prisma.posSale.count({ where: { branchUuid: uuid } }),
-      prisma.posPurchase.count({ where: { branchUuid: uuid } }),
-      prisma.posProductStock.count({ where: { branchUuid: uuid } }),
+      prisma.appPosSale.count({ where: { branchUuid: uuid } }),
+      prisma.appPosPurchase.count({ where: { branchUuid: uuid } }),
+      prisma.appPosProductStock.count({ where: { branchUuid: uuid } }),
     ]);
   },
 
   listSimple() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       orderBy: { createdAt: 'desc' },
       select: {
         uuid: true,

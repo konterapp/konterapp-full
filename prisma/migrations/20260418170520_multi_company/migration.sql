@@ -15,37 +15,37 @@
 
 */
 -- AlterTable
-ALTER TABLE "pos_branches" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_branches" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_customers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_customers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_payment_methods" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_payment_methods" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_ppob_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_ppob_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_ppob_transactions" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_ppob_transactions" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_product_categories" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_product_categories" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_purchases" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_purchases" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_sales" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_sales" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_stock_movements" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_stock_movements" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
-ALTER TABLE "pos_suppliers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+ALTER TABLE "app_pos_suppliers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- CreateTable
 CREATE TABLE "companies" (
@@ -83,37 +83,37 @@ CREATE INDEX "company_users_user_id_idx" ON "company_users"("user_id");
 CREATE UNIQUE INDEX "company_users_company_uuid_user_id_key" ON "company_users"("company_uuid", "user_id");
 
 -- CreateIndex
-CREATE INDEX "pos_branches_company_uuid_idx" ON "pos_branches"("company_uuid");
+CREATE INDEX "app_pos_branches_company_uuid_idx" ON "app_pos_branches"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_customers_company_uuid_idx" ON "pos_customers"("company_uuid");
+CREATE INDEX "app_pos_customers_company_uuid_idx" ON "app_pos_customers"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_payment_methods_company_uuid_idx" ON "pos_payment_methods"("company_uuid");
+CREATE INDEX "app_pos_payment_methods_company_uuid_idx" ON "app_pos_payment_methods"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_ppob_products_company_uuid_idx" ON "pos_ppob_products"("company_uuid");
+CREATE INDEX "app_pos_ppob_products_company_uuid_idx" ON "app_pos_ppob_products"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_ppob_transactions_company_uuid_idx" ON "pos_ppob_transactions"("company_uuid");
+CREATE INDEX "app_pos_ppob_transactions_company_uuid_idx" ON "app_pos_ppob_transactions"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_product_categories_company_uuid_idx" ON "pos_product_categories"("company_uuid");
+CREATE INDEX "app_pos_product_categories_company_uuid_idx" ON "app_pos_product_categories"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_products_company_uuid_idx" ON "pos_products"("company_uuid");
+CREATE INDEX "app_pos_products_company_uuid_idx" ON "app_pos_products"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_purchases_company_uuid_idx" ON "pos_purchases"("company_uuid");
+CREATE INDEX "app_pos_purchases_company_uuid_idx" ON "app_pos_purchases"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_sales_company_uuid_idx" ON "pos_sales"("company_uuid");
+CREATE INDEX "app_pos_sales_company_uuid_idx" ON "app_pos_sales"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_stock_movements_company_uuid_idx" ON "pos_stock_movements"("company_uuid");
+CREATE INDEX "app_pos_stock_movements_company_uuid_idx" ON "app_pos_stock_movements"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "pos_suppliers_company_uuid_idx" ON "pos_suppliers"("company_uuid");
+CREATE INDEX "app_pos_suppliers_company_uuid_idx" ON "app_pos_suppliers"("company_uuid");
 
 -- AddForeignKey
 ALTER TABLE "company_users" ADD CONSTRAINT "company_users_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -122,34 +122,34 @@ ALTER TABLE "company_users" ADD CONSTRAINT "company_users_company_uuid_fkey" FOR
 ALTER TABLE "company_users" ADD CONSTRAINT "company_users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_product_categories" ADD CONSTRAINT "pos_product_categories_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_product_categories" ADD CONSTRAINT "app_pos_product_categories_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_branches" ADD CONSTRAINT "pos_branches_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_branches" ADD CONSTRAINT "app_pos_branches_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_products" ADD CONSTRAINT "pos_products_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_products" ADD CONSTRAINT "app_pos_products_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_suppliers" ADD CONSTRAINT "pos_suppliers_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_suppliers" ADD CONSTRAINT "app_pos_suppliers_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_purchases" ADD CONSTRAINT "pos_purchases_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_purchases" ADD CONSTRAINT "app_pos_purchases_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_stock_movements" ADD CONSTRAINT "pos_stock_movements_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_stock_movements" ADD CONSTRAINT "app_pos_stock_movements_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_payment_methods" ADD CONSTRAINT "pos_payment_methods_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_payment_methods" ADD CONSTRAINT "app_pos_payment_methods_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_customers" ADD CONSTRAINT "pos_customers_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_customers" ADD CONSTRAINT "app_pos_customers_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_sales" ADD CONSTRAINT "pos_sales_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_sales" ADD CONSTRAINT "app_pos_sales_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_ppob_products" ADD CONSTRAINT "pos_ppob_products_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_ppob_products" ADD CONSTRAINT "app_pos_ppob_products_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "pos_ppob_transactions" ADD CONSTRAINT "pos_ppob_transactions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

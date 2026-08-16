@@ -23,7 +23,7 @@ export const posShiftService = {
     const { page, perPage, search, branchUuid, status, sortBy, sortOrder, userId } = params;
     const skip = (page - 1) * perPage;
 
-    const where: Prisma.PosCashierShiftWhereInput = {};
+    const where: Prisma.AppPosCashierShiftWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -37,7 +37,7 @@ export const posShiftService = {
     if (branchUuid) where.branchUuid = branchUuid;
     if (status) where.status = status;
 
-    const sortMap: Record<string, Prisma.PosCashierShiftOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosCashierShiftOrderByWithRelationInput> = {
       opened_at: { openedAt: sortOrder },
       closed_at: { closedAt: sortOrder },
       opening_cash: { openingCash: sortOrder },

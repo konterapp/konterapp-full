@@ -437,7 +437,7 @@ const PRODUCTS_DATA: ProductSeed[] = [
 export async function seedProducts(prisma: PrismaClient) {
   const companyUuid = await getDefaultCompanyUuid(prisma);
 
-  const branches = await prisma.posBranch.findMany({
+  const branches = await prisma.appPosBranch.findMany({
     where: { companyUuid },
     orderBy: { createdAt: 'asc' },
   });
@@ -451,7 +451,7 @@ export async function seedProducts(prisma: PrismaClient) {
     mainBranch = branches[0];
   }
 
-  const categories = await prisma.posProductCategory.findMany({
+  const categories = await prisma.appPosProductCategory.findMany({
     where: { companyUuid },
   });
   const categoryMap = new Map(categories.map((cat) => [cat.name, cat.uuid]));
@@ -467,12 +467,12 @@ export async function seedProducts(prisma: PrismaClient) {
 
     const productCode = data.code.trim();
     const primaryBarcode = (data.barcode || '').trim();
-    const existing = await prisma.posProduct.findUnique({
+    const existing = await prisma.appPosProduct.findUnique({
       where: { sku: productCode },
     });
 
     const product = existing
-      ? await prisma.posProduct.update({
+      ? await prisma.appPosProduct.update({
           where: { sku: productCode },
           data: {
             companyUuid,
@@ -487,7 +487,7 @@ export async function seedProducts(prisma: PrismaClient) {
             isActive: data.is_active,
           },
         })
-      : await prisma.posProduct.create({
+      : await prisma.appPosProduct.create({
           data: {
             uuid: uuidv7(),
             companyUuid,
@@ -509,7 +509,7 @@ export async function seedProducts(prisma: PrismaClient) {
     for (const branch of branches) {
       const stockValue = branch.uuid === mainBranch.uuid ? data.initial_stock : 0;
 
-      const existingStock = await prisma.posProductStock.findFirst({
+      const existingStock = await prisma.appPosProductStock.findFirst({
         where: {
           productUuid: product.uuid,
           branchUuid: branch.uuid,
@@ -517,12 +517,12 @@ export async function seedProducts(prisma: PrismaClient) {
       });
 
       if (existingStock) {
-        await prisma.posProductStock.update({
+        await prisma.appPosProductStock.update({
           where: { uuid: existingStock.uuid },
           data: { stock: stockValue },
         });
       } else {
-        await prisma.posProductStock.create({
+        await prisma.appPosProductStock.create({
           data: {
             uuid: uuidv7(),
             productUuid: product.uuid,

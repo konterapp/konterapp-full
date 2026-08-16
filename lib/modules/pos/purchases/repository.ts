@@ -24,18 +24,18 @@ const purchaseDetailInclude = {
   },
 } as const;
 
-export type PurchaseListRow = Prisma.PosPurchaseGetPayload<{ include: typeof purchaseListInclude }>;
-export type PurchaseDetailRow = Prisma.PosPurchaseGetPayload<{ include: typeof purchaseDetailInclude }>;
+export type PurchaseListRow = Prisma.AppPosPurchaseGetPayload<{ include: typeof purchaseListInclude }>;
+export type PurchaseDetailRow = Prisma.AppPosPurchaseGetPayload<{ include: typeof purchaseDetailInclude }>;
 
 export const posPurchaseRepository = {
   findMany(params: {
-    where: Prisma.PosPurchaseWhereInput;
+    where: Prisma.AppPosPurchaseWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosPurchaseOrderByWithRelationInput;
+    orderBy: Prisma.AppPosPurchaseOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posPurchase.findMany({
+    return prisma.appPosPurchase.findMany({
       where,
       skip,
       take,
@@ -44,19 +44,19 @@ export const posPurchaseRepository = {
     });
   },
 
-  count(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.count({ where });
+  count(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posPurchase.findFirst({
+    return prisma.appPosPurchase.findFirst({
       where: { uuid },
       include: purchaseDetailInclude,
     });
   },
 
   findByUuidWithItems(uuid: string) {
-    return prisma.posPurchase.findFirst({
+    return prisma.appPosPurchase.findFirst({
       where: { uuid },
       include: {
         items: {
@@ -75,7 +75,7 @@ export const posPurchaseRepository = {
   },
 
   listActiveBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true, code: true },
@@ -83,7 +83,7 @@ export const posPurchaseRepository = {
   },
 
   listActiveSuppliers() {
-    return prisma.posSupplier.findMany({
+    return prisma.appPosSupplier.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true, code: true, phone: true },
@@ -91,7 +91,7 @@ export const posPurchaseRepository = {
   },
 
   listActiveProducts() {
-    return prisma.posProduct.findMany({
+    return prisma.appPosProduct.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: {

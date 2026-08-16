@@ -55,7 +55,7 @@ export const posPayableService = {
     const skip = (page - 1) * perPage;
     const statuses = normalizeStatuses(paymentStatus);
 
-    const where: Prisma.PosPurchaseWhereInput = {
+    const where: Prisma.AppPosPurchaseWhereInput = {
       paymentStatus: { in: statuses },
       supplierUuid: { not: null },
     };
@@ -82,7 +82,7 @@ export const posPayableService = {
     }
 
     const safeSortOrder: 'asc' | 'desc' = sortOrder === 'asc' ? 'asc' : 'desc';
-    const sortMap: Record<string, Prisma.PosPurchaseOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosPurchaseOrderByWithRelationInput> = {
       purchase_number: { purchaseNumber: safeSortOrder },
       purchase_date: { purchaseDate: safeSortOrder },
       total_amount: { totalAmount: safeSortOrder },

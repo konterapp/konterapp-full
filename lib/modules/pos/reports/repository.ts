@@ -2,12 +2,12 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 export const posReportRepository = {
-  countSales(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.count({ where });
+  countSales(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.count({ where });
   },
 
-  groupSoldProducts(saleWhere: Prisma.PosSaleWhereInput) {
-    return prisma.posSaleItem.groupBy({
+  groupSoldProducts(saleWhere: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSaleItem.groupBy({
       by: ['productUuid'],
       where: {
         sale: saleWhere,
@@ -20,13 +20,13 @@ export const posReportRepository = {
   },
 
   groupPurchaseCostRows(params: {
-    purchaseWhere: Prisma.PosPurchaseWhereInput;
+    purchaseWhere: Prisma.AppPosPurchaseWhereInput;
     productUuids: string[];
   }) {
     const { purchaseWhere, productUuids } = params;
     if (productUuids.length === 0) return Promise.resolve([]);
 
-    return prisma.posPurchaseItem.groupBy({
+    return prisma.appPosPurchaseItem.groupBy({
       by: ['productUuid'],
       where: {
         productUuid: { in: productUuids },
@@ -42,21 +42,21 @@ export const posReportRepository = {
   findProductsByUuids(productUuids: string[]) {
     if (productUuids.length === 0) return Promise.resolve([]);
 
-    return prisma.posProduct.findMany({
+    return prisma.appPosProduct.findMany({
       where: { uuid: { in: productUuids } },
       select: { uuid: true, name: true, sku: true, purchasePrice: true },
     });
   },
 
   findBranch(uuid: string) {
-    return prisma.posBranch.findFirst({
+    return prisma.appPosBranch.findFirst({
       where: { uuid },
       select: { uuid: true, name: true },
     });
   },
 
-  aggregateSales(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.aggregate({
+  aggregateSales(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.aggregate({
       where,
       _count: { _all: true },
       _sum: {
@@ -67,8 +67,8 @@ export const posReportRepository = {
     });
   },
 
-  groupSalesByPaymentStatus(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.groupBy({
+  groupSalesByPaymentStatus(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.groupBy({
       by: ['paymentStatus'],
       where,
       _count: { _all: true },
@@ -80,8 +80,8 @@ export const posReportRepository = {
     });
   },
 
-  groupSalesByDate(where: Prisma.PosSaleWhereInput) {
-    return prisma.posSale.groupBy({
+  groupSalesByDate(where: Prisma.AppPosSaleWhereInput) {
+    return prisma.appPosSale.groupBy({
       by: ['saleDate'],
       where,
       _count: { _all: true },
@@ -92,8 +92,8 @@ export const posReportRepository = {
     });
   },
 
-  findRecentSales(where: Prisma.PosSaleWhereInput, take = 10) {
-    return prisma.posSale.findMany({
+  findRecentSales(where: Prisma.AppPosSaleWhereInput, take = 10) {
+    return prisma.appPosSale.findMany({
       where,
       take,
       orderBy: { saleDate: 'desc' },
@@ -122,8 +122,8 @@ export const posReportRepository = {
     });
   },
 
-  aggregatePurchases(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.aggregate({
+  aggregatePurchases(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.aggregate({
       where,
       _count: { _all: true },
       _sum: {
@@ -134,8 +134,8 @@ export const posReportRepository = {
     });
   },
 
-  groupPurchasesByPaymentStatus(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.groupBy({
+  groupPurchasesByPaymentStatus(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.groupBy({
       by: ['paymentStatus'],
       where,
       _count: { _all: true },
@@ -147,8 +147,8 @@ export const posReportRepository = {
     });
   },
 
-  groupPurchasesByDate(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.groupBy({
+  groupPurchasesByDate(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.groupBy({
       by: ['purchaseDate'],
       where,
       _count: { _all: true },
@@ -159,8 +159,8 @@ export const posReportRepository = {
     });
   },
 
-  findRecentPurchases(where: Prisma.PosPurchaseWhereInput, take = 10) {
-    return prisma.posPurchase.findMany({
+  findRecentPurchases(where: Prisma.AppPosPurchaseWhereInput, take = 10) {
+    return prisma.appPosPurchase.findMany({
       where,
       take,
       orderBy: { purchaseDate: 'desc' },

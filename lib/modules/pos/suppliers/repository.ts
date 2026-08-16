@@ -2,20 +2,20 @@ import { prisma } from '@/lib/prisma';
 
 export const posSupplierRepository = {
   countAll() {
-    return prisma.posSupplier.count();
+    return prisma.appPosSupplier.count();
   },
 
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posSupplier.findMany({ where, skip, take, orderBy });
+    return prisma.appPosSupplier.findMany({ where, skip, take, orderBy });
   },
 
   count(where: any) {
-    return prisma.posSupplier.count({ where });
+    return prisma.appPosSupplier.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posSupplier.findFirst({ where: { uuid } });
+    return prisma.appPosSupplier.findFirst({ where: { uuid } });
   },
 
   create(data: {
@@ -27,14 +27,14 @@ export const posSupplierRepository = {
     address: string | null;
     isActive: boolean;
   }) {
-    return prisma.posSupplier.create({ data });
+    return prisma.appPosSupplier.create({ data });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.posSupplier.update({ where: { uuid }, data });
+    return prisma.appPosSupplier.update({ where: { uuid }, data });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posSupplier.delete({ where: { uuid } });
+    return prisma.appPosSupplier.delete({ where: { uuid } });
   },
 };

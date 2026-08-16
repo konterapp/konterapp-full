@@ -5,13 +5,13 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export const posShiftRepository = {
   findMany(params: {
-    where: Prisma.PosCashierShiftWhereInput;
+    where: Prisma.AppPosCashierShiftWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosCashierShiftOrderByWithRelationInput;
+    orderBy: Prisma.AppPosCashierShiftOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posCashierShift.findMany({
+    return prisma.appPosCashierShift.findMany({
       where,
       skip,
       take,
@@ -23,12 +23,12 @@ export const posShiftRepository = {
     });
   },
 
-  count(where: Prisma.PosCashierShiftWhereInput) {
-    return prisma.posCashierShift.count({ where });
+  count(where: Prisma.AppPosCashierShiftWhereInput) {
+    return prisma.appPosCashierShift.count({ where });
   },
 
   findOpenByUser(userId: number) {
-    return prisma.posCashierShift.findFirst({
+    return prisma.appPosCashierShift.findFirst({
       where: {
         userId,
         status: 'open',
@@ -42,7 +42,7 @@ export const posShiftRepository = {
   },
 
   findByUuidForUser(uuid: string, userId: number) {
-    return prisma.posCashierShift.findFirst({
+    return prisma.appPosCashierShift.findFirst({
       where: {
         uuid,
         userId,
@@ -55,7 +55,7 @@ export const posShiftRepository = {
   },
 
   findBranchByUuid(uuid: string) {
-    return prisma.posBranch.findFirst({
+    return prisma.appPosBranch.findFirst({
       where: {
         uuid,
         isActive: true,
@@ -70,15 +70,15 @@ export const posShiftRepository = {
   },
 
   listBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
     });
   },
 
-  create(data: Prisma.PosCashierShiftUncheckedCreateInput) {
-    return prisma.posCashierShift.create({
+  create(data: Prisma.AppPosCashierShiftUncheckedCreateInput) {
+    return prisma.appPosCashierShift.create({
       data,
       include: {
         branch: { select: { uuid: true, name: true, code: true } },
@@ -87,8 +87,8 @@ export const posShiftRepository = {
     });
   },
 
-  updateByUuid(uuid: string, data: Prisma.PosCashierShiftUpdateInput) {
-    return prisma.posCashierShift.update({
+  updateByUuid(uuid: string, data: Prisma.AppPosCashierShiftUpdateInput) {
+    return prisma.appPosCashierShift.update({
       where: { uuid },
       data,
       include: {
@@ -100,7 +100,7 @@ export const posShiftRepository = {
 
   sumSales(params: { branchUuid: string; userId: number; startedAt: Date; endedAt: Date }) {
     const { branchUuid, userId, startedAt, endedAt } = params;
-    return prisma.posSale.aggregate({
+    return prisma.appPosSale.aggregate({
       where: {
         branchUuid,
         createdBy: userId,

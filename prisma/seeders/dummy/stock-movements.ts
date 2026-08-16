@@ -60,13 +60,13 @@ async function ensureAdminUser(prisma: PrismaClient) {
 }
 
 async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posBranch.findFirst({
+  const existing = await prisma.appPosBranch.findFirst({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
 
-  return prisma.posBranch.create({
+  return prisma.appPosBranch.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -82,13 +82,13 @@ async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
 }
 
 async function ensureCategory(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posProductCategory.findFirst({
+  const existing = await prisma.appPosProductCategory.findFirst({
     where: { companyUuid },
     orderBy: { createdAt: "asc" },
   });
   if (existing) return existing;
 
-  return prisma.posProductCategory.create({
+  return prisma.appPosProductCategory.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -104,12 +104,12 @@ async function ensureProduct(
   categoryUuid: string,
   data: { code: string; name: string; sellingPrice: number }
 ) {
-  const existing = await prisma.posProduct.findUnique({
+  const existing = await prisma.appPosProduct.findUnique({
     where: { sku: data.code },
   });
   if (existing) return existing;
 
-  return prisma.posProduct.create({
+  return prisma.appPosProduct.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -148,7 +148,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
     const product = productMap.get(movement.code);
     if (!product) continue;
 
-    let stock = await prisma.posProductStock.findFirst({
+    let stock = await prisma.appPosProductStock.findFirst({
       where: {
         productUuid: product.uuid,
         branchUuid: branch.uuid,
@@ -157,7 +157,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
 
     if (!stock) {
       const baseStock = movement.quantityChange < 0 ? Math.abs(movement.quantityChange) + 5 : 0;
-      stock = await prisma.posProductStock.create({
+      stock = await prisma.appPosProductStock.create({
         data: {
           uuid: uuidv7(),
           productUuid: product.uuid,
@@ -170,7 +170,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
     let quantityBefore = stock.stock;
     if (movement.quantityChange < 0 && quantityBefore + movement.quantityChange < 0) {
       quantityBefore = Math.abs(movement.quantityChange);
-      await prisma.posProductStock.update({
+      await prisma.appPosProductStock.update({
         where: { uuid: stock.uuid },
         data: { stock: quantityBefore },
       });
@@ -178,12 +178,12 @@ export async function seedStockMovements(prisma: PrismaClient) {
 
     const quantityAfter = quantityBefore + movement.quantityChange;
 
-    await prisma.posProductStock.update({
+    await prisma.appPosProductStock.update({
       where: { uuid: stock.uuid },
       data: { stock: quantityAfter },
     });
 
-    await prisma.posStockMovement.create({
+    await prisma.appPosStockMovement.create({
       data: {
         uuid: uuidv7(),
         companyUuid,

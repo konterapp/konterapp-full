@@ -7,19 +7,19 @@ type TenantStore = {
 const tenantContextStorage = new AsyncLocalStorage<TenantStore>();
 
 export const TENANT_MODELS = new Set<string>([
-  "PosProductCategory",
-  "PosProductUnit",
-  "PosBranch",
-  "PosProduct",
-  "PosSupplier",
-  "PosPurchase",
-  "PosStockMovement",
-  "PosPaymentMethod",
-  "PosCustomer",
-  "PosSale",
-  "PosCashierShift",
-  "PosPpobProduct",
-  "PosPpobTransaction",
+  "AppPosProductCategory",
+  "AppPosProductUnit",
+  "AppPosBranch",
+  "AppPosProduct",
+  "AppPosSupplier",
+  "AppPosPurchase",
+  "AppPosStockMovement",
+  "AppPosPaymentMethod",
+  "AppPosCustomer",
+  "AppPosSale",
+  "AppPosCashierShift",
+  "AppPosPpobProduct",
+  "AppPosPpobTransaction",
 ]);
 
 export function runWithTenantContext<T>(companyUuid: string, callback: () => Promise<T>): Promise<T> {

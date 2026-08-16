@@ -11,21 +11,21 @@ export const payablePurchaseInclude = {
   creator: {
     select: { id: true, name: true, email: true },
   },
-} satisfies Prisma.PosPurchaseInclude;
+} satisfies Prisma.AppPosPurchaseInclude;
 
-export type PayablePurchaseRow = Prisma.PosPurchaseGetPayload<{
+export type PayablePurchaseRow = Prisma.AppPosPurchaseGetPayload<{
   include: typeof payablePurchaseInclude;
 }>;
 
 export const posPayableRepository = {
   findMany(params: {
-    where: Prisma.PosPurchaseWhereInput;
+    where: Prisma.AppPosPurchaseWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosPurchaseOrderByWithRelationInput;
+    orderBy: Prisma.AppPosPurchaseOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posPurchase.findMany({
+    return prisma.appPosPurchase.findMany({
       where,
       skip,
       take,
@@ -34,12 +34,12 @@ export const posPayableRepository = {
     });
   },
 
-  count(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.count({ where });
+  count(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.count({ where });
   },
 
-  aggregateAmounts(where: Prisma.PosPurchaseWhereInput) {
-    return prisma.posPurchase.aggregate({
+  aggregateAmounts(where: Prisma.AppPosPurchaseWhereInput) {
+    return prisma.appPosPurchase.aggregate({
       where,
       _sum: {
         totalAmount: true,
@@ -48,8 +48,8 @@ export const posPayableRepository = {
     });
   },
 
-  async countDistinctSuppliers(where: Prisma.PosPurchaseWhereInput) {
-    const rows = await prisma.posPurchase.findMany({
+  async countDistinctSuppliers(where: Prisma.AppPosPurchaseWhereInput) {
+    const rows = await prisma.appPosPurchase.findMany({
       where,
       distinct: ['supplierUuid'],
       select: { supplierUuid: true },
@@ -59,7 +59,7 @@ export const posPayableRepository = {
   },
 
   listBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
@@ -67,7 +67,7 @@ export const posPayableRepository = {
   },
 
   listSuppliers() {
-    return prisma.posSupplier.findMany({
+    return prisma.appPosSupplier.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
@@ -75,7 +75,7 @@ export const posPayableRepository = {
   },
 
   findByUuid(uuid: string) {
-    return prisma.posPurchase.findFirst({
+    return prisma.appPosPurchase.findFirst({
       where: { uuid },
       include: payablePurchaseInclude,
     });
@@ -88,7 +88,7 @@ export const posPayableRepository = {
     notes: string | null;
   }) {
     const { uuid, paidAmount, paymentStatus, notes } = params;
-    return prisma.posPurchase.update({
+    return prisma.appPosPurchase.update({
       where: { uuid },
       data: {
         paidAmount,

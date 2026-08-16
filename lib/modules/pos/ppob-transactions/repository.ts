@@ -26,7 +26,7 @@ const includeRelations = {
 export const posPpobTransactionRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posPpobTransaction.findMany({
+    return prisma.appPosPpobTransaction.findMany({
       where,
       skip,
       take,
@@ -36,18 +36,18 @@ export const posPpobTransactionRepository = {
   },
 
   count(where: any) {
-    return prisma.posPpobTransaction.count({ where });
+    return prisma.appPosPpobTransaction.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posPpobTransaction.findFirst({
+    return prisma.appPosPpobTransaction.findFirst({
       where: { uuid },
       include: includeRelations,
     });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.posPpobTransaction.update({
+    return prisma.appPosPpobTransaction.update({
       where: { uuid },
       data: data as any,
       include: includeRelations,

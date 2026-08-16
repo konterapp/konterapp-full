@@ -55,7 +55,7 @@ export const posStockOpnameService = {
   }) {
     const { page, perPage, search, branchUuid, productUuid, dateFrom, dateTo, sortBy, sortOrder } = params;
 
-    const where: Prisma.PosStockMovementWhereInput = {
+    const where: Prisma.AppPosStockMovementWhereInput = {
       movementType: 'adjustment',
       referenceType: 'stock_opname',
       referenceUuid: { not: null },
@@ -189,7 +189,7 @@ export const posStockOpnameService = {
     }
 
     await posStockOpnameRepository.runInTransaction(async (tx) => {
-      const branch = await tx.posBranch.findFirst({
+      const branch = await tx.appPosBranch.findFirst({
         where: {
           uuid: payload.branchUuid,
           isActive: true,
@@ -202,14 +202,14 @@ export const posStockOpnameService = {
       const productUuids = payload.items.map((item) => item.productUuid);
 
       const [products, existingStocks] = await Promise.all([
-        tx.posProduct.findMany({
+        tx.appPosProduct.findMany({
           where: {
             uuid: { in: productUuids },
             isActive: true,
           },
           select: { uuid: true, name: true, sku: true },
         }),
-        tx.posProductStock.findMany({
+        tx.appPosProductStock.findMany({
           where: {
             branchUuid: payload.branchUuid,
             productUuid: { in: productUuids },
@@ -231,12 +231,12 @@ export const posStockOpnameService = {
         const quantityChange = nextStock - previousStock;
 
         if (existingStock) {
-          await tx.posProductStock.update({
+          await tx.appPosProductStock.update({
             where: { uuid: existingStock.uuid },
             data: { stock: nextStock },
           });
         } else {
-          await tx.posProductStock.create({
+          await tx.appPosProductStock.create({
             data: {
               branchUuid: payload.branchUuid,
               productUuid: item.productUuid,
@@ -245,7 +245,7 @@ export const posStockOpnameService = {
           });
         }
 
-        await tx.posStockMovement.create({
+        await tx.appPosStockMovement.create({
           data: {
             companyUuid,
             branchUuid: payload.branchUuid,

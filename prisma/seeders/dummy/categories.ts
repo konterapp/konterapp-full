@@ -53,7 +53,7 @@ export async function seedCategories(prisma: PrismaClient) {
   const companyUuid = await getDefaultCompanyUuid(prisma);
 
   for (const data of CATEGORIES_DATA) {
-    const existing = await prisma.posProductCategory.findFirst({
+    const existing = await prisma.appPosProductCategory.findFirst({
       where: {
         companyUuid,
         name: data.name,
@@ -61,12 +61,12 @@ export async function seedCategories(prisma: PrismaClient) {
     });
 
     if (existing) {
-      await prisma.posProductCategory.update({
+      await prisma.appPosProductCategory.update({
         where: { uuid: existing.uuid },
         data,
       });
     } else {
-      await prisma.posProductCategory.create({
+      await prisma.appPosProductCategory.create({
         data: {
           uuid: uuidv7(),
           companyUuid,

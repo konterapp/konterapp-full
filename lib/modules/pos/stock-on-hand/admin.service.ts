@@ -15,7 +15,7 @@ export const posStockOnHandService = {
   }) {
     const { page, perPage, search, branchUuid, categoryUuid, stockStatus, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
-    const where: Prisma.PosProductStockWhereInput = {
+    const where: Prisma.AppPosProductStockWhereInput = {
       product: {
         isActive: true,
       },
@@ -44,7 +44,7 @@ export const posStockOnHandService = {
       where.stock = { lte: 0 };
     }
 
-    const sortMap: Record<string, Prisma.PosProductStockOrderByWithRelationInput> = {
+    const sortMap: Record<string, Prisma.AppPosProductStockOrderByWithRelationInput> = {
       product_name: { product: { name: sortOrder } },
       branch_name: { branch: { name: sortOrder } },
       stock: { stock: sortOrder },

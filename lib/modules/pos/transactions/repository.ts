@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 export const posTransactionRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy?: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posSale.findMany({
+    return prisma.appPosSale.findMany({
       where,
       skip,
       take,
@@ -41,11 +41,11 @@ export const posTransactionRepository = {
   },
 
   count(where: any) {
-    return prisma.posSale.count({ where });
+    return prisma.appPosSale.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posSale.findFirst({
+    return prisma.appPosSale.findFirst({
       where: { uuid },
       include: {
         branch: {

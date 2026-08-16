@@ -4,13 +4,13 @@ import { Prisma } from '@prisma/client';
 
 export const posUnitRepository = {
   findMany(params: {
-    where: Prisma.PosProductUnitWhereInput;
+    where: Prisma.AppPosProductUnitWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosProductUnitOrderByWithRelationInput;
+    orderBy: Prisma.AppPosProductUnitOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posProductUnit.findMany({
+    return prisma.appPosProductUnit.findMany({
       where,
       skip,
       take,
@@ -18,16 +18,16 @@ export const posUnitRepository = {
     });
   },
 
-  count(where: Prisma.PosProductUnitWhereInput) {
-    return prisma.posProductUnit.count({ where });
+  count(where: Prisma.AppPosProductUnitWhereInput) {
+    return prisma.appPosProductUnit.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posProductUnit.findFirst({ where: { uuid } });
+    return prisma.appPosProductUnit.findFirst({ where: { uuid } });
   },
 
   findByName(name: string) {
-    return prisma.posProductUnit.findFirst({
+    return prisma.appPosProductUnit.findFirst({
       where: {
         name: { equals: name, mode: 'insensitive' },
       },
@@ -35,26 +35,26 @@ export const posUnitRepository = {
   },
 
   create(data: { name: string; description: string | null }) {
-    return prisma.posProductUnit.create({ data });
+    return prisma.appPosProductUnit.create({ data });
   },
 
   updateByUuid(uuid: string, data: { name: string; description: string | null }) {
-    return prisma.posProductUnit.update({ where: { uuid }, data });
+    return prisma.appPosProductUnit.update({ where: { uuid }, data });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posProductUnit.delete({ where: { uuid } });
+    return prisma.appPosProductUnit.delete({ where: { uuid } });
   },
 
   countProductsUsingUnit(unitName: string) {
-    return prisma.posProduct.count({
+    return prisma.appPosProduct.count({
       where: { unit: unitName },
     });
   },
 
   countUnitConversionsUsingUnit(unitName: string) {
     const companyUuid = getTenantCompanyUuid();
-    return prisma.posProductUnitConversion.count({
+    return prisma.appPosProductUnitConversion.count({
       where: companyUuid
         ? {
           unit: unitName,

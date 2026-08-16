@@ -64,10 +64,10 @@ async function ensureAdmin(prisma: PrismaClient) {
 }
 
 async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posBranch.findFirst({ where: { companyUuid }, orderBy: { createdAt: 'asc' } });
+  const existing = await prisma.appPosBranch.findFirst({ where: { companyUuid }, orderBy: { createdAt: 'asc' } });
   if (existing) return existing;
 
-  return prisma.posBranch.create({
+  return prisma.appPosBranch.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -83,12 +83,12 @@ async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
 }
 
 async function ensurePaymentMethod(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.posPaymentMethod.findFirst({
+  const existing = await prisma.appPosPaymentMethod.findFirst({
     where: { companyUuid, code: 'CASH' },
   });
   if (existing) return existing;
 
-  return prisma.posPaymentMethod.create({
+  return prisma.appPosPaymentMethod.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -110,7 +110,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
   const paymentMethod = await ensurePaymentMethod(prisma, companyUuid);
 
   for (const item of TRANSACTIONS_DATA) {
-    await prisma.posPpobTransaction.upsert({
+    await prisma.appPosPpobTransaction.upsert({
       where: { transactionNumber: item.transactionNumber },
       update: {
         companyUuid,

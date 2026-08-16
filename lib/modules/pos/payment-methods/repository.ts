@@ -3,19 +3,19 @@ import { prisma } from '@/lib/prisma';
 export const posPaymentMethodRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posPaymentMethod.findMany({ where, skip, take, orderBy });
+    return prisma.appPosPaymentMethod.findMany({ where, skip, take, orderBy });
   },
 
   count(where: any) {
-    return prisma.posPaymentMethod.count({ where });
+    return prisma.appPosPaymentMethod.count({ where });
   },
 
   findByUuid(uuid: string) {
-    return prisma.posPaymentMethod.findFirst({ where: { uuid } });
+    return prisma.appPosPaymentMethod.findFirst({ where: { uuid } });
   },
 
   findByCode(code: string) {
-    return prisma.posPaymentMethod.findUnique({ where: { code } });
+    return prisma.appPosPaymentMethod.findUnique({ where: { code } });
   },
 
   create(data: {
@@ -27,21 +27,21 @@ export const posPaymentMethodRepository = {
     description: string | null;
     isActive: boolean;
   }) {
-    return prisma.posPaymentMethod.create({ data });
+    return prisma.appPosPaymentMethod.create({ data });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.posPaymentMethod.update({ where: { uuid }, data });
+    return prisma.appPosPaymentMethod.update({ where: { uuid }, data });
   },
 
   deleteByUuid(uuid: string) {
-    return prisma.posPaymentMethod.delete({ where: { uuid } });
+    return prisma.appPosPaymentMethod.delete({ where: { uuid } });
   },
 
   countUsages(uuid: string) {
     return Promise.all([
-      prisma.posSale.count({ where: { paymentMethodUuid: uuid } }),
-      prisma.posPpobTransaction.count({ where: { paymentMethodUuid: uuid } }),
+      prisma.appPosSale.count({ where: { paymentMethodUuid: uuid } }),
+      prisma.appPosPpobTransaction.count({ where: { paymentMethodUuid: uuid } }),
     ]);
   },
 };

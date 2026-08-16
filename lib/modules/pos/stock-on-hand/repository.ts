@@ -3,13 +3,13 @@ import { Prisma } from '@prisma/client';
 
 export const posStockOnHandRepository = {
   findMany(params: {
-    where: Prisma.PosProductStockWhereInput;
+    where: Prisma.AppPosProductStockWhereInput;
     skip: number;
     take: number;
-    orderBy: Prisma.PosProductStockOrderByWithRelationInput;
+    orderBy: Prisma.AppPosProductStockOrderByWithRelationInput;
   }) {
     const { where, skip, take, orderBy } = params;
-    return prisma.posProductStock.findMany({
+    return prisma.appPosProductStock.findMany({
       where,
       skip,
       take,
@@ -43,12 +43,12 @@ export const posStockOnHandRepository = {
     });
   },
 
-  count(where: Prisma.PosProductStockWhereInput) {
-    return prisma.posProductStock.count({ where });
+  count(where: Prisma.AppPosProductStockWhereInput) {
+    return prisma.appPosProductStock.count({ where });
   },
 
   listBranches() {
-    return prisma.posBranch.findMany({
+    return prisma.appPosBranch.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
@@ -56,7 +56,7 @@ export const posStockOnHandRepository = {
   },
 
   listCategories() {
-    return prisma.posProductCategory.findMany({
+    return prisma.appPosProductCategory.findMany({
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true },
     });

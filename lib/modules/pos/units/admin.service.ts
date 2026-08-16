@@ -14,7 +14,7 @@ export const posUnitService = {
     const { page, perPage, search, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
 
-    const where: Prisma.PosProductUnitWhereInput = {};
+    const where: Prisma.AppPosProductUnitWhereInput = {};
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
