@@ -36,22 +36,23 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
    });
 
    useEffect(() => {
-      fetchRolesList();
       fetchCompaniesList();
       if (mode === 'edit' && userUuid) {
          fetchUser();
       }
    }, [mode, userUuid]);
 
-   const fetchRolesList = async () => {
+   const fetchRolesByCompany = async (companyUuid: string) => {
       try {
-         const response = await getRoles();
+         const response = await getRoles(companyUuid);
          if (response.status === 'success' && response.data) {
             setRoles(response.data);
+            return response.data;
          }
       } catch (err) {
          console.error('Failed to fetch roles:', err);
       }
+      return [];
    };
 
    const fetchCompaniesList = async () => {
@@ -70,29 +71,31 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
 
       try {
          setIsLoadingData(true);
-         const [userResponse, rolesResponse] = await Promise.all([
-            getUser(userUuid),
-            getRoles(),
-         ]);
+         const userResponse = await getUser(userUuid);
 
          if (userResponse.status === 'success' && userResponse.data) {
-            if (rolesResponse.status === 'success' && rolesResponse.data) {
-               setRoles(rolesResponse.data);
-            }
-
-            const userRoleNames = userResponse.data.roles || [];
-            const availableRoles = rolesResponse.status === 'success' && rolesResponse.data ? rolesResponse.data : roles;
-            const firstRole = availableRoles.find(role => userRoleNames.includes(role.name));
-            const roleId = firstRole ? firstRole.id : '';
+            const defaultCompany = userResponse.data.companies?.find(c => c.is_default) || userResponse.data.companies?.[0];
+            const companyUuid = defaultCompany?.uuid || '';
 
             setFormData({
                name: userResponse.data.name,
                email: userResponse.data.email,
                password: '',
-               roles: roleId,
+               company_uuid: companyUuid,
+               roles: '',
             });
 
             setIsActive(userResponse.data.is_active ?? true);
+
+            if (companyUuid) {
+               const availableRoles = await fetchRolesByCompany(companyUuid);
+               const userRoleNames = userResponse.data.roles || [];
+               const firstRole = availableRoles.find(role => userRoleNames.includes(role.name));
+               setFormData(prev => ({
+                  ...prev,
+                  roles: firstRole ? firstRole.id : '',
+               }));
+            }
          } else {
             setError(userResponse.message || 'Gagal memuat daftar user');
          }
@@ -136,6 +139,32 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
       }
    };
 
+   const handleCompanyChange = async (companyUuid: string) => {
+      setFormData(prev => ({
+         ...prev,
+         company_uuid: companyUuid,
+         roles: '',
+      }));
+      if (fieldErrors.company_uuid) {
+         setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.company_uuid;
+            return newErrors;
+         });
+      }
+      if (fieldErrors.roles) {
+         setFieldErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.roles;
+            return newErrors;
+         });
+      }
+      setRoles([]);
+      if (companyUuid) {
+         await fetchRolesByCompany(companyUuid);
+      }
+   };
+
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       setError('');
@@ -150,6 +179,7 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
             const updateData: Partial<UserCreateData> = {
                name: submitData.name,
                email: submitData.email,
+               company_uuid: submitData.company_uuid,
                roles: submitData.roles,
             };
             if (formData.password) {
@@ -334,6 +364,26 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
                </div>
 
                <div>
+                  <label htmlFor="company_uuid" className="block text-sm font-medium text-gray-700 mb-2">
+                     Perusahaan (Tenant) <span className="text-red-500">*</span>
+                  </label>
+                  <Select2
+                     name="company_uuid"
+                     value={formData.company_uuid || null}
+                     options={companies.map(c => ({ id: c.uuid, label: `${c.name} (${c.code})` }))}
+                     onChange={(e) => handleCompanyChange(e.target.value)}
+                     placeholder="Pilih Perusahaan"
+                     searchable
+                     hasError={!!fieldErrors.company_uuid}
+                  />
+                  {fieldErrors.company_uuid && (
+                     <div className="mt-1 text-sm text-red-600">
+                        {fieldErrors.company_uuid[0]}
+                     </div>
+                  )}
+               </div>
+
+               <div>
                   <label htmlFor="roles" className="block text-sm font-medium text-gray-700 mb-2">
                      Role <span className="text-red-500">*</span>
                   </label>
@@ -342,8 +392,9 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
                      value={formData.roles || null}
                      options={roles.map(r => ({ id: r.id, label: r.name }))}
                      onChange={handleRoleChange}
-                     placeholder="Pilih Role"
+                     placeholder={formData.company_uuid ? 'Pilih Role' : 'Pilih Perusahaan dulu'}
                      searchable
+                     disabled={!formData.company_uuid}
                      hasError={!!fieldErrors.roles}
                   />
                   {fieldErrors.roles && (
@@ -352,28 +403,6 @@ export default function UserForm({ userUuid, mode }: UserFormProps) {
                      </div>
                   )}
                </div>
-
-               {mode === 'create' && (
-                  <div>
-                     <label htmlFor="company_uuid" className="block text-sm font-medium text-gray-700 mb-2">
-                        Perusahaan (Tenant) <span className="text-red-500">*</span>
-                     </label>
-                     <Select2
-                        name="company_uuid"
-                        value={formData.company_uuid || null}
-                        options={companies.map(c => ({ id: c.uuid, label: `${c.name} (${c.code})` }))}
-                        onChange={(e) => setFormData(prev => ({ ...prev, company_uuid: e.target.value }))}
-                        placeholder="Pilih Perusahaan"
-                        searchable
-                        hasError={!!fieldErrors.company_uuid}
-                     />
-                     {fieldErrors.company_uuid && (
-                        <div className="mt-1 text-sm text-red-600">
-                           {fieldErrors.company_uuid[0]}
-                        </div>
-                     )}
-                  </div>
-               )}
             </div>
 
             <div className="flex items-center justify-end space-x-3 pt-4 border-gray-200">

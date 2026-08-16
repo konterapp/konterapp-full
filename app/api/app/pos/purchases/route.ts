@@ -7,7 +7,7 @@ import { createPurchaseSchema } from '@/lib/validations/purchase';
 import { posPurchaseService } from '@/lib/modules/pos/purchases/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.purchase.index',
+  'pos.purchase.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -35,7 +35,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.purchase.create',
+  'pos.purchase.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const rawBody = (await req.json()) as Record<string, unknown>;
     const body = {

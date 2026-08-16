@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posStockMovementService } from '@/lib/modules/pos/stock-movements/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.stock-movement.index',
+  'pos.stock-movement.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');

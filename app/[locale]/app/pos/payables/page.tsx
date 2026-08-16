@@ -361,7 +361,7 @@ export default function PayablesPage() {
       width: '10rem',
       className: 'whitespace-nowrap',
       render: (_, row) =>
-        hasPermission('admin.pos.purchase.create') ? (
+        hasPermission('pos.purchase.create') ? (
           <button
             onClick={(event) => {
               event.stopPropagation();

@@ -299,7 +299,7 @@ export default function PpobProductsPage() {
       width: '6rem',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          {hasPermission('admin.pos.ppob.create') && (
+          {hasPermission('pos.ppob.create') && (
             <button
               onClick={() => {
                 setEditProduct(row);
@@ -311,7 +311,7 @@ export default function PpobProductsPage() {
               <Pencil className="h-4 w-4 text-gray-600" />
             </button>
           )}
-          {hasPermission('admin.pos.ppob.create') && (
+          {hasPermission('pos.ppob.create') && (
             <button
               onClick={() => {
                 setDeleteTarget(row);
@@ -335,9 +335,9 @@ export default function PpobProductsPage() {
           <h1 className="text-2xl font-bold text-[#142D52]">Produk PPOB</h1>
           <p className="mt-1 text-gray-600">Kelola produk PPOB dan mapping provider.</p>
         </div>
-        {hasPermission('admin.pos.ppob.create') && (
+        {hasPermission('pos.ppob.create') && (
         <div className="flex items-center gap-2">
-          {selectedUuids.length > 0 && hasPermission('admin.pos.ppob.create') && (
+          {selectedUuids.length > 0 && hasPermission('pos.ppob.create') && (
             <button
               onClick={() => setShowBulkDeleteModal(true)}
               className="flex cursor-pointer items-center space-x-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-100"

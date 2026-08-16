@@ -31,21 +31,22 @@ CREATE TABLE "administrators" (
 );
 
 -- CreateTable
-CREATE TABLE "roles" (
+CREATE TABLE "app_roles" (
     "id" SERIAL NOT NULL,
+    "uuid" CHAR(36) NOT NULL,
     "name" VARCHAR(255) NOT NULL,
-    "guard_name" VARCHAR(255) NOT NULL DEFAULT 'web',
+    "company_uuid" CHAR(36) NOT NULL,
+    "is_full_access" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "roles_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "app_roles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "permissions" (
     "id" SERIAL NOT NULL,
     "name" VARCHAR(255) NOT NULL,
-    "guard_name" VARCHAR(255) NOT NULL DEFAULT 'web',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -53,21 +54,13 @@ CREATE TABLE "permissions" (
 );
 
 -- CreateTable
-CREATE TABLE "model_has_roles" (
+CREATE TABLE "app_model_has_roles" (
     "role_id" INTEGER NOT NULL,
     "model_type" VARCHAR(255) NOT NULL DEFAULT 'App\\Models\\User',
     "model_id" INTEGER NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
 
-    CONSTRAINT "model_has_roles_pkey" PRIMARY KEY ("role_id","model_type","model_id")
-);
-
--- CreateTable
-CREATE TABLE "model_has_permissions" (
-    "permission_id" INTEGER NOT NULL,
-    "model_type" VARCHAR(255) NOT NULL DEFAULT 'App\\Models\\User',
-    "model_id" INTEGER NOT NULL,
-
-    CONSTRAINT "model_has_permissions_pkey" PRIMARY KEY ("permission_id","model_type","model_id")
+    CONSTRAINT "app_model_has_roles_pkey" PRIMARY KEY ("role_id","model_type","model_id","company_uuid")
 );
 
 -- CreateTable
@@ -94,11 +87,11 @@ CREATE TABLE "berita" (
 );
 
 -- CreateTable
-CREATE TABLE "role_has_permissions" (
+CREATE TABLE "app_role_has_permissions" (
     "permission_id" INTEGER NOT NULL,
     "role_id" INTEGER NOT NULL,
 
-    CONSTRAINT "role_has_permissions_pkey" PRIMARY KEY ("permission_id","role_id")
+    CONSTRAINT "app_role_has_permissions_pkey" PRIMARY KEY ("permission_id","role_id")
 );
 
 -- CreateTable
@@ -417,16 +410,22 @@ CREATE UNIQUE INDEX "administrators_uuid_key" ON "administrators"("uuid");
 CREATE UNIQUE INDEX "administrators_email_key" ON "administrators"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "roles_name_guard_name_key" ON "roles"("name", "guard_name");
+CREATE UNIQUE INDEX "app_roles_uuid_key" ON "app_roles"("uuid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "permissions_name_guard_name_key" ON "permissions"("name", "guard_name");
+CREATE UNIQUE INDEX "roles_company_uuid_name_key" ON "app_roles"("company_uuid", "name");
 
 -- CreateIndex
-CREATE INDEX "model_has_roles_model_id_model_type_index" ON "model_has_roles"("model_id", "model_type");
+CREATE INDEX "app_roles_company_uuid_idx" ON "app_roles"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "model_has_permissions_model_id_model_type_index" ON "model_has_permissions"("model_id", "model_type");
+CREATE UNIQUE INDEX "permissions_name_key" ON "permissions"("name");
+
+-- CreateIndex
+CREATE INDEX "app_model_has_roles_model_id_model_type_index" ON "app_model_has_roles"("model_id", "model_type");
+
+-- CreateIndex
+CREATE INDEX "app_model_has_roles_company_uuid_idx" ON "app_model_has_roles"("company_uuid");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "berita_uuid_key" ON "berita"("uuid");
@@ -525,22 +524,19 @@ CREATE INDEX "app_pos_ppob_transactions_status_idx" ON "app_pos_ppob_transaction
 CREATE INDEX "app_pos_ppob_transactions_created_at_idx" ON "app_pos_ppob_transactions"("created_at");
 
 -- AddForeignKey
-ALTER TABLE "model_has_roles" ADD CONSTRAINT "model_has_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "app_roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "model_has_roles" ADD CONSTRAINT "model_has_roles_model_id_fkey" FOREIGN KEY ("model_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "model_has_permissions" ADD CONSTRAINT "model_has_permissions_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_model_id_fkey" FOREIGN KEY ("model_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "berita" ADD CONSTRAINT "berita_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "role_has_permissions" ADD CONSTRAINT "role_has_permissions_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_role_has_permissions" ADD CONSTRAINT "app_role_has_permissions_permission_id_fkey" FOREIGN KEY ("permission_id") REFERENCES "permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "role_has_permissions" ADD CONSTRAINT "role_has_permissions_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_role_has_permissions" ADD CONSTRAINT "app_role_has_permissions_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "app_roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_pos_products" ADD CONSTRAINT "app_pos_products_category_uuid_fkey" FOREIGN KEY ("category_uuid") REFERENCES "app_pos_product_categories"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

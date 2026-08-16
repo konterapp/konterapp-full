@@ -74,7 +74,10 @@ export default function UsersPage() {
       try {
          const response = await getRoles();
          if (response.status === 'success' && response.data) {
-            setRoles(response.data);
+            const uniqueByName = response.data.filter((role, index, self) =>
+               index === self.findIndex(r => r.name === role.name)
+            );
+            setRoles(uniqueByName);
          }
       } catch (err) {
          console.error('Failed to fetch roles:', err);

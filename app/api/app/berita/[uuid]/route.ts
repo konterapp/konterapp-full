@@ -6,7 +6,7 @@ import { beritaService } from "@/lib/modules/berita/admin.service";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 
 export const GET = withPermission(
-  "admin.berita.index",
+  "berita.index",
   withApiErrorHandling(async (_req, context) => {
     const params = await context.params;
     const uuid = params.uuid;
@@ -18,7 +18,7 @@ export const GET = withPermission(
 );
 
 export const PATCH = withPermission(
-  "admin.berita.update",
+  "berita.update",
   withApiErrorHandling(async (req, context) => {
     const params = await context.params;
     const uuid = params.uuid;
@@ -45,7 +45,7 @@ export const PATCH = withPermission(
 );
 
 export const DELETE = withPermission(
-  "admin.berita.delete",
+  "berita.delete",
   withApiErrorHandling(async (_req, context) => {
     const params = await context.params;
     const uuid = params.uuid;

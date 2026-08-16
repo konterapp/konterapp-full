@@ -7,7 +7,7 @@ import { createStockOpnameSchema } from '@/lib/validations/stock-opname';
 import { posStockOpnameService } from '@/lib/modules/pos/stock-opname/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.stock-movement.index',
+  'pos.stock-movement.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const scope = searchParams.get('scope') || 'history';
@@ -44,7 +44,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.stock-movement.index',
+  'pos.stock-movement.index',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const body = await req.json();
     const result = validateSchema(createStockOpnameSchema, body);

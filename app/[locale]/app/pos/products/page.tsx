@@ -377,7 +377,7 @@ export default function ProductsPage() {
       className: 'whitespace-nowrap',
       render: (_, row) => (
         <div className="flex items-center space-x-2">
-          {hasPermission('admin.pos.product.update') && (
+          {hasPermission('pos.product.update') && (
             <Link
               href={`/app/pos/products/${row.uuid}/edit`}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
@@ -386,7 +386,7 @@ export default function ProductsPage() {
               <Edit className="w-4 h-4 text-gray-600" />
             </Link>
           )}
-          {hasPermission('admin.pos.product.delete') && (
+          {hasPermission('pos.product.delete') && (
             <button
               onClick={() => handleDeleteClick(row)}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
@@ -407,7 +407,7 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-[#142D52]">Produk</h1>
           <p className="text-gray-600 mt-1">Kelola produk untuk sistem POS.</p>
         </div>
-        {hasPermission('admin.pos.product.create') && (
+        {hasPermission('pos.product.create') && (
           <Link
             href="/app/pos/products/create"
             className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"

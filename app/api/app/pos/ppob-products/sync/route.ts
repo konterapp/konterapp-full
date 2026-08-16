@@ -6,7 +6,7 @@ import { ValidationApiError } from '@/lib/api-errors';
 import { posPpobProductService } from '@/lib/modules/pos/ppob-products/admin.service';
 
 export const POST = withPermission(
-  'admin.pos.ppob.create',
+  'pos.ppob.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
     const provider = body.provider as string;

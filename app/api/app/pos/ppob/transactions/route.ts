@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posPpobTransactionService } from '@/lib/modules/pos/ppob-transactions/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.ppob.index',
+  'pos.ppob.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
 

@@ -7,7 +7,7 @@ import { updateProductSchema } from '@/lib/validations/product';
 import { normalizeProductBody, posProductService } from '@/lib/modules/pos/products/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.product.index',
+  'pos.product.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const product = await posProductService.getProductDetail(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PATCH = withPermission(
-  'admin.pos.product.update',
+  'pos.product.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
 
@@ -56,7 +56,7 @@ export const PATCH = withPermission(
 export const PUT = PATCH;
 
 export const DELETE = withPermission(
-  'admin.pos.product.delete',
+  'pos.product.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posProductService.deleteProduct(uuid);

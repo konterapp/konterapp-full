@@ -7,7 +7,7 @@ import { posProductService } from '@/lib/modules/pos/products/admin.service';
 import { buildProductBarcodePdf } from '@/lib/modules/pos/products/barcode-pdf';
 
 export const POST = withPermission(
-  'admin.pos.product.index',
+  'pos.product.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
     const result = validateSchema(bulkProductBarcodePdfSchema, body);

@@ -7,7 +7,7 @@ import { updateCustomerSchema } from '@/lib/validations/customer';
 import { posCustomerService } from '@/lib/modules/pos/customers/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const customer = await posCustomerService.getCustomer(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PUT = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const body = await req.json();
@@ -29,7 +29,7 @@ export const PUT = withPermission(
 );
 
 export const DELETE = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posCustomerService.deleteCustomer(uuid);

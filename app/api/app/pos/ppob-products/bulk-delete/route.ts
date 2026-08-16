@@ -7,7 +7,7 @@ import { bulkDeletePpobProductSchema } from '@/lib/validations/ppob-product';
 import { posPpobProductService } from '@/lib/modules/pos/ppob-products/admin.service';
 
 export const POST = withPermission(
-  'admin.pos.ppob.create',
+  'pos.ppob.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const rawBody = await req.json();
     const result = validateSchema(bulkDeletePpobProductSchema, rawBody);

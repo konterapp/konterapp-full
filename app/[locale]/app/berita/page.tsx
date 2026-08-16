@@ -237,8 +237,8 @@ export default function BeritaPage() {
             width: '10rem',
             className: 'whitespace-nowrap',
             render: (_, row) => {
-                const canEdit = hasPermission('admin.berita.update');
-                const canDelete = hasPermission('admin.berita.delete');
+                const canEdit = hasPermission('berita.update');
+                const canDelete = hasPermission('berita.delete');
 
                 return (
                     <div className="flex items-center gap-2">
@@ -281,7 +281,7 @@ export default function BeritaPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Daftar Berita</h1>
                     <p className="text-gray-600 mt-1">Kelola berita dan artikel</p>
                 </div>
-                {hasPermission('admin.berita.create') && (
+                {hasPermission('berita.create') && (
                     <Link
                         href="/app/berita/create"
                         className="flex items-center space-x-2 px-4 py-2 bg-[#2a4061] text-white rounded-lg hover:bg-[#1e2f47] transition-colors font-semibold"

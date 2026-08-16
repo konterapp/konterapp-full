@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posTransactionService } from '@/lib/modules/pos/transactions/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.index',
+  'pos.sale.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const sale = await posTransactionService.getTransactionDetail(uuid);

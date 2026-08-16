@@ -8,6 +8,7 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { DEFAULT_USER_EMAIL } from "../users";
+import { TENANT_DEFAULT_ROLE_KASIR } from "../../../lib/modules/roles/templates";
 
 const EXTRA_MEMBERSHIPS = [
   { userEmail: DEFAULT_USER_EMAIL, companyCode: "CMP-002" },
@@ -40,6 +41,32 @@ export async function seedUserCompanies(prisma: PrismaClient) {
         isActive: true,
       },
     });
+
+    // User dapat role kasir di company tambahan ini (role milik company tsb)
+    const role = await prisma.role.findFirst({
+      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_KASIR },
+      select: { id: true },
+    });
+    if (role) {
+      await prisma.modelHasRole.upsert({
+        where: {
+          roleId_modelType_modelId_companyUuid: {
+            roleId: role.id,
+            modelType: "App\\Models\\User",
+            modelId: user.id,
+            companyUuid: company.uuid,
+          },
+        },
+        update: {},
+        create: {
+          roleId: role.id,
+          modelType: "App\\Models\\User",
+          modelId: user.id,
+          companyUuid: company.uuid,
+        },
+      });
+    }
+
     count += 1;
   }
 

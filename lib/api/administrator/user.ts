@@ -85,8 +85,9 @@ export interface Role {
   name: string;
 }
 
-export async function getRoles(): Promise<ApiResponse<Role[]>> {
-  return apiRequest<Role[]>('/api/administrator/users/roles');
+export async function getRoles(companyUuid?: string): Promise<ApiResponse<Role[]>> {
+  const params = companyUuid ? `?company_uuid=${encodeURIComponent(companyUuid)}` : '';
+  return apiRequest<Role[]>(`/api/administrator/users/roles${params}`);
 }
 
 export async function toggleUserActive(uuid: string): Promise<ApiResponse<User>> {

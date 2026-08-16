@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, Shield, Building2 } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, ReceiptText } from 'lucide-react';
 
 export interface AdministratorMenuItem {
     label: string;
@@ -18,13 +18,13 @@ export const administratorMenuItems: AdministratorMenuItem[] = [
         icon: <Building2 className="w-5 h-5" />,
     },
     {
+        label: 'Billing',
+        href: '/administrator/billing',
+        icon: <ReceiptText className="w-5 h-5" />,
+    },
+    {
         label: 'User',
         href: '/administrator/users',
         icon: <Users className="w-5 h-5" />,
-    },
-    {
-        label: 'Role',
-        href: '/administrator/roles',
-        icon: <Shield className="w-5 h-5" />,
     },
 ];

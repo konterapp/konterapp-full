@@ -7,7 +7,7 @@ import { createCustomerSchema } from '@/lib/validations/customer';
 import { posCustomerService } from '@/lib/modules/pos/customers/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -20,7 +20,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
     const result = validateSchema(createCustomerSchema, body);

@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.branch.index',
+  'pos.branch.index',
   withApiErrorHandling(async (_req: NextRequest) => {
     const branches = await posBranchService.listBranchesSimple();
     return successResponse('Branches retrieved successfully', branches);

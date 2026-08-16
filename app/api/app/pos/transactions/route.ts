@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posTransactionService } from '@/lib/modules/pos/transactions/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.index',
+  'pos.sale.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -37,7 +37,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const rawBody = await req.json();
     const body = {

@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posProductService } from '@/lib/modules/pos/products/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const barcode = searchParams.get('barcode') || '';

@@ -7,7 +7,7 @@ import { updateUnitSchema } from '@/lib/validations/unit';
 import { posUnitService } from '@/lib/modules/pos/units/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.unit.index',
+  'pos.unit.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const unit = await posUnitService.getUnitDetail(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PATCH = withPermission(
-  'admin.pos.unit.update',
+  'pos.unit.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const body = await req.json();
@@ -31,7 +31,7 @@ export const PATCH = withPermission(
 export const PUT = PATCH;
 
 export const DELETE = withPermission(
-  'admin.pos.unit.delete',
+  'pos.unit.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posUnitService.deleteUnit(uuid);

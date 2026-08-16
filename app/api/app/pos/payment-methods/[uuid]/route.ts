@@ -7,7 +7,7 @@ import { updatePaymentMethodSchema } from '@/lib/validations/payment-method';
 import { posPaymentMethodService } from '@/lib/modules/pos/payment-methods/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.payment-method.index',
+  'pos.payment-method.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const paymentMethod = await posPaymentMethodService.getPaymentMethod(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PUT = withPermission(
-  'admin.pos.payment-method.update',
+  'pos.payment-method.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = await req.json();
@@ -36,7 +36,7 @@ export const PUT = withPermission(
 );
 
 export const DELETE = withPermission(
-  'admin.pos.payment-method.delete',
+  'pos.payment-method.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posPaymentMethodService.deletePaymentMethod(uuid);

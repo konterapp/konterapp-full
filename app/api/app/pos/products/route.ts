@@ -7,7 +7,7 @@ import { createProductSchema } from '@/lib/validations/product';
 import { normalizeProductBody, posProductService } from '@/lib/modules/pos/products/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.product.index',
+  'pos.product.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -37,7 +37,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.product.create',
+  'pos.product.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const contentType = req.headers.get('content-type') || '';
     let rawBody: Record<string, any> = {};

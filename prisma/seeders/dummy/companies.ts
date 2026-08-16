@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { seedTenantDefaultRoles } from "../../../lib/modules/roles/templates";
 
 const COMPANIES_DATA = [
   {
@@ -25,7 +26,7 @@ const COMPANIES_DATA = [
 
 export async function seedCompanies(prisma: PrismaClient) {
   for (const data of COMPANIES_DATA) {
-    await prisma.company.upsert({
+    const company = await prisma.company.upsert({
       where: { code: data.code },
       update: {},
       create: {
@@ -35,6 +36,9 @@ export async function seedCompanies(prisma: PrismaClient) {
         isActive: data.isActive,
       },
     });
+
+    // Company dummy juga dapat role default tenant (administrator + kasir)
+    await seedTenantDefaultRoles(prisma, company.uuid);
   }
 
   console.log(`✓ ${COMPANIES_DATA.length} companies dummy created`);

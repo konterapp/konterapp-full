@@ -42,14 +42,15 @@ export async function POST(req: NextRequest) {
       return errorResponse("Email atau password salah", 401);
     }
 
-    const roles = await getUserRoles(user.id);
-    const permissions = await getUserPermissions(user.id);
     let companyContext;
     try {
       companyContext = await resolveUserActiveCompany(user.id);
     } catch (error) {
       return errorResponse((error as Error).message || "Akun belum memiliki perusahaan aktif", 403);
     }
+
+    const roles = await getUserRoles(user.id, companyContext.activeCompanyUuid);
+    const permissions = await getUserPermissions(user.id, companyContext.activeCompanyUuid);
     const companies = companyContext.companies;
 
     // Create session token manually

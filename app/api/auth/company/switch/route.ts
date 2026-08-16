@@ -31,8 +31,8 @@ export const POST = withAuth(async (req: NextRequest, context) => {
     return errorResponse("Perusahaan tidak ditemukan dalam membership user", 403);
   }
 
-  const roles = await getUserRoles(context.userId);
-  const permissions = await getUserPermissions(context.userId);
+  const roles = await getUserRoles(context.userId, companyContext.activeCompanyUuid);
+  const permissions = await getUserPermissions(context.userId, companyContext.activeCompanyUuid);
   const companies = companyContext.companies;
 
   const isSecure = req.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";

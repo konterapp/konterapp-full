@@ -67,14 +67,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!isValid) return null;
 
-        const roles = await getUserRoles(user.id);
-        const permissions = await getUserPermissions(user.id);
         let companyContext;
         try {
           companyContext = await resolveUserActiveCompany(user.id);
         } catch {
           return null;
         }
+
+        const roles = await getUserRoles(user.id, companyContext.activeCompanyUuid);
+        const permissions = await getUserPermissions(user.id, companyContext.activeCompanyUuid);
 
         return {
           id: String(user.id),

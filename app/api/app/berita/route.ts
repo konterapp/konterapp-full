@@ -6,7 +6,7 @@ import { beritaService } from "@/lib/modules/berita/admin.service";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 
 export const GET = withPermission(
-  "admin.berita.index",
+  "berita.index",
   withApiErrorHandling(async (req) => {
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
@@ -35,7 +35,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  "admin.berita.create",
+  "berita.create",
   withApiErrorHandling(async (req, context) => {
     const contentType = req.headers.get("content-type") ?? "";
     let body: any;

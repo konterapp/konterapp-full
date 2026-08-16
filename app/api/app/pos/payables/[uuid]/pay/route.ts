@@ -7,7 +7,7 @@ import { posPayableService } from '@/lib/modules/pos/payables/admin.service';
 import { payPayableSchema } from '@/lib/validations/payable';
 
 export const POST = withPermission(
-  'admin.pos.purchase.create',
+  'pos.purchase.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = (await req.json()) as Record<string, unknown>;

@@ -7,7 +7,7 @@ import { createSupplierSchema } from '@/lib/validations/supplier';
 import { posSupplierService } from '@/lib/modules/pos/suppliers/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.supplier.index',
+  'pos.supplier.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -31,7 +31,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.supplier.create',
+  'pos.supplier.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const rawBody = await req.json();
     const body = {

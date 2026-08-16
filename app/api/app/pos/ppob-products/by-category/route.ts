@@ -7,7 +7,7 @@ import { getPpobProductsByCategorySchema } from '@/lib/validations/ppob-product'
 import { posPpobProductService } from '@/lib/modules/pos/ppob-products/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.ppob.index',
+  'pos.ppob.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const raw = {

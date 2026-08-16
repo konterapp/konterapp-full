@@ -29,8 +29,6 @@ export async function GET(req: NextRequest) {
     return errorResponse("User tidak ditemukan", 404);
   }
 
-  const roles = await getUserRoles(user.id);
-  const permissions = await getUserPermissions(user.id);
   const tokenData = token as AuthTokenShape;
   const preferredCompanyUuid = req.headers.get("x-company-uuid") || tokenData.activeCompanyUuid || null;
   let companyContext;
@@ -39,6 +37,9 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     return errorResponse((error as Error).message || "Akun belum memiliki perusahaan aktif", 403);
   }
+
+  const roles = await getUserRoles(user.id, companyContext.activeCompanyUuid);
+  const permissions = await getUserPermissions(user.id, companyContext.activeCompanyUuid);
   const companies = companyContext.companies;
 
   const subscription = await billingRepository.findSubscriptionByCompanyUuid(companyContext.activeCompanyUuid);

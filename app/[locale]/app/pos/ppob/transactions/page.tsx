@@ -283,7 +283,7 @@ export default function PpobTransactionsPage() {
       width: '5rem',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          {hasPermission('admin.pos.ppob.create') && row.status === 'pending' && (
+          {hasPermission('pos.ppob.create') && row.status === 'pending' && (
             <button
               onClick={() => handleCheckStatus(row.uuid)}
               disabled={checkingStatus === row.uuid}

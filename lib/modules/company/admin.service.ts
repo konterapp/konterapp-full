@@ -3,6 +3,8 @@ import { companyRepository } from "./repository";
 import { formatCompany } from "./company.mapper";
 import { billingRepository } from "@/lib/modules/billing/repository";
 import { FREE_TRIAL_PLAN_CODE } from "@/lib/modules/billing/constants";
+import { prisma } from "@/lib/prisma";
+import { seedTenantDefaultRoles } from "@/lib/modules/roles/templates";
 
 function getSortConfig(sortBy: string, sortOrder: string) {
   const allowedSorts = ["code", "name", "created_at"];
@@ -70,6 +72,9 @@ export const companyService = {
       name: payload.name,
       isActive: payload.is_active ?? true,
     });
+
+    // Seed role default tenant (administrator + kasir) untuk company baru
+    await seedTenantDefaultRoles(prisma as unknown as Parameters<typeof seedTenantDefaultRoles>[0], company.uuid);
 
     const trialPlan = await billingRepository.findPlanByCode(FREE_TRIAL_PLAN_CODE);
     if (!trialPlan) {

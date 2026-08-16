@@ -7,7 +7,7 @@ import { updatePpobProductSchema } from '@/lib/validations/ppob-product';
 import { posPpobProductService } from '@/lib/modules/pos/ppob-products/admin.service';
 
 export const PATCH = withPermission(
-  'admin.pos.ppob.create',
+  'pos.ppob.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = await req.json();
@@ -28,7 +28,7 @@ export const PATCH = withPermission(
 );
 
 export const DELETE = withPermission(
-  'admin.pos.ppob.create',
+  'pos.ppob.create',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posPpobProductService.deleteProduct(uuid);

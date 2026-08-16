@@ -7,7 +7,7 @@ import { createPpobProductSchema } from '@/lib/validations/ppob-product';
 import { posPpobProductService } from '@/lib/modules/pos/ppob-products/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.ppob.index',
+  'pos.ppob.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -35,7 +35,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.ppob.create',
+  'pos.ppob.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const rawBody = await req.json();
     const body = {

@@ -7,7 +7,7 @@ import { updateDraftPurchaseSchema } from '@/lib/validations/purchase';
 import { posPurchaseService } from '@/lib/modules/pos/purchases/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.purchase.index',
+  'pos.purchase.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const purchase = await posPurchaseService.getPurchaseDetail(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PUT = withPermission(
-  'admin.pos.purchase.create',
+  'pos.purchase.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = (await req.json()) as Record<string, unknown>;
@@ -75,7 +75,7 @@ export const PUT = withPermission(
 );
 
 export const DELETE = withPermission(
-  'admin.pos.purchase.delete',
+  'pos.purchase.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posPurchaseService.voidPurchase(uuid, context.userId);

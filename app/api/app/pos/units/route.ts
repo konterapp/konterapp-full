@@ -7,7 +7,7 @@ import { createUnitSchema } from '@/lib/validations/unit';
 import { posUnitService } from '@/lib/modules/pos/units/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.unit.index',
+  'pos.unit.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -29,7 +29,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.unit.create',
+  'pos.unit.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
     const result = validateSchema(createUnitSchema, body);

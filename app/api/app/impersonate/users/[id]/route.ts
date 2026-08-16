@@ -15,10 +15,10 @@ export const POST = withAuth(async (req, context) => {
       return errorResponse("Invalid user ID", 400);
     }
 
-    // Get current user's roles to check if admin
-    const currentRoles = await getUserRoles(context.userId);
-    if (!currentRoles.includes("admin")) {
-      return errorResponse("Hanya admin yang bisa login sebagai user lain", 403);
+    // Get current user's roles in the active company to check if tenant admin
+    const currentRoles = await getUserRoles(context.userId, context.companyUuid);
+    if (!currentRoles.includes("administrator")) {
+      return errorResponse("Hanya administrator yang bisa login sebagai user lain", 403);
     }
 
     // Cannot impersonate yourself
@@ -35,13 +35,7 @@ export const POST = withAuth(async (req, context) => {
       return errorResponse("User tidak ditemukan", 404);
     }
 
-    // Cannot impersonate another admin
-    const targetRoles = await getUserRoles(targetUser.id);
-    if (targetRoles.includes("admin")) {
-      return errorResponse("Tidak bisa login sebagai admin lain", 403);
-    }
-
-    const targetPermissions = await getUserPermissions(targetUser.id);
+    // Cannot impersonate another administrator
     let companyContext;
     try {
       companyContext = await resolveUserActiveCompany(targetUser.id);
@@ -49,6 +43,13 @@ export const POST = withAuth(async (req, context) => {
       return errorResponse((error as Error).message || "User target belum memiliki perusahaan aktif", 403);
     }
     const companies = companyContext.companies;
+
+    const targetRoles = await getUserRoles(targetUser.id, companyContext.activeCompanyUuid);
+    if (targetRoles.includes("administrator")) {
+      return errorResponse("Tidak bisa login sebagai administrator lain", 403);
+    }
+
+    const targetPermissions = await getUserPermissions(targetUser.id, companyContext.activeCompanyUuid);
 
     // Create new session as target user, store original admin id
     const token = await encode({

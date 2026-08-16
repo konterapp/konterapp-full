@@ -36,14 +36,15 @@ export async function POST() {
       return errorResponse("Admin user tidak ditemukan", 404);
     }
 
-    const roles = await getUserRoles(adminUser.id);
-    const permissions = await getUserPermissions(adminUser.id);
     let companyContext;
     try {
       companyContext = await resolveUserActiveCompany(adminUser.id);
     } catch (error) {
       return errorResponse((error as Error).message || "Admin belum memiliki perusahaan aktif", 403);
     }
+
+    const roles = await getUserRoles(adminUser.id, companyContext.activeCompanyUuid);
+    const permissions = await getUserPermissions(adminUser.id, companyContext.activeCompanyUuid);
     const companies = companyContext.companies;
 
     // Create new session as original admin (no impersonatorId)

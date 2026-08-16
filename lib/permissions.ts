@@ -1,42 +1,48 @@
 import { prisma } from "./prisma";
 
-export async function getUserRoles(userId: number): Promise<string[]> {
+const USER_MODEL_TYPE = "App\\Models\\User";
+
+/** Semua permission di katalog (dipakai untuk role full-access / administrator). */
+export async function getAllPermissions(): Promise<string[]> {
+  const permissions = await prisma.permission.findMany({ select: { name: true } });
+  return permissions.map((p) => p.name);
+}
+
+/** Role user di dalam satu company aktif. */
+export async function getUserRoles(userId: number, companyUuid: string): Promise<string[]> {
   const roles = await prisma.modelHasRole.findMany({
-    where: { modelId: userId, modelType: "App\\Models\\User" },
+    where: { modelId: userId, modelType: USER_MODEL_TYPE, companyUuid },
     include: { role: true },
   });
   return roles.map((r) => r.role.name);
 }
 
-export async function getUserPermissions(userId: number): Promise<string[]> {
-  // Get permissions from roles
-  const rolePermissions = await prisma.modelHasRole.findMany({
-    where: { modelId: userId, modelType: "App\\Models\\User" },
+/**
+ * Permission user DI DALAM company tertentu. Multi-tenant: hanya role milik
+ * company tsb yang dihitung. Jika salah satu role-nya full-access
+ * (default: administrator), kembalikan seluruh katalog permission.
+ */
+export async function getUserPermissions(userId: number, companyUuid: string): Promise<string[]> {
+  const assignments = await prisma.modelHasRole.findMany({
+    where: { modelId: userId, modelType: USER_MODEL_TYPE, companyUuid },
     include: {
       role: {
         include: {
-          roleHasPermissions: {
-            include: { permission: true },
-          },
+          roleHasPermissions: { include: { permission: true } },
         },
       },
     },
   });
 
-  const permFromRoles = rolePermissions.flatMap((r) =>
-    r.role.roleHasPermissions.map((rp) => rp.permission.name)
-  );
+  if (assignments.some((a) => a.role.isFullAccess)) {
+    return getAllPermissions();
+  }
 
-  // Get direct permissions
-  const directPermissions = await prisma.modelHasPermission.findMany({
-    where: { modelId: userId, modelType: "App\\Models\\User" },
-    include: { permission: true },
-  });
-
-  const permDirect = directPermissions.map((dp) => dp.permission.name);
-
-  // Merge and deduplicate
-  return [...new Set([...permFromRoles, ...permDirect])];
+  return [
+    ...new Set(
+      assignments.flatMap((a) => a.role.roleHasPermissions.map((rp) => rp.permission.name))
+    ),
+  ];
 }
 
 export function hasPermission(

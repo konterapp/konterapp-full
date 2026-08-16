@@ -176,12 +176,12 @@ export default function DashboardPage() {
     setIsRefreshing(true);
     setLoadError(null);
 
-    const canViewSales = permissions.includes('admin.pos.sale.index');
-    const canViewProducts = permissions.includes('admin.pos.product.index');
-    const canViewCustomers = permissions.includes('admin.pos.sale.create');
-    const canViewPurchases = permissions.includes('admin.pos.purchase.index');
-    const canViewBranches = permissions.includes('admin.pos.branch.index');
-    const canViewReport = permissions.includes('admin.pos.report.index');
+    const canViewSales = permissions.includes('pos.sale.index');
+    const canViewProducts = permissions.includes('pos.product.index');
+    const canViewCustomers = permissions.includes('pos.sale.create');
+    const canViewPurchases = permissions.includes('pos.purchase.index');
+    const canViewBranches = permissions.includes('pos.branch.index');
+    const canViewReport = permissions.includes('pos.report.index');
 
     const { from, to } = getMonthRange();
 

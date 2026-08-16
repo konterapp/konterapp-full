@@ -7,7 +7,7 @@ import { updateBranchSchema } from '@/lib/validations/branch';
 import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.branch.index',
+  'pos.branch.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const branch = await posBranchService.getBranchDetail(uuid);
@@ -17,7 +17,7 @@ export const GET = withPermission(
 );
 
 export const PUT = withPermission(
-  'admin.pos.branch.update',
+  'pos.branch.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = await req.json();
@@ -36,7 +36,7 @@ export const PUT = withPermission(
 );
 
 export const DELETE = withPermission(
-  'admin.pos.branch.delete',
+  'pos.branch.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
 

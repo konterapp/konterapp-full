@@ -54,152 +54,152 @@ export function getPermissionByPath(pathname: string): string | null {
 
 // Routes mapping dengan permission
 const routes: Record<string, RouteInfo> = {
-  'admin.berita.index': {
+  'berita.index': {
     path: '/app/berita',
-    permission: 'admin.berita.index',
+    permission: 'berita.index',
   },
-  'admin.berita.create': {
+  'berita.create': {
     path: '/app/berita/create',
-    permission: 'admin.berita.create',
+    permission: 'berita.create',
   },
-  'admin.berita.detail': {
+  'berita.detail': {
     path: '/app/berita/:id',
-    permission: 'admin.berita.index',
+    permission: 'berita.index',
   },
-  'admin.berita.edit': {
+  'berita.edit': {
     path: '/app/berita/:id/edit',
-    permission: 'admin.berita.update',
+    permission: 'berita.update',
   },
-  'admin.pos.sale.create': {
+  'pos.sale.create': {
     path: '/app/pos',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.sale.index': {
+  'pos.sale.index': {
     path: '/app/pos/transactions',
-    permission: 'admin.pos.sale.index',
+    permission: 'pos.sale.index',
   },
-  'admin.pos.product.index': {
+  'pos.product.index': {
     path: '/app/pos/products',
-    permission: 'admin.pos.product.index',
+    permission: 'pos.product.index',
   },
-  'admin.pos.category.index': {
+  'pos.category.index': {
     path: '/app/pos/categories',
-    permission: 'admin.pos.category.index',
+    permission: 'pos.category.index',
   },
-  'admin.pos.unit.index': {
+  'pos.unit.index': {
     path: '/app/pos/units',
-    permission: 'admin.pos.unit.index',
+    permission: 'pos.unit.index',
   },
-  'admin.pos.unit.create': {
+  'pos.unit.create': {
     path: '/app/pos/units/create',
-    permission: 'admin.pos.unit.create',
+    permission: 'pos.unit.create',
   },
-  'admin.pos.unit.edit': {
+  'pos.unit.edit': {
     path: '/app/pos/units/:id/edit',
-    permission: 'admin.pos.unit.update',
+    permission: 'pos.unit.update',
   },
-  'admin.pos.customer.index': {
+  'pos.customer.index': {
     path: '/app/pos/customers',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.customer.create': {
+  'pos.customer.create': {
     path: '/app/pos/customers/create',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.customer.edit': {
+  'pos.customer.edit': {
     path: '/app/pos/customers/:id/edit',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.supplier.index': {
+  'pos.supplier.index': {
     path: '/app/pos/suppliers',
-    permission: 'admin.pos.supplier.index',
+    permission: 'pos.supplier.index',
   },
-  'admin.pos.purchase.index': {
+  'pos.purchase.index': {
     path: '/app/pos/purchases',
-    permission: 'admin.pos.purchase.index',
+    permission: 'pos.purchase.index',
   },
-  'admin.pos.purchase.create': {
+  'pos.purchase.create': {
     path: '/app/pos/purchases/create',
-    permission: 'admin.pos.purchase.create',
+    permission: 'pos.purchase.create',
   },
-  'admin.pos.purchase.detail': {
+  'pos.purchase.detail': {
     path: '/app/pos/purchases/:id',
-    permission: 'admin.pos.purchase.index',
+    permission: 'pos.purchase.index',
   },
-  'admin.pos.purchase.edit-draft': {
+  'pos.purchase.edit-draft': {
     path: '/app/pos/purchases/:id/edit',
-    permission: 'admin.pos.purchase.create',
+    permission: 'pos.purchase.create',
   },
-  'admin.pos.shift.index': {
+  'pos.shift.index': {
     path: '/app/pos/shifts',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.price-check.index': {
+  'pos.price-check.index': {
     path: '/app/pos/price-check',
-    permission: 'admin.pos.sale.create',
+    permission: 'pos.sale.create',
   },
-  'admin.pos.stock-on-hand.index': {
+  'pos.stock-on-hand.index': {
     path: '/app/pos/stock-on-hand',
-    permission: 'admin.pos.stock-movement.index',
+    permission: 'pos.stock-movement.index',
   },
-  'admin.pos.stock-movement.index': {
+  'pos.stock-movement.index': {
     path: '/app/pos/stock-movements',
-    permission: 'admin.pos.stock-movement.index',
+    permission: 'pos.stock-movement.index',
   },
-  'admin.pos.stock-opname.index': {
+  'pos.stock-opname.index': {
     path: '/app/pos/stock-opname',
-    permission: 'admin.pos.stock-movement.index',
+    permission: 'pos.stock-movement.index',
   },
-  'admin.pos.stock-opname.create': {
+  'pos.stock-opname.create': {
     path: '/app/pos/stock-opname/create',
-    permission: 'admin.pos.stock-movement.index',
+    permission: 'pos.stock-movement.index',
   },
-  'admin.pos.receivable.index': {
+  'pos.receivable.index': {
     path: '/app/pos/receivables',
-    permission: 'admin.pos.sale.index',
+    permission: 'pos.sale.index',
   },
-  'admin.pos.payable.index': {
+  'pos.payable.index': {
     path: '/app/pos/payables',
-    permission: 'admin.pos.purchase.index',
+    permission: 'pos.purchase.index',
   },
-  'admin.pos.report.index': {
+  'pos.report.index': {
     path: '/app/pos/reports',
-    permission: 'admin.pos.report.index',
+    permission: 'pos.report.index',
   },
-  'admin.pos.payment-method.index': {
+  'pos.payment-method.index': {
     path: '/app/pos/payment-methods',
-    permission: 'admin.pos.payment-method.index',
+    permission: 'pos.payment-method.index',
   },
-  'admin.pos.payment-method.create': {
+  'pos.payment-method.create': {
     path: '/app/pos/payment-methods/create',
-    permission: 'admin.pos.payment-method.create',
+    permission: 'pos.payment-method.create',
   },
-  'admin.pos.payment-method.edit': {
+  'pos.payment-method.edit': {
     path: '/app/pos/payment-methods/:id/edit',
-    permission: 'admin.pos.payment-method.update',
+    permission: 'pos.payment-method.update',
   },
-  'admin.pos.ppob.index': {
+  'pos.ppob.index': {
     path: '/app/pos/ppob',
-    permission: 'admin.pos.ppob.index',
+    permission: 'pos.ppob.index',
   },
-  'admin.pos.ppob.transactions': {
+  'pos.ppob.transactions': {
     path: '/app/pos/ppob/transactions',
-    permission: 'admin.pos.ppob.index',
+    permission: 'pos.ppob.index',
   },
-  'admin.pos.ppob.products': {
+  'pos.ppob.products': {
     path: '/app/pos/ppob/products',
-    permission: 'admin.pos.ppob.index',
+    permission: 'pos.ppob.index',
   },
-  'admin.pos.branch.index': {
+  'pos.branch.index': {
     path: '/app/pos/branches',
-    permission: 'admin.pos.branch.index',
+    permission: 'pos.branch.index',
   },
-  'admin.pos.branch.create': {
+  'pos.branch.create': {
     path: '/app/pos/branches/create',
-    permission: 'admin.pos.branch.create',
+    permission: 'pos.branch.create',
   },
-  'admin.pos.branch.edit': {
+  'pos.branch.edit': {
     path: '/app/pos/branches/:id/edit',
-    permission: 'admin.pos.branch.update',
+    permission: 'pos.branch.update',
   },
 };

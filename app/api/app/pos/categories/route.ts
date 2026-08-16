@@ -7,7 +7,7 @@ import { createCategorySchema } from '@/lib/validations/category';
 import { posCategoryService } from '@/lib/modules/pos/categories/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.category.index',
+  'pos.category.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -29,7 +29,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.category.create',
+  'pos.category.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const body = await req.json();
     const result = validateSchema(createCategorySchema, body);

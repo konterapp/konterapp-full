@@ -7,7 +7,7 @@ import { closeShiftSchema } from '@/lib/validations/shift';
 import { posShiftService } from '@/lib/modules/pos/shifts/admin.service';
 
 export const POST = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const body = await req.json();

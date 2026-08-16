@@ -60,8 +60,8 @@ export const userService = {
     };
   },
 
-  async getRoles() {
-    return userRepository.listRoles();
+  async getRoles(companyUuid?: string) {
+    return userRepository.listRoles(companyUuid);
   },
 
   async getUserDetail(uuid: string) {
@@ -70,7 +70,10 @@ export const userService = {
       throw new ApiError("User tidak ditemukan", 404);
     }
 
-    const permissions = await getUserPermissions(user.id);
+    const defaultMembership = user.companyMemberships?.find((m: any) => m.isDefault && m.isActive);
+    const permissions = defaultMembership
+      ? await getUserPermissions(user.id, defaultMembership.companyUuid)
+      : [];
     return formatUser(user, permissions);
   },
 
@@ -81,9 +84,9 @@ export const userService = {
       throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
     }
 
-    const role = await userRepository.findRoleById(payload.roles);
+    const role = await userRepository.findRoleForCompany(payload.roles, companyUuid);
     if (!role) {
-      throw new ValidationApiError({ roles: ["Role tidak valid"] });
+      throw new ValidationApiError({ roles: ["Role tidak valid untuk perusahaan ini"] });
     }
 
     const hashedPassword = await hash(payload.password, 10);
@@ -109,14 +112,19 @@ export const userService = {
       throw new ApiError("User tidak ditemukan", 404);
     }
 
+    const companyUuid: string = payload.company_uuid;
+    if (!companyUuid) {
+      throw new ValidationApiError({ company_uuid: ["Perusahaan wajib diisi"] });
+    }
+
     const existingEmail = await userRepository.findByEmail(payload.email, uuid);
     if (existingEmail) {
       throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
     }
 
-    const role = await userRepository.findRoleById(payload.roles);
+    const role = await userRepository.findRoleForCompany(payload.roles, companyUuid);
     if (!role) {
-      throw new ValidationApiError({ roles: ["Role tidak valid"] });
+      throw new ValidationApiError({ roles: ["Role tidak valid untuk perusahaan ini"] });
     }
 
     const userData: Record<string, unknown> = {
@@ -131,6 +139,7 @@ export const userService = {
     const updated = await userRepository.updateWithRole({
       userId: user.id,
       roleId: role.id,
+      companyUuid,
       userData,
     });
 

@@ -47,7 +47,7 @@ export function withPermission(permission: string, handler: RouteHandler) {
       return errorResponse("Langganan perusahaan tidak aktif", 403);
     }
 
-    const permissions = await getUserPermissions(context.userId);
+    const permissions = await getUserPermissions(context.userId, context.companyUuid);
     if (!hasPermission(permissions, permission)) {
       return errorResponse("Forbidden", 403);
     }

@@ -53,12 +53,12 @@ beforeEach(() => {
     companies: [],
   });
   mockRunWithTenantContext.mockImplementation((_companyUuid, callback) => callback());
-  mockGetUserPermissions.mockResolvedValue(['admin.pos.sale.index']);
+  mockGetUserPermissions.mockResolvedValue(['pos.sale.index']);
   mockHasPermission.mockReturnValue(true);
 });
 
 function gatedHandler() {
-  return withPermission('admin.pos.sale.index', async () => successResponse('ok'));
+  return withPermission('pos.sale.index', async () => successResponse('ok'));
 }
 
 function gatedContext(): { params: Promise<Record<string, string>> } {

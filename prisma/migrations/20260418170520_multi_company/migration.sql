@@ -233,3 +233,9 @@ ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_compan
 
 -- AddForeignKey
 ALTER TABLE "subscription_invoices" ADD CONSTRAINT "subscription_invoices_plan_uuid_fkey" FOREIGN KEY ("plan_uuid") REFERENCES "plans"("uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_roles" ADD CONSTRAINT "app_roles_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -47,8 +47,15 @@ export const userRepository = {
     return prisma.role.findUnique({ where: { id: roleId } });
   },
 
-  async listRoles() {
+  async findRoleForCompany(roleId: number, companyUuid: string) {
+    return prisma.role.findFirst({
+      where: { id: roleId, companyUuid },
+    });
+  },
+
+  async listRoles(companyUuid?: string) {
     return prisma.role.findMany({
+      where: companyUuid ? { companyUuid } : undefined,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
@@ -69,6 +76,7 @@ export const userRepository = {
           roleId,
           modelType: "App\\Models\\User",
           modelId: newUser.id,
+          companyUuid,
         },
       });
 
@@ -91,15 +99,20 @@ export const userRepository = {
   async updateWithRole(payload: {
     userId: number;
     roleId: number;
+    companyUuid: string;
     userData: Record<string, unknown>;
   }) {
-    const { userId, roleId, userData } = payload;
+    const { userId, roleId, companyUuid, userData } = payload;
 
     return prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id: userId }, data: userData });
 
       await tx.modelHasRole.deleteMany({
-        where: { modelId: userId, modelType: "App\\Models\\User" },
+        where: {
+          modelId: userId,
+          modelType: "App\\Models\\User",
+          companyUuid,
+        },
       });
 
       await tx.modelHasRole.create({
@@ -107,6 +120,7 @@ export const userRepository = {
           roleId,
           modelType: "App\\Models\\User",
           modelId: userId,
+          companyUuid,
         },
       });
 

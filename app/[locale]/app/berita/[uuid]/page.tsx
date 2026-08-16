@@ -141,7 +141,7 @@ export default function BeritaDetailPage({ params }: BeritaDetailPageProps) {
                     </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                    {hasPermission('admin.berita.update') && (
+                    {hasPermission('berita.update') && (
                         <Link
                             href={`/app/berita/${uuid}/edit`}
                             className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-900 bg-[#EBC170] hover:bg-[#d4ab5f] rounded-lg transition-colors"
@@ -150,7 +150,7 @@ export default function BeritaDetailPage({ params }: BeritaDetailPageProps) {
                             <span>Edit</span>
                         </Link>
                     )}
-                    {hasPermission('admin.berita.delete') && (
+                    {hasPermission('berita.delete') && (
                         <button
                             onClick={handleDeleteClick}
                             className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors cursor-pointer"

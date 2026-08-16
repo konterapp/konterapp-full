@@ -7,7 +7,7 @@ import { updateSupplierSchema } from '@/lib/validations/supplier';
 import { posSupplierService } from '@/lib/modules/pos/suppliers/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.supplier.index',
+  'pos.supplier.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const supplier = await posSupplierService.getSupplier(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PATCH = withPermission(
-  'admin.pos.supplier.update',
+  'pos.supplier.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = await req.json();
@@ -37,7 +37,7 @@ export const PATCH = withPermission(
 export const PUT = PATCH;
 
 export const DELETE = withPermission(
-  'admin.pos.supplier.delete',
+  'pos.supplier.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posSupplierService.deleteSupplier(uuid);

@@ -56,6 +56,8 @@ model Company {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   memberships       CompanyUser[]
+  roles             Role[]
+  modelHasRoles     ModelHasRole[]
   subscription      CompanySubscription?
   invoices          SubscriptionInvoice[]
   productCategories AppPosProductCategory[]
@@ -151,56 +153,48 @@ model SubscriptionInvoice {
 }
 
 model Role {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  guardName String   @default("web") @map("guard_name") @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id            Int      @id @default(autoincrement())
+  uuid          String   @unique @default(uuid()) @db.Char(36)
+  name          String   @db.VarChar(255)
+  companyUuid   String   @map("company_uuid") @db.Char(36)
+  isFullAccess  Boolean  @default(false) @map("is_full_access")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   roleHasPermissions RoleHasPermission[]
   modelHasRoles      ModelHasRole[]
+  company            Company             @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
 
-  @@unique([name, guardName], name: "roles_name_guard_name_unique")
-  @@map("roles")
+  @@unique([companyUuid, name], name: "roles_company_uuid_name_unique")
+  @@index([companyUuid])
+  @@map("app_roles")
 }
 
 model Permission {
   id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  guardName String   @default("web") @map("guard_name") @db.VarChar(255)
+  name      String   @unique @db.VarChar(255)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  roleHasPermissions  RoleHasPermission[]
-  modelHasPermissions ModelHasPermission[]
+  roleHasPermissions RoleHasPermission[]
 
-  @@unique([name, guardName], name: "permissions_name_guard_name_unique")
   @@map("permissions")
 }
 
 model ModelHasRole {
-  roleId    Int    @map("role_id")
-  modelType String @default("App\\\\Models\\\\User") @map("model_type") @db.VarChar(255)
-  modelId   Int    @map("model_id")
+  roleId      Int    @map("role_id")
+  modelType   String @default("App\\Models\\User") @map("model_type") @db.VarChar(255)
+  modelId     Int    @map("model_id")
+  companyUuid String @map("company_uuid") @db.Char(36)
 
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
 
-  @@id([roleId, modelType, modelId])
-  @@index([modelId, modelType], name: "model_has_roles_model_id_model_type_index")
-  @@map("model_has_roles")
-}
-
-model ModelHasPermission {
-  permissionId Int    @map("permission_id")
-  modelType    String @default("App\\\\Models\\\\User") @map("model_type") @db.VarChar(255)
-  modelId      Int    @map("model_id")
-
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@id([permissionId, modelType, modelId])
-  @@index([modelId, modelType], name: "model_has_permissions_model_id_model_type_index")
-  @@map("model_has_permissions")
+  @@id([roleId, modelType, modelId, companyUuid])
+  @@index([modelId, modelType])
+  @@index([companyUuid])
+  @@map("app_model_has_roles")
 }
 
 model Berita {
@@ -238,7 +232,7 @@ model RoleHasPermission {
   role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([permissionId, roleId])
-  @@map("role_has_permissions")
+  @@map("app_role_has_permissions")
 }
 
 // ==================== POS Models ====================

@@ -7,7 +7,7 @@ import { createPaymentMethodSchema } from '@/lib/validations/payment-method';
 import { posPaymentMethodService } from '@/lib/modules/pos/payment-methods/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.payment-method.index',
+  'pos.payment-method.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -31,7 +31,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.payment-method.create',
+  'pos.payment-method.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const rawBody = await req.json();
     const body = {

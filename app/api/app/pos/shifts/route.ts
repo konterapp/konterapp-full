@@ -7,7 +7,7 @@ import { openShiftSchema } from '@/lib/validations/shift';
 import { posShiftService } from '@/lib/modules/pos/shifts/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -34,7 +34,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.sale.create',
+  'pos.sale.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const body = await req.json();
     const result = validateSchema(openShiftSchema, body);

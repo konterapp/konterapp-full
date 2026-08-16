@@ -5,7 +5,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posReceivableService } from '@/lib/modules/pos/receivables/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.sale.index',
+  'pos.sale.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');

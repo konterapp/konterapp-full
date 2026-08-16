@@ -4,7 +4,7 @@ import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { posPurchaseService } from '@/lib/modules/pos/purchases/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.purchase.create',
+  'pos.purchase.create',
   withApiErrorHandling(async () => {
     const result = await posPurchaseService.getCreateOptions();
     return successResponse('Purchase form options retrieved successfully', result);

@@ -7,7 +7,7 @@ import { createBranchSchema } from '@/lib/validations/branch';
 import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.branch.index',
+  'pos.branch.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -27,7 +27,7 @@ export const GET = withPermission(
 );
 
 export const POST = withPermission(
-  'admin.pos.branch.create',
+  'pos.branch.create',
   withApiErrorHandling(async (req: NextRequest) => {
     const rawBody = await req.json();
     const body = {

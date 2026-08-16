@@ -7,7 +7,7 @@ import { updateCategorySchema } from '@/lib/validations/category';
 import { posCategoryService } from '@/lib/modules/pos/categories/admin.service';
 
 export const GET = withPermission(
-  'admin.pos.category.index',
+  'pos.category.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     const category = await posCategoryService.getCategoryDetail(uuid);
@@ -16,7 +16,7 @@ export const GET = withPermission(
 );
 
 export const PATCH = withPermission(
-  'admin.pos.category.update',
+  'pos.category.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const body = await req.json();
@@ -31,7 +31,7 @@ export const PATCH = withPermission(
 export const PUT = PATCH;
 
 export const DELETE = withPermission(
-  'admin.pos.category.delete',
+  'pos.category.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
     await posCategoryService.deleteCategory(uuid);

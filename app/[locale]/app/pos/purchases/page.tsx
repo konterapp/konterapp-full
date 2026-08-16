@@ -251,7 +251,7 @@ export default function PurchasesPage() {
             <Eye className="w-3.5 h-3.5" />
             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
           </Link>
-          {row.payment_status === 'draft' && hasPermission('admin.pos.purchase.create') && (
+          {row.payment_status === 'draft' && hasPermission('pos.purchase.create') && (
             <Link
               href={`/app/pos/purchases/${row.uuid}/edit`}
               className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
@@ -260,7 +260,7 @@ export default function PurchasesPage() {
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit Draft</span>
             </Link>
           )}
-          {hasPermission('admin.pos.purchase.delete') && row.payment_status !== 'void' && (
+          {hasPermission('pos.purchase.delete') && row.payment_status !== 'void' && (
             <button
               onClick={() => handleDeleteClick(row)}
               className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
@@ -281,7 +281,7 @@ export default function PurchasesPage() {
           <h1 className="text-2xl font-bold text-[#142D52]">Pembelian / Stock In</h1>
           <p className="text-gray-600 mt-1">Kelola stock in pembelian dengan atau tanpa supplier.</p>
         </div>
-        {hasPermission('admin.pos.purchase.create') && (
+        {hasPermission('pos.purchase.create') && (
           <Link
             href="/app/pos/purchases/create"
             className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
