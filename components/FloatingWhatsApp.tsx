@@ -13,10 +13,11 @@ export default function FloatingWhatsApp() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Chat WhatsApp"
-      className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-all duration-300 shadow-lg shadow-emerald-500/30 flex items-center justify-center cursor-pointer"
+      aria-label="Butuh bantuan? Chat kami di WhatsApp"
+      className="fixed bottom-5 right-5 z-50 h-10 pl-3 pr-4 rounded-full bg-emerald-500 hover:bg-emerald-600 transition-all duration-300 shadow-lg shadow-emerald-500/30 flex items-center gap-2 cursor-pointer"
     >
-      <WhatsAppIcon className="w-7 h-7 text-white" />
+      <WhatsAppIcon className="w-5 h-5 text-white" />
+      <span className="text-xs font-semibold text-white whitespace-nowrap">Butuh Bantuan?</span>
     </a>
   );
 }
