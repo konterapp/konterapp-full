@@ -18,6 +18,21 @@ CREATE TABLE "users" (
 );
 
 -- CreateTable
+CREATE TABLE "administrators" (
+    "id" SERIAL NOT NULL,
+    "uuid" CHAR(36) NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
+    "password" VARCHAR(255) NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "deleted_at" TIMESTAMP(3),
+
+    CONSTRAINT "administrators_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "user_profiles" (
     "id" SERIAL NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -431,6 +446,12 @@ CREATE UNIQUE INDEX "users_uuid_key" ON "users"("uuid");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "administrators_uuid_key" ON "administrators"("uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "administrators_email_key" ON "administrators"("email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "users_source_db_source_id_key" ON "users"("source_db", "source_id");

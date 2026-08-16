@@ -73,7 +73,7 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {isLoggedIn ? (
             <Link
-              href="/admin"
+              href="/app"
               className="px-4 py-2 rounded-lg bg-[#142D52] text-white text-sm font-semibold hover:bg-[#0B1E3A] transition-colors"
             >
               Dashboard

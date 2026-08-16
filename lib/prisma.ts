@@ -4,6 +4,7 @@ import { getTenantCompanyUuid, TENANT_MODELS } from "./tenant-context";
 
 const UUID_MODELS = new Set<string>([
   "User",
+  "Administrator",
   "Company",
   "CompanyUser",
   "Berita",

@@ -1,4 +1,4 @@
-import { MenuItem, SubMenuItem, AdminScope } from '@/app/[locale]/admin/_constants/menuItems';
+import { MenuItem, SubMenuItem, AdminScope } from '@/app/[locale]/app/_constants/menuItems';
 
 interface MenuFilterOptions {
     permissions: string[];

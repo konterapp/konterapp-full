@@ -55,14 +55,17 @@ export async function apiRequest<T>(
 
       if (axiosError.response) {
         if (axiosError.response.status === 401) {
+          const requestUrl = config?.url || endpoint;
+          const isAdministratorEndpoint = requestUrl.startsWith('/api/administrator/');
           // Jangan redirect kalau sedang di halaman login (endpoint auth)
-          const isAuthEndpoint = config?.url?.startsWith('/api/auth/') || endpoint.startsWith('/api/auth/');
+          const isAuthEndpoint = requestUrl.startsWith('/api/auth/') || requestUrl.startsWith('/api/administrator/auth/');
           if (!isAuthEndpoint && typeof window !== 'undefined') {
             const nextLocale = document.cookie
               .split('; ')
               .find(row => row.startsWith('NEXT_LOCALE='))
               ?.split('=')[1];
-            const loginPath = nextLocale && nextLocale !== 'id' ? `/${nextLocale}/login` : '/login';
+            const basePath = isAdministratorEndpoint ? '/administrator/login' : '/login';
+            const loginPath = nextLocale && nextLocale !== 'id' ? `/${nextLocale}${basePath}` : basePath;
             window.location.href = loginPath;
             return {
               status: 'error',

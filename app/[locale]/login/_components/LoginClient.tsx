@@ -42,7 +42,7 @@ export default function LoginClient() {
           router.push(redirectParam);
         } else {
           if (isAdmin) {
-            router.push('/admin');
+            router.push('/app');
           } else {
             router.push('/user');
           }

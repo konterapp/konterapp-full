@@ -62,7 +62,7 @@ export function useLogin() {
       const response = await login(email, password);
 
       if (response.status === 'success' && response.data) {
-        const redirectUrl = searchParams.get('redirect') || '/admin';
+        const redirectUrl = searchParams.get('redirect') || '/app';
         router.push(redirectUrl);
       } else {
         const errors = response.errors as Record<string, string[]> | undefined;

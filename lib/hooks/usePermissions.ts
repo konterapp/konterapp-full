@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useUser } from '@/app/[locale]/admin/_context/UserContext';
+import { useUser } from '@/app/[locale]/app/_context/UserContext';
 
 interface UsePermissionsReturn {
     permissions: string[];

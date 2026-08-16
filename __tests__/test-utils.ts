@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 /**
  * Creates a mock NextRequest with dynamic URL
- * @param path - API path (e.g., '/api/admin/users')
+ * @param path - API path (e.g., '/api/app/users')
  * @param options - Request options (method, body, etc.)
  */
 export function createMockRequest(
