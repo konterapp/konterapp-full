@@ -1,9 +1,9 @@
-import { PrismaClient } from "@prisma/client";
-
 /**
- * Katalog permission tenant (global, jadi acuan untuk semua company).
- * Nama permission dipakai langsung di kode (withPermission, PermissionGuard,
- * menuItems, lib/routes) — tidak boleh diedit per tenant.
+ * Katalog permission tenant — single source of truth DI KODE (bukan di DB).
+ * Permission adalah capability aplikasi yang ikut di-deploy bersama kode,
+ * jadi daftar ini fixed di compile-time. Nama permission dipakai langsung
+ * di withPermission, PermissionGuard, menuItems, lib/routes, dan template
+ * role default. Tidak boleh diedit per tenant.
  */
 export const PERMISSIONS = [
   // User management (kelola user tenant)
@@ -65,15 +65,6 @@ export const PERMISSIONS = [
   "berita.create",
   "berita.update",
   "berita.delete",
-];
+] as const;
 
-export async function seedPermissions(prisma: PrismaClient) {
-  for (const name of PERMISSIONS) {
-    await prisma.permission.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
-  }
-  console.log(`✓ ${PERMISSIONS.length} permissions created`);
-}
+export type Permission = (typeof PERMISSIONS)[number];

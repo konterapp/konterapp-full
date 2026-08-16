@@ -1,11 +1,11 @@
 import { prisma } from "./prisma";
+import { PERMISSIONS, type Permission } from "@/lib/modules/roles/permissions";
 
 const USER_MODEL_TYPE = "App\\Models\\User";
 
 /** Semua permission di katalog (dipakai untuk role full-access / administrator). */
-export async function getAllPermissions(): Promise<string[]> {
-  const permissions = await prisma.permission.findMany({ select: { name: true } });
-  return permissions.map((p) => p.name);
+export function getAllPermissions(): Permission[] {
+  return [...PERMISSIONS];
 }
 
 /** Role user di dalam satu company aktif. */
@@ -28,7 +28,7 @@ export async function getUserPermissions(userId: number, companyUuid: string): P
     include: {
       role: {
         include: {
-          roleHasPermissions: { include: { permission: true } },
+          roleHasPermissions: true,
         },
       },
     },
@@ -40,7 +40,7 @@ export async function getUserPermissions(userId: number, companyUuid: string): P
 
   return [
     ...new Set(
-      assignments.flatMap((a) => a.role.roleHasPermissions.map((rp) => rp.permission.name))
+      assignments.flatMap((a) => a.role.roleHasPermissions.map((rp) => rp.permissionName))
     ),
   ];
 }

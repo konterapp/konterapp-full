@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import type { Permission } from "./permissions";
 
 /**
  * Template default role per tenant. Saat sebuah company dibuat, template ini
@@ -9,7 +10,7 @@ import { v7 as uuidv7 } from "uuid";
 export interface RoleTemplate {
   name: string;
   isFullAccess?: boolean;
-  permissions: string[];
+  permissions: Permission[];
 }
 
 export const TENANT_DEFAULT_ROLE_ADMINISTRATOR = "administrator";
@@ -43,11 +44,6 @@ export async function seedTenantDefaultRoles(
   prisma: PrismaClient | Prisma.TransactionClient,
   companyUuid: string
 ) {
-  const permissions = await prisma.permission.findMany({
-    select: { id: true, name: true },
-  });
-  const permissionIdByName = new Map(permissions.map((p) => [p.name, p.id]));
-
   for (const template of TENANT_DEFAULT_ROLE_TEMPLATES) {
     const role = await prisma.role.upsert({
       where: {
@@ -68,19 +64,13 @@ export async function seedTenantDefaultRoles(
     });
 
     if (template.permissions.length > 0) {
-      const rolePermissionIds = template.permissions
-        .map((name) => permissionIdByName.get(name))
-        .filter((id): id is number => id != null);
-
       await prisma.roleHasPermission.deleteMany({ where: { roleId: role.id } });
-      if (rolePermissionIds.length > 0) {
-        await prisma.roleHasPermission.createMany({
-          data: rolePermissionIds.map((permissionId) => ({
-            roleId: role.id,
-            permissionId,
-          })),
-        });
-      }
+      await prisma.roleHasPermission.createMany({
+        data: template.permissions.map((permissionName) => ({
+          roleId: role.id,
+          permissionName,
+        })),
+      });
     }
   }
 }

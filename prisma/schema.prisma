@@ -170,17 +170,6 @@ model Role {
   @@map("app_roles")
 }
 
-model Permission {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  roleHasPermissions RoleHasPermission[]
-
-  @@map("permissions")
-}
-
 model ModelHasRole {
   roleId      Int    @map("role_id")
   modelType   String @default("App\\Models\\User") @map("model_type") @db.VarChar(255)
@@ -225,13 +214,12 @@ model Berita {
 }
 
 model RoleHasPermission {
-  permissionId Int @map("permission_id")
-  roleId       Int @map("role_id")
+  permissionName String @map("permission_name") @db.VarChar(255)
+  roleId         Int    @map("role_id")
 
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@id([permissionId, roleId])
+  @@id([roleId, permissionName])
   @@map("app_role_has_permissions")
 }
 
