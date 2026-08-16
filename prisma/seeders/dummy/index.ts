@@ -1,11 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { ensureDefaultCompany } from "../company";
-import { seedPermissions } from "../permissions";
-import { seedRoles } from "../roles";
-import { seedPermissionRole } from "../permission-role";
-import { seedUsers } from "../users";
+import { seedCore } from "../core";
 import { seedBerita } from "./berita";
 import { seedCompanies } from "./companies";
+import { seedSubscriptions } from "./subscriptions";
 import { seedBranches } from "./branches";
 import { seedCategories } from "./categories";
 import { seedUnits } from "./units";
@@ -19,12 +16,9 @@ import { seedCashierShifts } from "./cashier-shifts";
 import { seedSales } from "./sales";
 
 async function seedDummy(prisma: PrismaClient) {
-  await ensureDefaultCompany(prisma);
-  await seedPermissions(prisma);
-  const roles = await seedRoles(prisma);
-  await seedPermissionRole(prisma, roles);
-  await seedUsers(prisma, roles);
+  await seedCore(prisma);
   await seedCompanies(prisma);
+  await seedSubscriptions(prisma);
 
   await seedBranches(prisma);
   await seedCategories(prisma);
