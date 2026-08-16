@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
@@ -15,9 +14,12 @@ export default function RegisterClient() {
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [agreed, setAgreed] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -58,15 +60,9 @@ export default function RegisterClient() {
     });
 
     if (response.status === 'success') {
-      const isYearlyIntent = planIntent === 'yearly';
-      setSuccessMessage(
-        isYearlyIntent
-          ? 'Pendaftaran berhasil! Silakan login untuk mengaktifkan Paket Tahunan Anda.'
-          : response.message || 'Pendaftaran berhasil! Silakan login.'
-      );
-      setTimeout(() => {
-        router.push(isYearlyIntent ? '/login?plan=yearly' : '/login');
-      }, 2000);
+      setIsRegistered(true);
+      setCooldown(60);
+      startCooldown();
     } else if (response.errors && Object.keys(response.errors).length > 0) {
       setFieldErrors(response.errors);
     } else {
@@ -76,6 +72,41 @@ export default function RegisterClient() {
     setIsLoading(false);
   };
 
+  const startCooldown = () => {
+    const interval = setInterval(() => {
+      setCooldown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleResendVerification = async () => {
+    if (cooldown > 0 || isResending) return;
+
+    setIsResending(true);
+    setResendMessage('');
+    try {
+      const response = await apiRequest<{ user: { name: string } }>('/api/auth/resend-verification', {
+        method: 'POST',
+        data: { email: formData.email },
+      });
+      setResendMessage(response.message || 'Email verifikasi dikirim ulang.');
+
+      if (response.status === 'success') {
+        setCooldown(60);
+        startCooldown();
+      }
+    } catch {
+      setResendMessage('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* Left Column - Register Form */}
@@ -83,30 +114,85 @@ export default function RegisterClient() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="mx-auto relative w-32 h-32">
-              <Image
-                src="/images/logo_eventbyid.png"
-                alt="KonterApp"
-                fill
-                className="object-contain"
-                sizes="(max-width: 768px) 128px, 128px"
-              />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">
-              Daftar Akun KonterApp
-            </h3>
+            <h2 className="text-3xl font-bold text-[#142D52] mb-3">
+              <Link href="/" className="cursor-pointer">KonterApp</Link>
+            </h2>
             <p className="text-sm text-gray-600">
               Mulai kelola usaha konter Anda dengan lebih mudah
             </p>
           </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm mb-5">
-              {successMessage}
+          {/* Success / Verifikasi Email */}
+          {isRegistered ? (
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-[#142D52]">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Pendaftaran Berhasil!
+              </h3>
+              <p className="text-sm text-gray-600 mb-1">
+                Kami telah mengirim email verifikasi ke
+              </p>
+              <p className="text-sm font-semibold text-[#142D52] mb-3">
+                {formData.email}
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-left text-sm text-gray-700 mb-6">
+                <ul className="space-y-1.5">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#142D52] font-bold mt-0.5">1.</span>
+                    Buka email Anda dan klik tombol/link <b>Verifikasi Email</b>.
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#142D52] font-bold mt-0.5">2.</span>
+                    Setelah terverifikasi, Anda bisa login ke akun KonterApp.
+                  </li>
+                </ul>
+                <p className="mt-2 text-xs text-gray-500">
+                  Link berlaku 24 jam. Tidak menerima email? Cek folder spam,
+                  atau klik tombol di bawah untuk mengirim ulang.
+                </p>
+              </div>
+              {planIntent === 'yearly' && (
+                <p className="text-sm text-gray-600 mb-4">
+                  Jangan lupa, setelah login Anda bisa mengaktifkan Paket Tahunan.
+                </p>
+              )}
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={cooldown > 0 || isResending}
+                  className="w-full py-3 px-4 rounded-lg font-bold border border-[#142D52] text-[#142D52] transition-all hover:bg-[#142D52] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isResending
+                    ? 'Mengirim ulang...'
+                    : cooldown > 0
+                      ? `Kirim Ulang dalam ${cooldown}s`
+                      : 'Kirim Ulang Email Verifikasi'}
+                </button>
+                {resendMessage && (
+                  <p className={`text-xs ${resendMessage.includes('Terkirim') || resendMessage.includes('dikirim') ? 'text-green-600' : 'text-gray-500'}`}>
+                    {resendMessage}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(planIntent === 'yearly' ? '/login?plan=yearly' : '/login')}
+                  className="w-full py-3 px-4 rounded-lg font-bold text-white transition-all hover:opacity-90 cursor-pointer"
+                  style={{ backgroundColor: '#142D52' }}
+                >
+                  Sudah Verifikasi, Lanjut ke Login
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-3">
+                Masih belum bisa masuk? Pastikan email sudah diverifikasi terlebih dahulu.
+              </p>
             </div>
-          )}
-
+          ) : (
+          <>
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Input */}
@@ -285,20 +371,18 @@ export default function RegisterClient() {
               </p>
             </div>
           </form>
+          </>
+          )}
         </div>
       </div>
 
       {/* Right Column - Graphics */}
       <div className="hidden lg:flex lg:w-3/5 bg-gray-100 items-center justify-center relative overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center">
-          <Image
-            src="/images/logo_eventbyid.png"
-            alt="KonterApp Logo"
-            width={400}
-            height={400}
-            className="w-64 h-auto"
-            style={{ width: '256px', height: 'auto' }}
-          />
+        <div className="relative z-10 flex flex-col items-center px-8">
+          <h2 className="text-6xl font-bold text-[#142D52] mb-4">KonterApp</h2>
+          <p className="text-lg text-gray-600 max-w-md text-center">
+            Aplikasi kasir & pembukuan untuk konter, minimarket, dan toko Anda.
+          </p>
         </div>
       </div>
     </div>
