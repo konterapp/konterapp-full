@@ -4,6 +4,8 @@ import { errorResponse } from "./response";
 import { getUserPermissions, hasPermission } from "./permissions";
 import { resolveUserActiveCompany } from "./company-access";
 import { runWithTenantContext } from "./tenant-context";
+import { billingRepository } from "@/lib/modules/billing/repository";
+import { isSubscriptionActive } from "@/lib/modules/billing/subscription-status";
 
 type RouteHandler = (
   req: NextRequest,
@@ -36,6 +38,15 @@ export function withAuth(handler: RouteHandler) {
 
 export function withPermission(permission: string, handler: RouteHandler) {
   return withAuth(async (req, context) => {
+    // Gate akses tenant: semua rute operasional /api/app/* (pos, berita) lewat
+    // wrapper ini, jadi subscription yang expired/nonaktif diblokir di sini.
+    // Rute billing & impersonate pakai withAuth langsung dan tetap terbuka
+    // supaya user masih bisa perpanjang langganan dan admin bisa impersonate.
+    const subscription = await billingRepository.findSubscriptionByCompanyUuid(context.companyUuid);
+    if (!isSubscriptionActive(subscription)) {
+      return errorResponse("Langganan perusahaan tidak aktif", 403);
+    }
+
     const permissions = await getUserPermissions(context.userId);
     if (!hasPermission(permissions, permission)) {
       return errorResponse("Forbidden", 403);
