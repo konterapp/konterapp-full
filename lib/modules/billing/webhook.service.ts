@@ -42,9 +42,12 @@ export const billingWebhookService = {
       return { processed: false, reason: `Status transaksi: ${payload.transaction_status}` };
     }
 
+    // Selalu balas 200 walau invoice tidak ditemukan di sistem kita (mis. notifikasi
+    // test dari dashboard Midtrans pakai order_id dummy) -- provider akan terus
+    // retry / menganggap endpoint gagal kalau kita balas non-200 di sini.
     const invoice = await billingRepository.findInvoiceByProviderInvoiceId(payload.order_id);
     if (!invoice) {
-      throw new ApiError("Invoice tidak ditemukan", 404);
+      return { processed: false, reason: "Invoice tidak ditemukan di sistem kami" };
     }
 
     if (invoice.status === "paid") {
