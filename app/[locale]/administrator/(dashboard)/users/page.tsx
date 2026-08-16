@@ -214,6 +214,29 @@ export default function UsersPage() {
          ),
       },
       {
+         key: 'companies',
+         label: 'Perusahaan (Tenant)',
+         sortable: false,
+         width: '14rem',
+         render: (_, row) => (
+            row.companies && row.companies.length > 0 ? (
+               <div className="flex flex-wrap gap-1">
+                  {row.companies.map((c) => (
+                     <span
+                        key={c.uuid}
+                        className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700"
+                        title={c.is_default ? 'Perusahaan default' : undefined}
+                     >
+                        {c.name}{c.is_default ? ' ★' : ''}
+                     </span>
+                  ))}
+               </div>
+            ) : (
+               <span className="text-sm text-gray-400">-</span>
+            )
+         ),
+      },
+      {
          key: 'roles',
          label: 'Roles',
          sortable: false,

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 const userInclude = {
   profile: true,
   modelHasRoles: { include: { role: true } },
+  companyMemberships: { include: { company: true } },
 } as const;
 
 export const userRepository = {

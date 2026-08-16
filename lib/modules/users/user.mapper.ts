@@ -2,6 +2,14 @@ import { buildUploadFileUrl } from "@/lib/utils/file-upload";
 
 export function formatUser(user: any, permissions?: string[]) {
   const roles = user.modelHasRoles?.map((r: any) => r.role.name) ?? [];
+  const companies = user.companyMemberships
+    ?.filter((m: any) => m.isActive)
+    .map((m: any) => ({
+      uuid: m.company.uuid,
+      code: m.company.code,
+      name: m.company.name,
+      is_default: m.isDefault,
+    })) ?? [];
   const result: any = {
     id: user.id,
     uuid: user.uuid,
@@ -10,6 +18,7 @@ export function formatUser(user: any, permissions?: string[]) {
     is_active: user.isActive,
     source: user.sourceDb ?? null,
     roles,
+    companies,
     phone_without_dc: user.profile?.phoneWithoutDc ?? null,
     dc: user.profile?.dc ?? null,
     iso: user.profile?.iso ?? null,

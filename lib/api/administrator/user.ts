@@ -9,6 +9,7 @@ export interface User {
   is_active?: boolean;
   roles?: string[];
   permissions?: string[];
+  companies?: { uuid: string; code: string; name: string; is_default: boolean }[];
   phone?: string;
   phone_without_dc?: string;
   dc?: string;
