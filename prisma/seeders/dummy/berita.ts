@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
+import { DEFAULT_ADMIN_EMAIL } from "../users";
 
 const BERITA_DATA = [
   {
@@ -114,7 +115,7 @@ export async function seedBerita(prisma: PrismaClient) {
     where: {
       OR: [
         { email: "admin@eventbyid.com" },
-        { email: "admin@admin.com" },
+        { email: DEFAULT_ADMIN_EMAIL },
       ],
     },
   });

@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { v7 as uuidv7 } from 'uuid';
 import { getDefaultCompanyUuid } from '../company';
+import { DEFAULT_ADMIN_EMAIL } from '../users';
 
 const TRANSACTIONS_DATA = [
   {
@@ -55,7 +56,7 @@ const TRANSACTIONS_DATA = [
 ];
 
 async function ensureAdmin(prisma: PrismaClient) {
-  const admin = await prisma.user.findFirst({ where: { email: 'admin@admin.com' } });
+  const admin = await prisma.user.findFirst({ where: { email: DEFAULT_ADMIN_EMAIL } });
   if (!admin) {
     console.log('⚠ Admin user not found, skipping ppob transactions seed');
     return null;

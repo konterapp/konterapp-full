@@ -5,6 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "../company";
+import { DEFAULT_ADMIN_EMAIL } from "../users";
 
 const PURCHASES_DATA = [
   {
@@ -56,7 +57,7 @@ const PURCHASES_DATA = [
 
 async function ensureAdminUser(prisma: PrismaClient) {
   const admin = await prisma.user.findFirst({
-    where: { email: "admin@admin.com" },
+    where: { email: DEFAULT_ADMIN_EMAIL },
   });
   if (!admin) {
     console.log("⚠ Admin user not found, skipping purchases seed");

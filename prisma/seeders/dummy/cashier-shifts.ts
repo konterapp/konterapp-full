@@ -5,6 +5,7 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "../company";
+import { DEFAULT_ADMIN_EMAIL } from "../users";
 
 type ClosedShiftSeed = {
   marker: string;
@@ -46,7 +47,7 @@ const OPEN_SHIFT = {
 
 async function ensureAdminUser(prisma: PrismaClient) {
   return prisma.user.findFirst({
-    where: { email: "admin@admin.com" },
+    where: { email: DEFAULT_ADMIN_EMAIL },
   });
 }
 

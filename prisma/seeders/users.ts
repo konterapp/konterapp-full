@@ -3,6 +3,9 @@ import bcrypt from "bcryptjs";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "./company";
 
+export const DEFAULT_ADMIN_EMAIL = "admin@konterapp.com";
+export const DEFAULT_USER_EMAIL = "kasir@konterapp.com";
+
 async function createUserWithRole(
   prisma: PrismaClient,
   data: { name: string; email: string; password: string; userType: number },
@@ -80,17 +83,17 @@ export async function seedUsers(
 
   await createUserWithRole(
     prisma,
-    { name: "Admin", email: "admin@admin.com", password: "password", userType: 2 },
+    { name: "Budi Santoso", email: DEFAULT_ADMIN_EMAIL, password: "password", userType: 2 },
     roles.adminRole,
     companyUuid
   );
-  console.log("✓ Admin user created: admin@admin.com / password");
+  console.log(`✓ Admin user created: ${DEFAULT_ADMIN_EMAIL} / password`);
 
   await createUserWithRole(
     prisma,
-    { name: "User", email: "user@user.com", password: "password", userType: 4 },
+    { name: "Siti Rahayu", email: DEFAULT_USER_EMAIL, password: "password", userType: 4 },
     roles.userRole,
     companyUuid
   );
-  console.log("✓ Regular user created: user@user.com / password");
+  console.log(`✓ Regular user created: ${DEFAULT_USER_EMAIL} / password`);
 }
