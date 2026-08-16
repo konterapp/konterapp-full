@@ -17,6 +17,7 @@ export default function RegisterClient() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [agreed, setAgreed] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -41,6 +42,12 @@ export default function RegisterClient() {
 
     if (formData.password !== formData.password_confirmation) {
       setFieldErrors({ password_confirmation: ['Konfirmasi password tidak cocok'] });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!agreed) {
+      setError('Anda harus menyetujui Syarat & Ketentuan dan Kebijakan Privasi untuk mendaftar.');
       setIsLoading(false);
       return;
     }
@@ -236,10 +243,32 @@ export default function RegisterClient() {
               </div>
             )}
 
+            {/* Agreement */}
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                id="agree-terms"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-1 w-4 h-4 cursor-pointer accent-[#142D52]"
+              />
+              <label htmlFor="agree-terms" className="text-sm text-gray-600 cursor-pointer">
+                Saya setuju dengan{' '}
+                <Link href="/legal/terms" className="text-[#142D52] font-medium underline" target="_blank">
+                  Syarat &amp; Ketentuan
+                </Link>{' '}
+                dan{' '}
+                <Link href="/legal/privacy" className="text-[#142D52] font-medium underline" target="_blank">
+                  Kebijakan Privasi
+                </Link>{' '}
+                KonterApp.
+              </label>
+            </div>
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !agreed}
               className="w-full py-3 px-4 rounded-lg font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               style={{ backgroundColor: '#142D52' }}
             >

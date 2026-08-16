@@ -73,8 +73,8 @@ const Footer = () => {
             Copyright &copy; {new Date().getFullYear()} KonterApp. All rights reserved.
           </p>
           <div className="flex gap-6">
-            <Link href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Syarat & Ketentuan</Link>
-            <Link href="#" className="text-gray-500 hover:text-white text-sm transition-colors">Kebijakan Privasi</Link>
+            <Link href="/legal/terms" className="text-gray-500 hover:text-white text-sm transition-colors">Syarat & Ketentuan</Link>
+            <Link href="/legal/privacy" className="text-gray-500 hover:text-white text-sm transition-colors">Kebijakan Privasi</Link>
           </div>
         </div>
       </div>
