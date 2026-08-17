@@ -4,7 +4,14 @@ type TenantStore = {
   companyUuid: string;
 };
 
-const tenantContextStorage = new AsyncLocalStorage<TenantStore>();
+// Gunakan globalThis supaya singleton tetap sama meski module di-hot-reload
+// oleh Turbopack. Tanpa ini, setiap edit file menyebabkan AsyncLocalStorage
+// baru (kosong) sementara api-middleware.ts masih pakai yang lama → NULL.
+const g = globalThis as unknown as { __tenantContextStorage?: AsyncLocalStorage<TenantStore> };
+const tenantContextStorage = g.__tenantContextStorage ?? new AsyncLocalStorage<TenantStore>();
+if (process.env.NODE_ENV !== "production") {
+  g.__tenantContextStorage = tenantContextStorage;
+}
 
 export const TENANT_MODELS = new Set<string>([
   "AppPosProductCategory",
