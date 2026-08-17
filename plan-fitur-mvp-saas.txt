@@ -1,0 +1,69 @@
+Rencana Fitur MVP Produk SaaS KonterApp
+=========================================
+Disusun berdasarkan kondisi codebase per Agustus 2026.
+
+YANG SUDAH ADA
+--------------
+- Auth multi-company + switch perusahaan + impersonate (admin SaaS)
+- RBAC tenant penuh: manajemen user & role per perusahaan (/app)
+- Billing: plan, subscription, invoice, Midtrans, gate subscription aktif/nonaktif
+- POS lengkap: produk, kategori, satuan, stok, penjualan, pembelian,
+  piutang, hutang, laporan, shift kasir, cek harga, PPOB
+- Panel admin SaaS (/administrator): user, perusahaan, berita
+- Sentry error tracking
+
+GAP MVP - TIER 1 (wajib sebelum jual)
+-------------------------------------
+1. Cetak struk thermal (58/80mm)
+   - Menu "Printer" masih placeholder. Fitur harian konter.
+   - Tanpa ini produk belum jadi POS sungguhan.
+
+2. Audit log
+   - Menu sudah placeholder. Uang + stok berpindah tangan.
+   - Tenant bakal tanya "siapa yang hapus/edit transaksi ini?" saat dispute.
+
+3. Alert stok menipis
+   - Stok on-hand ada tapi pasif.
+   - Notifikasi in-app sederhana (badge + daftar produk di bawah minimum).
+
+4. Export laporan (CSV/Excel)
+   - Pemilik konter butuh untuk pembukuan/pajak.
+   - Laporan sudah ada tapi hanya di layar.
+
+5. (done) Lupa password + email transaksional
+   - Belum ada flow reset. User terkunci = tiket support.
+   - Sekalian siapkan infra email (Resend/SMTP) untuk invoice &
+     notifikasi billing.
+
+GAP MVP - TIER 2 (operasional SaaS)
+-----------------------------------
+1. Plan limits
+   - Billing sekarang cuma gate aktif/nonaktif.
+   - Belum ada diferensiasi: max user/cabang/produk per plan.
+   - Tanpa ini susunah bikin pricing tier.
+
+2. Pengaturan perusahaan (profil tenant)
+   - Nama, alamat, logo, info struk.
+   - Prasyarat cetak struk.
+
+3. Onboarding wizard post-register
+   - Perusahaan baru kosong total.
+   - Wizard 3 langkah: cabang -> metode bayar -> produk awal.
+
+4. Admin: kelola plan & kompensasi subscription
+   - Extend manual, ubah plan, suspend perusahaan.
+   - Tool support harian.
+
+GAP MVP - TIER 3 (growth & trust)
+---------------------------------
+1. (done) Halaman ToS/Privacy - wajib legal sebelum ada yang bayar
+2. Kupon/referral - akuisisi
+3. (done) Feedback in-app - kanal dengar user sebelum skala
+
+URUTAN KERJA YANG DISARANKAN
+----------------------------
+1. Struk thermal + pengaturan perusahaan (satu PR, saling tergantung)
+2. Audit log
+3. Export laporan
+4. Alert stok menipis
+5. (done) Lupa password + email transaksional

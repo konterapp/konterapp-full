@@ -1,0 +1,48 @@
+- (done) halaman administrator
+- (done) halaman app
+- (done) refactor db app_* untuk db shared tenant + column tenant_idsaas
+- (done) daftarkan webhook Midtrans di dashboard Midtrans -> Settings -> Configuration -> Payment Notification URL, isi: https://konterapp.linkinvite.id/api/webhooks/midtrans
+  (domain via Cloudflare Tunnel -> localhost:3002, tunnel jalan sebagai systemd service jadi persisten selama komputer nyala. Test notification sudah sukses.)
+
+- (done) sentry
+- (done) permissions
+  - (done) enum permissions
+  - (done) users dengan role administrator bisa atur role
+  - (done) tenant crud users
+  - (done) buat user tapi belum verif
+- (done) login
+  - (done) login google
+    - (done) buat perusahaan
+    - (done) edit perusahaan
+    - (done) Kode Perusahaan
+- (done) kode perusahaan
+
+DONE:
+- konterapp-full-1
+  - (done) Halaman ToS/Privacy - wajib legal sebelum ada yang bayar
+  - (done) user profile
+  - (done) Onboarding wizard post-register
+  - (done) semua menu belum multi tenant
+- konterapp-full-2
+  - (done) billings
+    - (done) midtrans redirect
+    - (done) landing
+  - (done) billing sampah
+  - (done) billing bulanan
+  - (done) billing bertingkat
+  - (done) Kupon
+- konterapp-full-3
+  - (done) verifikasi email (registrasi, create)
+  - (done) lupa password
+  - (done) referral
+
+DOING:
+- konterapp-full-1
+  - defualt data register
+- konterapp-full-2
+  - 
+- konterapp-full-3
+
+PENDING:
+- notif whatsapp
+- hapus users dan backup
