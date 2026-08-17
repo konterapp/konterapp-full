@@ -1,44 +1,32 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import {
   ArrowLeft,
   CheckCircle2,
+  Check,
   CreditCard,
   Lock,
   Percent,
+  Store,
   Ticket,
+  Users,
+  Wallet,
   X as XIcon,
   Zap,
 } from 'lucide-react';
 import {
   getBillingStatus,
+  getPlans,
   createCheckoutInvoice,
   applyCoupon,
   BillingStatus,
   CouponApplyResult,
+  PlanTier,
 } from '@/lib/api/app/billing';
 import { useToast } from '@/components/toast/ToastContainer';
-
-const PLANS = [
-  {
-    code: 'monthly',
-    name: 'Bulanan',
-    price: 10000,
-    durationLabel: '/ bulan',
-    equivalentLabel: '30 hari akses penuh',
-    badge: null,
-  },
-  {
-    code: 'yearly',
-    name: 'Tahunan',
-    price: 99000,
-    durationLabel: '/ tahun',
-    equivalentLabel: 'setara Rp8.250/bulan',
-    badge: 'Paling Hemat',
-  },
-];
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -56,33 +44,49 @@ const formatDate = (value: string) => {
   });
 };
 
-const planFeatures = [
-  'Semua fitur Free Trial',
-  'Pengguna tanpa batas',
-  'Multi cabang & multi kasir',
-  'Laporan laba-rugi detail',
-  'Prioritas dukungan 24 jam',
-  'Struk dengan nama toko sendiri',
+const PERIODS: { code: 'monthly' | 'yearly'; label: string }[] = [
+  { code: 'monthly', label: 'Bulanan' },
+  { code: 'yearly', label: 'Tahunan' },
 ];
+
+const savingsPercent = (monthly: number, yearly: number) =>
+  Math.round(((monthly * 12 - yearly) / (monthly * 12)) * 100);
 
 export default function UpgradePage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
   const [data, setData] = useState<BillingStatus | null>(null);
+  const [tiers, setTiers] = useState<PlanTier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [selectedTierCode, setSelectedTierCode] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<CouponApplyResult | null>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [useSaldo, setUseSaldo] = useState(false);
 
-  const plan = PLANS.find((p) => p.code === selectedPlan) ?? PLANS[1];
+  useEffect(() => {
+    const intentTier = searchParams.get('tier');
+    const intentPeriod = searchParams.get('period');
+    if (intentPeriod === 'monthly' || intentPeriod === 'yearly') {
+      setSelectedPeriod(intentPeriod);
+    }
+    if (intentTier) {
+      setSelectedTierCode(intentTier);
+    }
+  }, [searchParams]);
 
-  const fetchStatus = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await getBillingStatus();
-      if (response.status === 'success' && response.data) {
-        setData(response.data);
+      const [statusRes, plansRes] = await Promise.all([getBillingStatus(), getPlans()]);
+      if (statusRes.status === 'success' && statusRes.data) {
+        setData(statusRes.data);
+      }
+      if (plansRes.status === 'success' && plansRes.data) {
+        setTiers(plansRes.data);
+        setSelectedTierCode((prev) => prev ?? plansRes.data?.find((t) => t.code !== 'free')?.code ?? null);
       }
     } finally {
       setIsLoading(false);
@@ -90,26 +94,43 @@ export default function UpgradePage() {
   }, []);
 
   useEffect(() => {
-    fetchStatus();
-  }, [fetchStatus]);
+    fetchData();
+  }, [fetchData]);
 
-  const handleSelectPlan = (code: string) => {
-    if (code === selectedPlan) return;
-    setSelectedPlan(code);
+  const selectedTier = tiers.find((t) => t.code === selectedTierCode) ?? null;
+  const selectedPlan =
+    selectedTier?.plans.find((p) => p.billing_period === selectedPeriod) ?? selectedTier?.plans[0] ?? null;
+  const selectedMonthlyPlan = selectedTier?.plans.find((p) => p.billing_period === 'monthly') ?? null;
+  const selectedYearlyPlan = selectedTier?.plans.find((p) => p.billing_period === 'yearly') ?? null;
+  const yearlySavings =
+    selectedMonthlyPlan && selectedYearlyPlan
+      ? savingsPercent(selectedMonthlyPlan.price, selectedYearlyPlan.price)
+      : null;
+
+  const handleSelectTier = (code: string) => {
+    if (code === selectedTierCode) return;
+    setSelectedTierCode(code);
     // Kupon divalidasi ulang terhadap paket yang dipilih.
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
+
+  const handleSelectPeriod = (period: 'monthly' | 'yearly') => {
+    if (period === selectedPeriod) return;
+    setSelectedPeriod(period);
     setAppliedCoupon(null);
     setCouponCode('');
   };
 
   const handleApplyCoupon = async () => {
     const trimmed = couponCode.trim();
-    if (!trimmed) {
+    if (!trimmed || !selectedPlan) {
       toast.error('Masukkan kode kupon terlebih dahulu');
       return;
     }
     setIsApplyingCoupon(true);
     try {
-      const response = await applyCoupon(trimmed, selectedPlan);
+      const response = await applyCoupon(trimmed, selectedPlan.code);
       if (response.status === 'success' && response.data) {
         setAppliedCoupon(response.data);
         toast.success(`Kupon ${response.data.code} berhasil digunakan`);
@@ -130,9 +151,14 @@ export default function UpgradePage() {
   };
 
   const handlePay = async () => {
+    if (!selectedPlan) return;
     setIsCheckingOut(true);
     try {
-      const response = await createCheckoutInvoice(selectedPlan, appliedCoupon?.code ?? null);
+      const response = await createCheckoutInvoice(
+        selectedPlan.code,
+        appliedCoupon?.code ?? null,
+        useSaldo
+      );
       if (response.status === 'success' && response.data?.payment_link) {
         window.location.href = response.data.payment_link;
       } else {
@@ -146,9 +172,21 @@ export default function UpgradePage() {
   };
 
   const subscription = data?.subscription;
-  const subtotal = appliedCoupon?.subtotal ?? plan.price;
-  const finalAmount = appliedCoupon?.final_amount ?? plan.price;
-  const alreadyActive = !!subscription && subscription.status === 'active';
+  const isFirstPaidSub = !data?.invoices.some((i) => i.status === 'paid');
+  const referralAutoActive = Boolean(data?.referred_by) && isFirstPaidSub && !appliedCoupon;
+  const referralBalance = data?.referral_balance ?? 0;
+
+  const subtotal = selectedPlan?.price ?? 0;
+  const discountAmount =
+    appliedCoupon?.discount_amount ??
+    (referralAutoActive && selectedPlan ? Math.round((selectedPlan.price * 10) / 100) : 0);
+  const amountAfterDiscount = Math.max(subtotal - discountAmount, 0);
+  const saldoUsed = useSaldo ? Math.min(referralBalance, amountAfterDiscount) : 0;
+  const finalAmount = Math.max(amountAfterDiscount - saldoUsed, 0);
+  const alreadyActive =
+    !!subscription &&
+    subscription.status === 'active' &&
+    subscription.plan?.billing_period !== null;
 
   return (
     <div className="space-y-6">
@@ -163,7 +201,7 @@ export default function UpgradePage() {
       <div>
         <h1 className="text-2xl font-bold text-[#142D52]">Upgrade Paket Berbayar</h1>
         <p className="text-gray-600 mt-1">
-          Pilih paket dan selesaikan pembayaran untuk mengaktifkan semua fitur.
+          Pilih tier yang sesuai dengan skala usaha Anda, lalu selesaikan pembayaran.
         </p>
       </div>
 
@@ -180,7 +218,7 @@ export default function UpgradePage() {
             Paket {subscription.plan.name} Anda sudah aktif
           </h2>
           <p className="text-sm text-gray-500 mt-2">
-            Berakhir pada {formatDate(subscription.expires_at)}. Tidak perlu melakukan pembayaran lagi.
+            Berakhir pada {subscription.expires_at ? formatDate(subscription.expires_at) : 'Selamanya (Free)'}. Tidak perlu melakukan pembayaran lagi.
           </p>
           <Link
             href="/app/billing"
@@ -192,34 +230,61 @@ export default function UpgradePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Detail paket */}
+          {/* Pilih tier */}
           <div className="lg:col-span-3 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-[#142D52] px-6 py-5">
               <h2 className="text-lg font-semibold text-white">Pilih Paket</h2>
               <p className="text-sm text-gray-300 mt-1">
-                Pilih masa langganan yang sesuai dengan kebutuhan usaha Anda.
+                Bandingkan batasan tiap paket sesuai kebutuhan usaha Anda.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-6">
-              {PLANS.map((item) => {
-                const active = item.code === selectedPlan;
+            <div className="flex items-center gap-2 px-6 pt-5">
+              <span className="text-sm text-gray-500 mr-1">Periode:</span>
+              {PERIODS.map((period) => {
+                const active = period.code === selectedPeriod;
                 return (
                   <button
-                    key={item.code}
-                    onClick={() => handleSelectPlan(item.code)}
-                    className={`relative text-left border rounded-xl p-5 transition-all cursor-pointer ${
+                    key={period.code}
+                    onClick={() => handleSelectPeriod(period.code)}
+                    className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                      active ? 'bg-[#142D52] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {period.label}
+                    {period.code === 'yearly' && active && yearlySavings != null && (
+                      <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-[#EBC170] text-[#142D52] text-[9px] font-bold rounded-full">
+                        Hemat {yearlySavings}%
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-6">
+              {tiers.map((tier) => {
+                const active = tier.code === selectedTierCode;
+                const isFree = tier.code === 'free';
+                const periodPlan = tier.plans.find((p) => p.billing_period === selectedPeriod) ?? tier.plans[0];
+                const monthlyPlan = tier.plans.find((p) => p.billing_period === 'monthly');
+                const yearlyPlan = tier.plans.find((p) => p.billing_period === 'yearly');
+                return (
+                  <button
+                    key={tier.uuid}
+                    onClick={() => handleSelectTier(tier.code)}
+                    className={`relative text-left border rounded-xl p-5 transition-all cursor-pointer flex flex-col ${
                       active
                         ? 'border-[#EBC170] bg-[#EBC170]/10 ring-2 ring-[#EBC170]'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    {item.badge && (
+                    {tier.code === 'growth' && (
                       <span className="absolute top-4 right-4 px-2.5 py-0.5 bg-[#EBC170] text-[#142D52] text-[10px] font-bold rounded-full">
-                        {item.badge}
+                        Populer
                       </span>
                     )}
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-1">
                       <span
                         className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                           active ? 'border-[#142D52]' : 'border-gray-300'
@@ -227,34 +292,74 @@ export default function UpgradePage() {
                       >
                         {active && <span className="w-2 h-2 bg-[#142D52] rounded-full" />}
                       </span>
-                      <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                      <h3 className="font-semibold text-gray-900">{tier.name}</h3>
                     </div>
-                    <div className="flex items-end gap-2 mb-1">
-                      <span className="text-3xl font-bold text-gray-900">
-                        {formatCurrency(item.price)}
+                    {tier.description && (
+                      <p className="text-xs text-gray-500 ml-6 mb-2">{tier.description}</p>
+                    )}
+                    <div className="mb-3 ml-6">
+                      {isFree ? (
+                        <div className="flex items-end gap-2">
+                          <span className="text-3xl font-bold text-gray-900">Rp0</span>
+                          <span className="text-gray-500 mb-1">/ selamanya</span>
+                        </div>
+                      ) : selectedPeriod === 'yearly' && yearlyPlan ? (
+                        <div>
+                          <div className="flex items-end gap-2">
+                            <span className="text-3xl font-bold text-gray-900">
+                              {formatCurrency(Math.round(yearlyPlan.price / 12))}
+                            </span>
+                            <span className="text-gray-500 mb-1">/bulan</span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="text-base text-gray-400 line-through">
+                              {formatCurrency(monthlyPlan?.price ?? 0)}
+                            </span>
+                            <span className="text-[10px] font-bold text-green-700 bg-green-50 px-1.5 py-0.5 rounded-full">
+                              Hemat {savingsPercent(monthlyPlan?.price ?? 0, yearlyPlan.price)}%
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            dibayar {formatCurrency(yearlyPlan.price)} per tahun
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-end gap-2">
+                          <span className="text-3xl font-bold text-gray-900">
+                            {formatCurrency(periodPlan?.price ?? 0)}
+                          </span>
+                          <span className="text-gray-500 mb-1">/bulan</span>
+                        </div>
+                      )}
+                    </div>
+                    <ul className="space-y-1.5 flex-1">
+                      {tier.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-xs text-gray-600">
+                          <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
+                      <span className="inline-flex items-center gap-1">
+                        <Store className="w-3.5 h-3.5" />
+                        {tier.max_branches == null ? 'Cabang tanpa batas' : `${tier.max_branches} cabang`}
                       </span>
-                      <span className="text-gray-500 mb-1">{item.durationLabel}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        {tier.max_users == null ? 'User tanpa batas' : `${tier.max_users} user`}
+                      </span>
                     </div>
-                    <p className="text-xs text-gray-500">{item.equivalentLabel}</p>
                   </button>
                 );
               })}
             </div>
 
-            <ul className="px-6 py-5 space-y-3 border-t border-gray-100">
-              {planFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-sm text-gray-700">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                  {feature}
-                </li>
-              ))}
-            </ul>
-
             {subscription && (
               <div className="mx-6 mb-5 px-4 py-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-gray-700">
                 Langganan saat ini:{' '}
                 <span className="font-medium">
-                  {subscription.plan.name} (hingga {formatDate(subscription.expires_at)})
+                  {subscription.plan.name} {subscription.expires_at ? `(hingga ${formatDate(subscription.expires_at)})` : '(selamanya)'}
                 </span>
                 . Sisa masa aktif akan ditambahkan ke periode paket baru.
               </div>
@@ -267,9 +372,22 @@ export default function UpgradePage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
                 <Ticket className="w-4 h-4 text-[#142D52]" />
-                Punya Kupon Diskon?
+                {referralAutoActive ? 'Diskon Referral Aktif' : 'Punya Kupon / Kode Referral?'}
               </h3>
-              {appliedCoupon ? (
+              {referralAutoActive ? (
+                <div className="mt-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-500 text-white text-sm font-semibold rounded-lg">
+                    <Percent className="w-4 h-4" />
+                    10%
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Diskon Referral Otomatis</p>
+                    <p className="text-xs text-gray-600">
+                      Diskon {formatCurrency(discountAmount)} untuk pembayaran langganan pertama Anda.
+                    </p>
+                  </div>
+                </div>
+              ) : appliedCoupon ? (
                 <div className="mt-4 flex items-center justify-between gap-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-3">
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded-lg">
@@ -279,7 +397,7 @@ export default function UpgradePage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-900 font-mono">{appliedCoupon.code}</p>
                       <p className="text-xs text-gray-600">
-                        Diskon {formatCurrency(appliedCoupon.discount_amount)}
+                        {appliedCoupon.is_referral ? 'Referral' : 'Kupon'} · Diskon {formatCurrency(appliedCoupon.discount_amount)}
                       </p>
                     </div>
                   </div>
@@ -309,7 +427,7 @@ export default function UpgradePage() {
                   />
                   <button
                     onClick={handleApplyCoupon}
-                    disabled={isApplyingCoupon}
+                    disabled={isApplyingCoupon || !selectedPlan}
                     className="px-5 py-2 bg-[#142D52] hover:bg-[#0B1E3A] text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-60 cursor-pointer whitespace-nowrap"
                   >
                     {isApplyingCoupon ? 'Memeriksa...' : 'Pakai'}
@@ -321,38 +439,91 @@ export default function UpgradePage() {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pembayaran</h2>
 
-              <dl className="space-y-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <dt className="text-gray-600">Paket {plan.name}</dt>
-                  <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
+              {selectedTier?.code === 'free' ? (
+                <div className="text-sm text-gray-600">
+                  Paket Free gratis selamanya. Pilih paket berbayar untuk
+                  menambah cabang & pengguna.
                 </div>
+              ) : (
+                <>
+                  <dl className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-gray-600">
+                        Paket {selectedTier?.name} {selectedPeriod === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                      </dt>
+                      <dd className="font-medium text-gray-900">{formatCurrency(subtotal)}</dd>
+                    </div>
 
-                {appliedCoupon && (
-                  <div className="flex items-center justify-between text-green-700">
-                    <dt className="flex items-center gap-1.5">
-                      <Ticket className="w-4 h-4" />
-                      Kupon {appliedCoupon.code}
-                    </dt>
-                    <dd className="font-semibold">
-                      -{formatCurrency(appliedCoupon.discount_amount)}
-                    </dd>
-                  </div>
-                )}
+                    {(appliedCoupon || referralAutoActive) && (
+                      <div className="flex items-center justify-between text-green-700">
+                        <dt className="flex items-center gap-1.5">
+                          <Percent className="w-4 h-4" />
+                          {referralAutoActive ? 'Diskon Referral' : `Kupon ${appliedCoupon!.code}`}
+                        </dt>
+                        <dd className="font-semibold">
+                          -{formatCurrency(discountAmount)}
+                        </dd>
+                      </div>
+                    )}
 
-                <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
-                  <dt className="text-gray-900 font-semibold">Total Bayar</dt>
-                  <dd className="text-xl font-bold text-[#142D52]">{formatCurrency(finalAmount)}</dd>
-                </div>
-              </dl>
+                    {referralBalance > 0 && !finalAmount && (
+                      <div className="flex items-center justify-between text-gray-500 text-xs italic">
+                        <dt>Pembayaran sudah covered oleh diskon. Tidak perlu bayar.</dt>
+                      </div>
+                    )}
 
-              <button
-                onClick={handlePay}
-                disabled={isCheckingOut}
-                className="w-full mt-6 px-6 py-3.5 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-semibold rounded-lg transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" />
-                {isCheckingOut ? 'Memproses...' : `Bayar & Aktifkan Paket ${plan.name}`}
-              </button>
+                    {referralBalance > 0 && (
+                      <div className="pt-2">
+                        <label className="flex items-start gap-2.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={useSaldo}
+                            onChange={(e) => setUseSaldo(e.target.checked)}
+                            disabled={finalAmount === 0}
+                            className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#142D52] focus:ring-[#EBC170] cursor-pointer disabled:cursor-not-allowed"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-gray-900">
+                              Gunakan Saldo Referral ({formatCurrency(referralBalance)})
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              Saldo hanya dapat digunakan untuk perpanjangan langganan sendiri.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    {saldoUsed > 0 && (
+                      <div className="flex items-center justify-between text-green-700">
+                        <dt className="flex items-center gap-1.5">
+                          <Wallet className="w-4 h-4" />
+                          Saldo Referral
+                        </dt>
+                        <dd className="font-semibold">
+                          -{formatCurrency(saldoUsed)}
+                        </dd>
+                      </div>
+                    )}
+
+                    <div className="border-t border-gray-200 pt-3 flex items-center justify-between">
+                      <dt className="text-gray-900 font-semibold">Total Bayar</dt>
+                      <dd className="text-xl font-bold text-[#142D52]">{formatCurrency(finalAmount)}</dd>
+                    </div>
+                  </dl>
+
+                  <button
+                    onClick={handlePay}
+                    disabled={isCheckingOut}
+                    className="w-full mt-6 px-6 py-3.5 bg-[#142D52] hover:bg-[#0B1E3A] text-white font-semibold rounded-lg transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Lock className="w-4 h-4" />
+                    {isCheckingOut
+                      ? 'Memproses...'
+                      : `Bayar & Aktifkan Paket ${selectedTier?.name}`}
+                  </button>
+                </>
+              )}
 
               <p className="mt-3 text-xs text-gray-500 flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5" />

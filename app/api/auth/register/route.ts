@@ -2,11 +2,13 @@ import { NextRequest } from "next/server";
 import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { ApiError } from "@/lib/api-errors";
 import { errorResponse, successResponse } from "@/lib/response";
 import { validateSchema } from "@/lib/validation";
 import { registerSchema } from "@/lib/validations/auth";
 import { provisionTenantUser } from "@/lib/modules/auth/provisioning";
 import { emailVerificationService } from "@/lib/modules/auth/verification";
+import { referralService } from "@/lib/modules/referral/referral.service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,10 +16,26 @@ export async function POST(req: NextRequest) {
     const result = validateSchema(registerSchema, body);
     if (!("data" in result)) return result;
 
-    const { name, email, password, company_name } = result.data;
+    const { name, email, password, company_name, referral_code } = result.data;
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedName = name.trim();
     const companyName = company_name?.trim() || `Konter ${normalizedName}`;
+
+    // Validasi kode referral (jangan bocorkan email calon user ke error).
+    let referredByUserId: number | undefined;
+    if (referral_code) {
+      try {
+        const referrer = await referralService.validateCode(referral_code);
+        referredByUserId = referrer.id;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          return errorResponse(error.message, 400, {
+            referral_code: [error.message],
+          });
+        }
+        throw error;
+      }
+    }
 
     const existingUser = await prisma.user.findFirst({
       where: { email: normalizedEmail, deletedAt: null },
@@ -32,13 +50,14 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await hash(password, 10);
 
     // Registrasi = membuat tenant (company) baru milik user tersebut,
-    // lengkap dengan role default, subscription free trial, dan user
+    // lengkap dengan role default, paket Free gratis selamanya, dan user
     // sebagai administrator tenant.
     const { user } = await provisionTenantUser({
       name: normalizedName,
       email: normalizedEmail,
       passwordHash: hashedPassword,
       companyName,
+      referredByUserId,
     });
 
     // Kirim email verifikasi (di dev tanpa SMTP, link dilog ke console).

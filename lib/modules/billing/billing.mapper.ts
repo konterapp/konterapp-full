@@ -8,6 +8,9 @@ export function formatPlan(plan: any) {
     uuid: plan.uuid,
     code: plan.code,
     name: plan.name,
+    tier_code: plan.tier?.code ?? null,
+    tier_name: plan.tier?.name ?? null,
+    billing_period: plan.billingPeriod ?? null,
     price: Number(plan.price),
     duration_days: plan.durationDays,
   };
@@ -27,13 +30,14 @@ export function formatSubscription(subscription: any | null) {
   if (!subscription) return null;
 
   const now = new Date();
-  const isExpired = new Date(subscription.expiresAt) < now;
+  const expiresAt: Date | null = subscription.expiresAt ? new Date(subscription.expiresAt) : null;
+  const isExpired = expiresAt !== null && expiresAt < now;
 
   return {
     plan: formatPlan(subscription.plan),
     status: isExpired ? "expired" : subscription.status,
     started_at: subscription.startedAt,
-    expires_at: subscription.expiresAt,
+    expires_at: expiresAt?.toISOString() ?? null,
   };
 }
 
@@ -45,6 +49,9 @@ export function formatInvoice(invoice: any) {
     amount: Number(invoice.amount),
     coupon_code: invoice.couponCode,
     discount_amount: invoice.discountAmount != null ? Number(invoice.discountAmount) : null,
+    referral_code: invoice.referralCode ?? null,
+    referral_discount_amount: invoice.referralDiscountAmount != null ? Number(invoice.referralDiscountAmount) : null,
+    referral_balance_used: invoice.referralBalanceUsed != null ? Number(invoice.referralBalanceUsed) : null,
     status: expired ? "expired" : invoice.status,
     payment_link: expired ? null : invoice.paymentLink,
     paid_at: invoice.paidAt,
@@ -76,4 +83,69 @@ export function formatAdminInvoice(invoice: any) {
     created_at: invoice.createdAt,
     updated_at: invoice.updatedAt,
   };
+}
+
+interface CatalogTier {
+  uuid: string;
+  code: string;
+  name: string;
+  description: string | null;
+  maxBranches: number | null;
+  maxUsers: number | null;
+  maxProducts: number | null;
+  maxTransactionsPerMonth: number | null;
+  features: unknown;
+  displayOrder: number;
+}
+
+interface CatalogPlan {
+  uuid: string;
+  code: string;
+  name: string;
+  billingPeriod: string | null;
+  price: unknown;
+  durationDays: number | null;
+  tier?: CatalogTier | null;
+  maxProducts?: number | null;
+  maxTransactionsPerMonth?: number | null;
+}
+
+export function formatPlansCatalog(plans: CatalogPlan[]) {
+  const tiersMap = new Map<string, Record<string, unknown>>();
+
+  for (const plan of plans) {
+    const tier = plan.tier;
+    if (!tier) continue;
+
+    let group = tiersMap.get(tier.uuid);
+    if (!group) {
+      group = {
+        uuid: tier.uuid,
+        code: tier.code,
+        name: tier.name,
+        description: tier.description,
+        max_branches: tier.maxBranches,
+        max_users: tier.maxUsers,
+        max_products: tier.maxProducts,
+        max_transactions_per_month: tier.maxTransactionsPerMonth,
+        features: Array.isArray(tier.features) ? tier.features : [],
+        display_order: tier.displayOrder,
+        plans: [],
+      };
+      tiersMap.set(tier.uuid, group);
+    }
+
+    (group.plans as unknown[]).push({
+      uuid: plan.uuid,
+      code: plan.code,
+      name: plan.name,
+      billing_period: plan.billingPeriod,
+      price: Number(plan.price),
+      duration_days: plan.durationDays,
+    });
+  }
+
+  return Array.from(tiersMap.values()).sort(
+    (a, b) => (a.display_order as number) - (b.display_order as number)
+  );
 }

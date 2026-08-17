@@ -42,6 +42,7 @@ export default function LoginClient() {
   const [recaptchaChecked, setRecaptchaChecked] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const refCode = searchParams.get('ref');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +74,16 @@ export default function LoginClient() {
         }
 
         // Intent pilih paket berbayar dari landing → langsung ke halaman upgrade
-        if (!redirectParam && (searchParams.get('plan') === 'yearly' || searchParams.get('plan') === 'monthly')) {
-          router.push('/app/billing/upgrade');
-          return;
+        if (!redirectParam) {
+          const intentTier = searchParams.get('tier');
+          if (intentTier && intentTier !== 'free') {
+            const query = new URLSearchParams();
+            query.set('tier', intentTier);
+            const period = searchParams.get('period');
+            if (period === 'monthly' || period === 'yearly') query.set('period', period);
+            router.push(`/app/billing/upgrade?${query.toString()}`);
+            return;
+          }
         }
 
         // Semua akun dari tabel users (/login) masuk ke area app (/app)
@@ -238,9 +246,14 @@ export default function LoginClient() {
               </div>
             </div>
 
-            <button
+                        <button
               type="button"
-              onClick={() => signIn('google', { callbackUrl: '/app' })}
+              onClick={() => {
+                if (refCode) {
+                  localStorage.setItem('pending_referral_code', refCode.toUpperCase());
+                }
+                signIn('google', { callbackUrl: '/app' });
+              }}
               className="w-full py-3.5 px-4 rounded-lg font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 transition-all flex items-center justify-center gap-3 cursor-pointer"
             >
               <GoogleIcon />

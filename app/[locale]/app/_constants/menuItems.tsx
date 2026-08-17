@@ -23,6 +23,7 @@ import {
     FileSearch,
     CircleDollarSign,
     Shield,
+    Gift,
 } from 'lucide-react';
 
 export type MenuSection =
@@ -259,5 +260,11 @@ export const allMenuItems: MenuItem[] = [
         href: '/app/roles',
         icon: <Shield className="w-5 h-5" />,
         permission: 'role.index'
+    },
+    {
+        section: 'Pengaturan',
+        label: 'Referral',
+        href: '/app/referral',
+        icon: <Gift className="w-5 h-5" />
     },
 ];

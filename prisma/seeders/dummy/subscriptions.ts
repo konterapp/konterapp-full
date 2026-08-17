@@ -8,7 +8,7 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { DEFAULT_COMPANY_CODE } from "../company";
-import { FREE_TRIAL_PLAN_CODE, YEARLY_PLAN_CODE } from "../../../lib/modules/billing/constants";
+import { FREE_PLAN_CODE, STARTER_MONTHLY_PLAN_CODE, STARTER_YEARLY_PLAN_CODE } from "../../../lib/modules/billing/constants";
 
 function daysFromNow(days: number): Date {
   const date = new Date();
@@ -22,7 +22,7 @@ async function upsertSubscription(
   planUuid: string,
   status: string,
   startedAt: Date,
-  expiresAt: Date
+  expiresAt: Date | null
 ) {
   await prisma.companySubscription.upsert({
     where: { companyUuid },
@@ -37,12 +37,13 @@ export async function seedSubscriptions(prisma: PrismaClient) {
     prisma.company.findUnique({ where: { code: "CMP-002" } }),
     prisma.company.findUnique({ where: { code: "CMP-003" } }),
   ]);
-  const [trialPlan, yearlyPlan] = await Promise.all([
-    prisma.plan.findUnique({ where: { code: FREE_TRIAL_PLAN_CODE } }),
-    prisma.plan.findUnique({ where: { code: YEARLY_PLAN_CODE } }),
+  const [freePlan, monthlyPlan, yearlyPlan] = await Promise.all([
+    prisma.plan.findUnique({ where: { code: FREE_PLAN_CODE } }),
+    prisma.plan.findUnique({ where: { code: STARTER_MONTHLY_PLAN_CODE } }),
+    prisma.plan.findUnique({ where: { code: STARTER_YEARLY_PLAN_CODE } }),
   ]);
 
-  if (!trialPlan || !yearlyPlan) {
+  if (!freePlan || !yearlyPlan) {
     console.log("⚠ Plan belum di-seed, lewati seedSubscriptions (jalankan seedCore dulu)");
     return;
   }
@@ -77,26 +78,27 @@ export async function seedSubscriptions(prisma: PrismaClient) {
     count += 1;
   }
 
-  // Konter Berkah Jaya: masih Free Trial berjalan normal
+  // Konter Berkah Jaya: paket Free selamanya (aktif, tidak kedaluwarsa)
   if (berkahJaya) {
     await upsertSubscription(
       prisma,
       berkahJaya.uuid,
-      trialPlan.uuid,
-      "trial",
+      freePlan.uuid,
+      "active",
       daysFromNow(-5),
-      daysFromNow(25)
+      null
     );
     count += 1;
   }
 
-  // Konter Sinar Abadi: Free Trial sudah berakhir (untuk uji blokir akses /app)
-  if (sinarAbadi) {
+  // Konter Sinar Abadi: paket berbayar bulanan yang sudah kedaluwarsa
+  // (untuk uji blokir akses /app saat langganan berbayar habis dan belum diperpanjang).
+  if (sinarAbadi && monthlyPlan) {
     await upsertSubscription(
       prisma,
       sinarAbadi.uuid,
-      trialPlan.uuid,
-      "trial",
+      monthlyPlan.uuid,
+      "active",
       daysFromNow(-40),
       daysFromNow(-10)
     );
@@ -107,10 +109,10 @@ export async function seedSubscriptions(prisma: PrismaClient) {
       create: {
         uuid: uuidv7(),
         companyUuid: sinarAbadi.uuid,
-        planUuid: yearlyPlan.uuid,
+        planUuid: monthlyPlan.uuid,
         provider: "midtrans",
         providerInvoiceId: "dummy-sub-invoice-002",
-        amount: yearlyPlan.price,
+        amount: monthlyPlan.price,
         status: "pending",
         paymentLink: "https://app.sandbox.midtrans.com/snap/v4/redirection/dummy-invoice-002",
       },

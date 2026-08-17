@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { ApiError } from "@/lib/api-errors";
 import { billingRepository } from "./repository";
 import { getMidtransServerKey } from "./midtrans-client";
+import { referralService } from "@/lib/modules/referral/referral.service";
 
 interface MidtransNotificationPayload {
   order_id: string;
@@ -63,8 +64,10 @@ export const billingWebhookService = {
       throw new ApiError("Paket tidak ditemukan", 404);
     }
 
-    const baseDate = existingSubscription && existingSubscription.expiresAt > now ? existingSubscription.expiresAt : now;
-    const expiresAt = addDays(baseDate, plan.durationDays);
+    const prevExpires = existingSubscription?.expiresAt ? new Date(existingSubscription.expiresAt) : null;
+    const baseDate = prevExpires && prevExpires > now ? prevExpires : now;
+    // Paket Free tak melewati webhook (tidak ada pembayaran). durationDays null -> tak cari harga baru.
+    const expiresAt = plan.durationDays != null ? addDays(baseDate, plan.durationDays) : null;
 
     if (existingSubscription) {
       await billingRepository.updateSubscription(invoice.companyUuid, {
@@ -80,6 +83,26 @@ export const billingWebhookService = {
         startedAt: now,
         expiresAt,
       });
+    }
+
+    // Berikan komisi referral ke referrer (hanya pembayaran pertama, idempoten)
+    // dan debit saldo referral yang dipakai di invoice ini.
+    try {
+      await referralService.grantCommissionForInvoice({
+        uuid: invoice.uuid,
+        companyUuid: invoice.companyUuid,
+        amount: invoice.amount,
+        planCode: plan.code,
+      });
+      await referralService.debitSaldoForInvoice({
+        uuid: invoice.uuid,
+        userId: invoice.userId,
+        referralBalanceUsed: invoice.referralBalanceUsed,
+        status: "paid",
+      });
+    } catch (error) {
+      // Jangan gagalkan aktivasi langganan kalau komisi/saldo bermasalah.
+      console.error("Gagal memproses komisi/saldo referral:", error);
     }
 
     return { processed: true };

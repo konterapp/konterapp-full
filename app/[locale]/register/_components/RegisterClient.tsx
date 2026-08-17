@@ -4,12 +4,25 @@ import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { apiRequest } from '@/lib/api/api';
+
+function GoogleIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z" />
+      <path fill="#FBBC05" d="M5.27 14.29A7.16 7.16 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09z" />
+      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42A11.97 11.97 0 0 0 12 0 11.99 11.99 0 0 0 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+    </svg>
+  );
+}
 
 export default function RegisterClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planIntent = searchParams.get('plan');
+  const tierIntent = searchParams.get('tier');
+  const periodIntent = searchParams.get('period');
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,10 +34,13 @@ export default function RegisterClient() {
   const [resendMessage, setResendMessage] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
+  const refFromUrl = searchParams.get('ref')?.toUpperCase() || '';
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     company_name: '',
+    referral_code: searchParams.get('ref')?.toUpperCase() || '',
     password: '',
     password_confirmation: '',
   });
@@ -155,10 +171,10 @@ export default function RegisterClient() {
                   atau klik tombol di bawah untuk mengirim ulang.
                 </p>
               </div>
-              {planIntent && (
+              {tierIntent && (
                 <p className="text-sm text-gray-600 mb-4">
                   Jangan lupa, setelah login Anda bisa mengaktifkan paket{' '}
-                  {planIntent === 'yearly' ? 'Tahunan' : planIntent === 'monthly' ? 'Bulanan' : 'berbayar'}.
+                  {tierIntent.charAt(0).toUpperCase() + tierIntent.slice(1)}.
                 </p>
               )}
               <div className="space-y-3">
@@ -181,7 +197,12 @@ export default function RegisterClient() {
                 )}
                 <button
                   type="button"
-                  onClick={() => router.push(planIntent ? `/login?plan=${planIntent}` : '/login')}
+                  onClick={() => {
+                    const query = new URLSearchParams();
+                    if (tierIntent) query.set('tier', tierIntent);
+                    if (periodIntent) query.set('period', periodIntent);
+                    router.push(query.size > 0 ? `/login?${query.toString()}` : '/login');
+                  }}
                   className="w-full py-3 px-4 rounded-lg font-bold text-white transition-all hover:opacity-90 cursor-pointer"
                   style={{ backgroundColor: '#142D52' }}
                 >
@@ -248,6 +269,30 @@ export default function RegisterClient() {
               <p className="mt-1 text-xs text-gray-400">Perusahaan baru akan dibuat untuk Anda. Kosongkan untuk memakai nama dari nama Anda.</p>
               {fieldErrors.company_name && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.company_name[0]}</p>
+              )}
+            </div>
+
+            {/* Referral Code Input */}
+            <div>
+              <label htmlFor="referral_code" className="block text-sm font-medium text-gray-700 mb-2">
+                Kode Referral {refFromUrl ? '' : <span className="text-gray-400 font-normal">(opsional)</span>}
+              </label>
+              <input
+                type="text"
+                id="referral_code"
+                value={formData.referral_code}
+                onChange={(e) => updateField('referral_code', e.target.value.toUpperCase())}
+                readOnly={!!refFromUrl}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent ${refFromUrl ? 'bg-gray-50 cursor-not-allowed text-gray-700' : ''} ${fieldErrors.referral_code ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="ABC123"
+              />
+              {refFromUrl ? (
+                <p className="mt-1 text-xs text-amber-600">Kode referral dari link undangan — tidak dapat diubah.</p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">Punya kode referral dari teman? Dapat diskon langganan pertama.</p>
+              )}
+              {fieldErrors.referral_code && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.referral_code[0]}</p>
               )}
             </div>
 
@@ -360,6 +405,31 @@ export default function RegisterClient() {
               style={{ backgroundColor: '#142D52' }}
             >
               {isLoading ? 'Mendaftar...' : 'DAFTAR'}
+            </button>
+
+            {/* Divider */}
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500">atau</span>
+              </div>
+            </div>
+
+            {/* Google Sign Up */}
+            <button
+              type="button"
+              onClick={() => {
+                if (refFromUrl) {
+                  localStorage.setItem('pending_referral_code', refFromUrl);
+                }
+                signIn('google', { callbackUrl: '/app' });
+              }}
+              className="w-full py-3 px-4 rounded-lg font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 transition-all flex items-center justify-center gap-3 cursor-pointer"
+            >
+              <GoogleIcon />
+              Daftar dengan Google
             </button>
 
             {/* Login Link */}

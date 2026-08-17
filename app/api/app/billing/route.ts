@@ -5,7 +5,10 @@ import { billingTenantService } from "@/lib/modules/billing/tenant.service";
 
 export const GET = withAuth(
   withApiErrorHandling(async (_req, context) => {
-    const result = await billingTenantService.getBillingStatus(context.companyUuid);
+    const result = await billingTenantService.getBillingStatus(
+      context.companyUuid,
+      context.userId
+    );
     return successResponse("Billing status retrieved successfully", result);
   })
 );

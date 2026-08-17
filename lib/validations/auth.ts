@@ -27,6 +27,12 @@ export const registerSchema = z
       .max(255, "Password maksimal 255 karakter"),
     password_confirmation: z.string({ error: "Konfirmasi password wajib diisi" }).min(1, "Konfirmasi password wajib diisi"),
     company_name: z.string().trim().max(255, "Nama perusahaan maksimal 255 karakter").optional(),
+    referral_code: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(20, "Kode referral maksimal 20 karakter")
+      .optional(),
   })
   .refine((data) => data.password === data.password_confirmation, {
     message: "Konfirmasi password tidak cocok",

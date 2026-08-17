@@ -4,7 +4,7 @@ import { withAuth } from "@/lib/api-middleware";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { validateSchema } from "@/lib/validation";
 import { billingTenantService } from "@/lib/modules/billing/tenant.service";
-import { YEARLY_PLAN_CODE } from "@/lib/modules/billing/constants";
+import { STARTER_YEARLY_PLAN_CODE } from "@/lib/modules/billing/constants";
 
 const checkoutSchema = z.object({
   plan_code: z
@@ -12,13 +12,14 @@ const checkoutSchema = z.object({
     .trim()
     .min(1, "Paket wajib diisi")
     .max(50, "Paket maksimal 50 karakter")
-    .default(YEARLY_PLAN_CODE),
+    .default(STARTER_YEARLY_PLAN_CODE),
   coupon_code: z
     .string()
     .trim()
     .toUpperCase()
     .optional()
     .nullable(),
+  use_referral_balance: z.boolean().optional().default(false),
 });
 
 export const POST = withAuth(
@@ -34,7 +35,8 @@ export const POST = withAuth(
       context.userId,
       result.data.plan_code,
       result.data.coupon_code || null,
-      redirectUrl
+      redirectUrl,
+      result.data.use_referral_balance
     );
     return successResponse("Invoice checkout berhasil dibuat", invoice, 201);
   })

@@ -2,18 +2,36 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const billingRepository = {
+  async findTierByCode(code: string) {
+    return prisma.planTier.findUnique({ where: { code } });
+  },
+
+  async listTiers() {
+    return prisma.planTier.findMany({
+      orderBy: { displayOrder: "asc" },
+    });
+  },
+
+  async listPlansWithTiers() {
+    return prisma.plan.findMany({
+      where: { isActive: true },
+      include: { tier: true },
+      orderBy: { displayOrder: "asc" },
+    });
+  },
+
   async findPlanByCode(code: string) {
-    return prisma.plan.findUnique({ where: { code } });
+    return prisma.plan.findUnique({ where: { code }, include: { tier: true } });
   },
 
   async findPlanByUuid(uuid: string) {
-    return prisma.plan.findUnique({ where: { uuid } });
+    return prisma.plan.findUnique({ where: { uuid }, include: { tier: true } });
   },
 
   async findSubscriptionByCompanyUuid(companyUuid: string) {
     return prisma.companySubscription.findUnique({
       where: { companyUuid },
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
     });
   },
 
@@ -22,26 +40,26 @@ export const billingRepository = {
     planUuid: string;
     status: string;
     startedAt: Date;
-    expiresAt: Date;
+    expiresAt: Date | null;
   }) {
-    return prisma.companySubscription.create({ data, include: { plan: true } });
+    return prisma.companySubscription.create({ data, include: { plan: { include: { tier: true } } } });
   },
 
   async updateSubscription(
     companyUuid: string,
-    data: { planUuid?: string; status?: string; startedAt?: Date; expiresAt?: Date }
+    data: { planUuid?: string; status?: string; startedAt?: Date; expiresAt?: Date | null }
   ) {
     return prisma.companySubscription.update({
       where: { companyUuid },
       data,
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
     });
   },
 
   async listInvoicesByCompanyUuid(companyUuid: string) {
     return prisma.subscriptionInvoice.findMany({
       where: { companyUuid },
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
       orderBy: { createdAt: "desc" },
     });
   },
@@ -49,7 +67,7 @@ export const billingRepository = {
   async findInvoiceByCompanyAndUuid(companyUuid: string, invoiceUuid: string) {
     return prisma.subscriptionInvoice.findFirst({
       where: { companyUuid, uuid: invoiceUuid },
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
     });
   },
 
@@ -57,7 +75,7 @@ export const billingRepository = {
     return prisma.subscriptionInvoice.update({
       where: { uuid: invoiceUuid },
       data: { status: "expired" },
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
     });
   },
 
@@ -67,12 +85,16 @@ export const billingRepository = {
     provider: string;
     providerInvoiceId: string;
     amount: number;
+    userId?: number | null;
     couponCode?: string | null;
     discountAmount?: number | null;
+    referralCode?: string | null;
+    referralDiscountAmount?: number | null;
+    referralBalanceUsed?: number | null;
     paymentLink?: string | null;
     expiredAt?: Date | null;
   }) {
-    return prisma.subscriptionInvoice.create({ data, include: { plan: true } });
+    return prisma.subscriptionInvoice.create({ data, include: { plan: { include: { tier: true } } } });
   },
 
   async listInvoices(params: {
@@ -105,7 +127,7 @@ export const billingRepository = {
   async findInvoiceByProviderInvoiceId(providerInvoiceId: string) {
     return prisma.subscriptionInvoice.findUnique({
       where: { providerInvoiceId },
-      include: { plan: true },
+      include: { plan: { include: { tier: true } } },
     });
   },
 
