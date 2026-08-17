@@ -3,6 +3,8 @@ import { posTransactionRepository } from './repository';
 import { mapTransaction } from './transaction.mapper';
 import { Prisma } from '@prisma/client';
 import { posShiftRepository } from '../shifts/repository';
+import { getTenantCompanyUuid } from '@/lib/tenant-context';
+import { assertTransactionLimit } from '@/lib/modules/billing/plan-limits';
 
 function generateSaleNumber() {
   const date = new Date();
@@ -127,9 +129,14 @@ export const posTransactionService = {
       );
     }
 
-    const saleNumber = generateSaleNumber();
+const saleNumber = generateSaleNumber();
 
-    let subtotal = 0;
+const companyUuid = getTenantCompanyUuid();
+if (companyUuid) {
+  await assertTransactionLimit(companyUuid);
+}
+
+let subtotal = 0;
     let totalDiscount = discountAmount || 0;
 
     for (const item of items) {

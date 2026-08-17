@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -18,6 +19,95 @@ import {
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly');
+
+  const savingsPercent = (monthly: number, yearly: number) =>
+    Math.round(((monthly * 12 - yearly) / (monthly * 12)) * 100);
+
+  const tiers = [
+    {
+      code: 'free',
+      name: 'Free',
+      description: 'Paket gratis selamanya untuk konter & toko kecil.',
+      monthlyPrice: 0,
+      yearlyPrice: 0,
+      features: [
+        'Transaksi PPOB tanpa batas',
+        'Kasir digital (POS) lengkap',
+        'Laporan penjualan & stok',
+        '1 cabang',
+        '3 pengguna',
+        '100 produk',
+        '1000 transaksi/bulan',
+      ],
+      highlighted: false,
+      ctaText: 'Mulai Gratis',
+      href: '/register',
+    },
+    {
+      code: 'starter',
+      name: 'Starter',
+      description: 'Untuk konter & toko kecil.',
+      monthlyPrice: 10000,
+      yearlyPrice: 99000,
+      features: [
+        'Semua fitur Free',
+        '1 cabang',
+        '3 pengguna',
+        '500 produk',
+        '5000 transaksi/bulan',
+        'Struk dengan nama toko sendiri',
+      ],
+      highlighted: false,
+      ctaText: 'Pilih Starter',
+      href: '/register?tier=starter&period=monthly',
+    },
+    {
+      code: 'growth',
+      name: 'Growth',
+      description: 'Untuk usaha yang berkembang.',
+      monthlyPrice: 35000,
+      yearlyPrice: 350000,
+      features: [
+        'Semua fitur Starter',
+        '3 cabang',
+        '9 pengguna',
+        '2000 produk',
+        '20000 transaksi/bulan',
+        'Multi kasir',
+        'Laporan laba-rugi detail',
+      ],
+      highlighted: true,
+      ctaText: 'Pilih Growth',
+      href: '/register?tier=growth&period=monthly',
+    },
+    {
+      code: 'pro',
+      name: 'Pro',
+      description: 'Untuk bisnis multi cabang.',
+      monthlyPrice: 99000,
+      yearlyPrice: 990000,
+      features: [
+        'Semua fitur Growth',
+        '10 cabang',
+        '30 pengguna',
+        '10000 produk',
+        '100000 transaksi/bulan',
+        'Prioritas dukungan 24 jam',
+        'Manajemen multi toko',
+      ],
+      highlighted: false,
+      ctaText: 'Pilih Pro',
+      href: '/register?tier=pro&period=monthly',
+    },
+  ];
+
+  const featuredTier = tiers.find((t) => t.highlighted) ?? null;
+  const featuredSavings =
+    featuredTier && featuredTier.yearlyPrice > 0 && featuredTier.monthlyPrice > 0
+      ? savingsPercent(featuredTier.monthlyPrice, featuredTier.yearlyPrice)
+      : null;
+
   const features = [
     {
       icon: <Smartphone className="w-8 h-8 text-[#EBC170]" />,
@@ -296,7 +386,7 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-20 lg:py-32 bg-white">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-[#142D52] mb-4 font-poppins">
               Harga yang Sederhana & Transparan
             </h2>
@@ -305,125 +395,124 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Free Trial Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="bg-white p-8 lg:p-10 rounded-2xl shadow-sm border-2 border-gray-100 flex flex-col"
-            >
-              <h3 className="text-xl font-bold text-[#142D52] font-poppins mb-2">Free Trial</h3>
-              <p className="text-gray-500 text-sm mb-6">Coba semua fitur tanpa risiko.</p>
-              <div className="flex items-end gap-2 mb-8">
-                <span className="text-4xl lg:text-5xl font-bold text-[#142D52] font-poppins">Rp0</span>
-                <span className="text-gray-500 mb-1.5">/ 30 hari</span>
-              </div>
-              <ul className="space-y-4 mb-10 flex-1">
-                {[
-                  'Semua fitur dasar KonterApp',
-                  'Transaksi PPOB tanpa batas',
-                  'Kasir digital (POS) lengkap',
-                  'Laporan penjualan & stok',
-                  'Maksimal 2 pengguna',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-600 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="w-full px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-[#142D52] font-bold rounded-xl transition-all text-center cursor-pointer"
-              >
-                Mulai Gratis
-              </Link>
-            </motion.div>
+          <div className="flex items-center justify-center gap-2 mb-12">
+            <span className="text-sm text-gray-500 mr-1">Periode:</span>
+            {(['monthly', 'yearly'] as const).map((p) => {
+              const active = period === p;
+              return (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`relative px-5 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                    active ? 'bg-[#142D52] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {p === 'monthly' ? 'Bulanan' : 'Tahunan'}
+                  {p === 'yearly' && active && featuredSavings != null && (
+                    <span className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-[#EBC170] text-[#142D52] text-[9px] font-bold rounded-full">
+                      Hemat {featuredSavings}%
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-            {/* Monthly Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.08 }}
-              viewport={{ once: true }}
-              className="bg-white p-8 lg:p-10 rounded-2xl shadow-sm border-2 border-gray-100 flex flex-col"
-            >
-              <h3 className="text-xl font-bold text-[#142D52] font-poppins mb-2">Bulanan</h3>
-              <p className="text-gray-500 text-sm mb-6">Fleksibel, bayar per bulan.</p>
-              <div className="flex items-end gap-2 mb-8">
-                <span className="text-4xl lg:text-5xl font-bold text-[#142D52] font-poppins">Rp10.000</span>
-                <span className="text-gray-500 mb-1.5">/ bulan</span>
-              </div>
-              <ul className="space-y-4 mb-10 flex-1">
-                {[
-                  'Semua fitur Free Trial',
-                  'Pengguna tanpa batas',
-                  'Multi cabang & multi kasir',
-                  'Laporan laba-rugi detail',
-                  'Struk dengan nama toko sendiri',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-600 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register?plan=monthly"
-                className="w-full px-6 py-3.5 bg-gray-100 hover:bg-gray-200 text-[#142D52] font-bold rounded-xl transition-all text-center cursor-pointer"
-              >
-                Pilih Bulanan
-              </Link>
-              <p className="mt-4 text-center text-xs text-gray-400">
-                Termasuk 30 hari free trial saat mendaftar
-              </p>
-            </motion.div>
-
-            {/* Yearly Plan */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              viewport={{ once: true }}
-              className="bg-[#142D52] p-8 lg:p-10 rounded-2xl shadow-xl border-2 border-[#EBC170] flex flex-col relative overflow-hidden"
-            >
-              <div className="absolute top-5 right-5 px-3 py-1 bg-[#EBC170] text-[#142D52] text-xs font-bold rounded-full">
-                Paling Hemat
-              </div>
-              <h3 className="text-xl font-bold text-white font-poppins mb-2">Tahunan</h3>
-              <p className="text-gray-400 text-sm mb-6">Untuk usaha yang serius berkembang.</p>
-              <div className="flex items-end gap-2 mb-8">
-                <span className="text-4xl lg:text-5xl font-bold text-white font-poppins">Rp99.000</span>
-                <span className="text-gray-400 mb-1.5">/ tahun</span>
-              </div>
-              <ul className="space-y-4 mb-10 flex-1">
-                {[
-                  'Semua fitur Free Trial',
-                  'Pengguna tanpa batas',
-                  'Multi cabang & multi kasir',
-                  'Laporan laba-rugi detail',
-                  'Prioritas dukungan 24 jam',
-                  'Struk dengan nama toko sendiri',
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-gray-200 text-sm">
-                    <CheckCircle2 className="w-5 h-5 text-[#EBC170] shrink-0 mt-0.5" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register?plan=yearly"
-                className="w-full px-6 py-3.5 bg-[#EBC170] hover:bg-[#d6af63] text-[#142D52] font-bold rounded-xl transition-all text-center flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Zap className="w-4 h-4" />
-                Daftar Sekarang
-              </Link>
-              <p className="mt-4 text-center text-xs text-gray-400">
-                Termasuk 30 hari free trial saat mendaftar
-              </p>
-            </motion.div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+            {tiers.map((tier, index) => {
+              return (
+                <motion.div
+                  key={tier.code}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                  viewport={{ once: true }}
+                  className={`p-8 lg:p-9 rounded-2xl flex flex-col relative overflow-hidden ${
+                    tier.highlighted
+                      ? 'bg-[#142D52] shadow-xl border-2 border-[#EBC170]'
+                      : 'bg-white shadow-sm border-2 border-gray-100'
+                  }`}
+                >
+                  {tier.highlighted && (
+                    <div className="absolute top-5 right-5 px-3 py-1 bg-[#EBC170] text-[#142D52] text-xs font-bold rounded-full">
+                      Paling Laris
+                    </div>
+                  )}
+                  <h3 className={`text-xl font-bold font-poppins mb-2 ${tier.highlighted ? 'text-white' : 'text-[#142D52]'}`}>
+                    {tier.name}
+                  </h3>
+                  <p className={`text-sm mb-6 ${tier.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {tier.description}
+                  </p>
+                  <div className="mb-8">
+                    {tier.code === 'free' ? (
+                      <div className="flex items-end gap-2">
+                        <span className={`text-4xl font-bold font-poppins ${tier.highlighted ? 'text-white' : 'text-[#142D52]'}`}>
+                          Rp0
+                        </span>
+                        <span className={`mb-1.5 ${tier.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
+                          / 30 hari
+                        </span>
+                      </div>
+                    ) : period === 'monthly' ? (
+                      <div className="flex items-end gap-2">
+                        <span className={`text-4xl font-bold font-poppins ${tier.highlighted ? 'text-white' : 'text-[#142D52]'}`}>
+                          Rp{tier.monthlyPrice.toLocaleString('id-ID')}
+                        </span>
+                        <span className={`mb-1.5 ${tier.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
+                          / bulan
+                        </span>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-end gap-2">
+                          <span className={`text-4xl font-bold font-poppins ${tier.highlighted ? 'text-white' : 'text-[#142D52]'}`}>
+                            Rp{Math.round(tier.yearlyPrice / 12).toLocaleString('id-ID')}
+                          </span>
+                          <span className={`mb-1.5 ${tier.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
+                            /bulan
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span className={`text-lg line-through ${tier.highlighted ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Rp{tier.monthlyPrice.toLocaleString('id-ID')}
+                          </span>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${tier.highlighted ? 'bg-[#EBC170] text-[#142D52]' : 'bg-green-50 text-green-700'}`}>
+                            Hemat {savingsPercent(tier.monthlyPrice, tier.yearlyPrice)}%
+                          </span>
+                        </div>
+                        <p className={`text-xs mt-1 ${tier.highlighted ? 'text-gray-400' : 'text-gray-400'}`}>
+                          dibayar Rp{tier.yearlyPrice.toLocaleString('id-ID')} per tahun
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <ul className="space-y-4 mb-10 flex-1">
+                    {tier.features.map((item) => (
+                      <li key={item} className={`flex items-start gap-3 text-sm ${tier.highlighted ? 'text-gray-200' : 'text-gray-600'}`}>
+                        <CheckCircle2 className={`w-5 h-5 shrink-0 mt-0.5 ${tier.highlighted ? 'text-[#EBC170]' : 'text-[#EBC170]'}`} />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={tier.href.replace('period=monthly', `period=${period}`)}
+                    className={`w-full px-6 py-3.5 font-bold rounded-xl transition-all text-center cursor-pointer ${
+                      tier.highlighted
+                        ? 'bg-[#EBC170] hover:bg-[#d6af63] text-[#142D52]'
+                        : 'bg-gray-100 hover:bg-gray-200 text-[#142D52]'
+                    }`}
+                  >
+                    {tier.ctaText}
+                  </Link>
+                  {tier.code !== 'free' && (
+                    <p className="mt-4 text-center text-xs text-gray-400">
+                      Tanpa kontrak, bisa berhenti kapan saja
+                    </p>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>

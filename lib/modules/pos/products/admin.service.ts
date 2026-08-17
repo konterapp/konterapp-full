@@ -2,6 +2,8 @@ import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { removeFileIfExists, saveUploadedFile } from '@/lib/utils/file-upload';
 import { posProductRepository } from './repository';
 import { mapProduct, mapProductDetailWithStocks, mapProductListItem, mapProductLookupBarcode } from './product.mapper';
+import { getTenantCompanyUuid } from '@/lib/tenant-context';
+import { assertProductLimit } from '@/lib/modules/billing/plan-limits';
 
 const PRODUCT_UPLOAD_FOLDER = 'products';
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
@@ -199,6 +201,11 @@ export const posProductService = {
   async createProduct(payload: any, imageFiles: File[]) {
     if (!payload.selling_price && payload.selling_price !== 0) {
       throw new ValidationApiError({ selling_price: ['Harga jual wajib diisi'] });
+    }
+
+    const companyUuid = getTenantCompanyUuid();
+    if (companyUuid) {
+      await assertProductLimit(companyUuid);
     }
 
     const existingSku = await posProductRepository.findBySku(payload.sku);

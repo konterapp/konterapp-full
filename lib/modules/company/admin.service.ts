@@ -2,7 +2,7 @@ import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { companyRepository } from "./repository";
 import { formatCompany } from "./company.mapper";
 import { billingRepository } from "@/lib/modules/billing/repository";
-import { FREE_TRIAL_PLAN_CODE } from "@/lib/modules/billing/constants";
+import { FREE_PLAN_CODE } from "@/lib/modules/billing/constants";
 import { prisma } from "@/lib/prisma";
 import { seedTenantDefaultRoles } from "@/lib/modules/roles/templates";
 
@@ -76,21 +76,20 @@ export const companyService = {
     // Seed role default tenant (administrator + kasir) untuk company baru
     await seedTenantDefaultRoles(prisma as unknown as Parameters<typeof seedTenantDefaultRoles>[0], company.uuid);
 
-    const trialPlan = await billingRepository.findPlanByCode(FREE_TRIAL_PLAN_CODE);
+    const trialPlan = await billingRepository.findPlanByCode(FREE_PLAN_CODE);
     if (!trialPlan) {
       return formatCompany(company);
     }
 
     const startedAt = new Date();
-    const expiresAt = new Date(startedAt);
-    expiresAt.setDate(expiresAt.getDate() + trialPlan.durationDays);
 
     await billingRepository.createSubscription({
       companyUuid: company.uuid,
       planUuid: trialPlan.uuid,
-      status: "trial",
+      status: "active",
       startedAt,
-      expiresAt,
+      // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
+      expiresAt: null,
     });
 
     const companyWithSubscription = await companyRepository.findByUuid(company.uuid);

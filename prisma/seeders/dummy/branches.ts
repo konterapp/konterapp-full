@@ -41,7 +41,7 @@ export async function seedBranches(prisma: PrismaClient) {
 
   for (const data of BRANCHES_DATA) {
     await prisma.appPosBranch.upsert({
-      where: { code: data.code },
+      where: { companyUuid_code: { companyUuid, code: data.code } },
       update: {
         ...data,
         companyUuid,

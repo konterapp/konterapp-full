@@ -25,6 +25,20 @@ const formatDate = (value: string | null) => {
   });
 };
 
+const TIER_NAMES: Record<string, string> = { free: 'Free', starter: 'Starter', growth: 'Growth', pro: 'Pro' };
+
+const planLabel = (code: string | null): string => {
+  if (!code) return 'Semua';
+  if (code === 'free') return 'Free';
+  if (TIER_NAMES[code]) return `Semua ${TIER_NAMES[code]}`;
+  const [tier, period] = code.split('-');
+  if (TIER_NAMES[tier]) {
+    const periodLabel = period === 'yearly' ? 'Tahunan' : period === 'monthly' ? 'Bulanan' : '';
+    return `${TIER_NAMES[tier]} ${periodLabel}`.trim();
+  }
+  return code;
+};
+
 export default function CouponsPage() {
   const toast = useToast();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -195,10 +209,10 @@ export default function CouponsPage() {
       sortable: false,
       width: '8rem',
       render: (_, row) => {
-        const planLabel = row.plan_code === 'monthly' ? 'Bulanan' : row.plan_code === 'yearly' ? 'Tahunan' : 'Semua';
+        const plan = planLabel(row.plan_code);
         return (
           <span className={`px-2 py-1 text-xs font-medium rounded-full ${row.plan_code ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-            {planLabel}
+            {plan}
           </span>
         );
       },

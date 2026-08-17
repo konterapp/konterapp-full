@@ -92,7 +92,8 @@ export const couponAdminService = {
 
     if (payload.plan_code) {
       const plan = await billingRepository.findPlanByCode(payload.plan_code);
-      if (!plan) {
+      const tier = await billingRepository.findTierByCode(payload.plan_code);
+      if (!plan && !tier) {
         throw new ValidationApiError({ plan_code: ["Paket tidak ditemukan"] });
       }
     }
@@ -139,7 +140,8 @@ export const couponAdminService = {
 
     if (payload.plan_code) {
       const plan = await billingRepository.findPlanByCode(payload.plan_code);
-      if (!plan) {
+      const tier = await billingRepository.findTierByCode(payload.plan_code);
+      if (!plan && !tier) {
         throw new ValidationApiError({ plan_code: ["Paket tidak ditemukan"] });
       }
     }

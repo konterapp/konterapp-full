@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { createCoupon, updateCoupon, getCoupon, CouponFormData } from '@/lib/api/administrator/coupon';
+import { createCoupon, updateCoupon, getCoupon, getPlansOptions, AdminPlanTier, CouponFormData } from '@/lib/api/administrator/coupon';
 import { useToast } from '@/components/toast/ToastContainer';
 
 interface CouponFormModalProps {
@@ -53,6 +53,7 @@ export default function CouponFormModal({ isOpen, onClose, onSaved, couponUuid }
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [isLoading, setIsLoading] = useState(false);
    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+   const [tiers, setTiers] = useState<AdminPlanTier[]>([]);
 
    useEffect(() => {
       if (!isOpen) return;
@@ -60,12 +61,24 @@ export default function CouponFormModal({ isOpen, onClose, onSaved, couponUuid }
       setForm(emptyForm);
       setFieldErrors({});
       setIsLoading(false);
+      fetchPlans();
 
       if (couponUuid) {
          fetchCoupon(couponUuid);
       }
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [isOpen, couponUuid]);
+
+   const fetchPlans = async () => {
+      try {
+         const response = await getPlansOptions();
+         if (response.status === 'success' && response.data) {
+            setTiers(response.data);
+         }
+      } catch {
+         setTiers([]);
+      }
+   };
 
    const fetchCoupon = async (uuid: string) => {
       try {
@@ -226,25 +239,36 @@ export default function CouponFormModal({ isOpen, onClose, onSaved, couponUuid }
                         {errorText('description')}
                      </div>
 
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                           Berlaku untuk Paket
-                        </label>
-                        <select
-                           name="plan_code"
-                           value={form.plan_code}
-                           onChange={handleChange}
-                           className={`${inputClass('plan_code')} cursor-pointer`}
-                        >
-                           <option value="">Semua paket</option>
-                           <option value="monthly">Bulanan (Rp10.000)</option>
-                           <option value="yearly">Tahunan (Rp99.000)</option>
-                        </select>
-                        <p className="text-xs text-gray-400 mt-1">
-                           Kosongkan jika kupon berlaku untuk semua paket.
-                        </p>
-                        {errorText('plan_code')}
-                     </div>
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Berlaku untuk Paket
+                         </label>
+                         <select
+                            name="plan_code"
+                            value={form.plan_code}
+                            onChange={handleChange}
+                            className={`${inputClass('plan_code')} cursor-pointer`}
+                         >
+                            <option value="">Semua paket</option>
+                            {tiers.map((tier) => (
+                               <optgroup key={tier.uuid} label={`${tier.name} (${tier.max_branches ?? '∞'} cabang, ${tier.max_users ?? '∞'} user)`}>
+                                  <option value={tier.code}>
+                                     Semua paket {tier.name}
+                                  </option>
+                                  {tier.plans.map((plan) => (
+                                     <option key={plan.uuid} value={plan.code}>
+                                        {tier.name} {plan.billing_period === 'yearly' ? 'Tahunan' : plan.billing_period === 'monthly' ? 'Bulanan' : ''} (Rp{plan.price.toLocaleString('id-ID')})
+                                     </option>
+                                  ))}
+                               </optgroup>
+                            ))}
+                         </select>
+                         <p className="text-xs text-gray-400 mt-1">
+                            Kosongkan jika kupon berlaku untuk semua paket. Pilih nama tier untuk
+                            semua periode paket di tier tersebut.
+                         </p>
+                         {errorText('plan_code')}
+                      </div>
 
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>

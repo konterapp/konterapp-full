@@ -1,5 +1,27 @@
 import { apiRequest, ApiResponse, PaginatedData } from '../api';
 
+export interface AdminPlanCatalogItem {
+  uuid: string;
+  code: string;
+  name: string;
+  billing_period: string | null;
+  price: number;
+  duration_days: number;
+}
+
+export interface AdminPlanTier {
+  uuid: string;
+  code: string;
+  name: string;
+  max_branches: number | null;
+  max_users: number | null;
+  plans: AdminPlanCatalogItem[];
+}
+
+export async function getPlansOptions(): Promise<ApiResponse<AdminPlanTier[]>> {
+  return apiRequest<AdminPlanTier[]>('/api/administrator/plans');
+}
+
 export interface Coupon {
   uuid: string;
   code: string;

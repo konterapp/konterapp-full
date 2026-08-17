@@ -23,7 +23,7 @@ const formatDate = (value: string) => {
 };
 
 const statusBadge: Record<string, { label: string; className: string }> = {
-  trial: { label: 'Free Trial', className: 'bg-blue-100 text-blue-700' },
+  trial: { label: 'Gratis', className: 'bg-blue-100 text-blue-700' },
   active: { label: 'Aktif', className: 'bg-green-100 text-green-700' },
   expired: { label: 'Berakhir', className: 'bg-red-100 text-red-700' },
   canceled: { label: 'Dibatalkan', className: 'bg-gray-100 text-gray-600' },
@@ -80,7 +80,7 @@ export default function BillingPage() {
 
   const subscription = data?.subscription;
   const badge = subscription ? statusBadge[subscription.status] ?? statusBadge.expired : null;
-  const canUpgrade = !subscription || subscription.status !== 'active';
+  const canUpgrade = !subscription || subscription.status !== 'active' || subscription?.plan?.billing_period === null;
 
   return (
     <div className="space-y-6">
@@ -123,7 +123,8 @@ export default function BillingPage() {
                 )}
               </div>
               <p className="text-sm text-gray-500">
-                Berlaku {formatDate(subscription.started_at)} &ndash; {formatDate(subscription.expires_at)}
+                Berlaku {formatDate(subscription.started_at)}
+                {subscription.expires_at ? ` – ${formatDate(subscription.expires_at)}` : ' – Selamanya (Free)'}
               </p>
             </div>
 

@@ -10,12 +10,30 @@ export function computeCouponDiscount(coupon: CouponRecord, subtotal: number): n
   return Math.round(discount);
 }
 
+interface PlanContext {
+  code: string;
+  tier?: { code: string } | null;
+}
+
+/**
+ * Kupon cocok dengan paket jika plan_code kupon kosong (semua paket),
+ * sama dengan kode paket, atau sama dengan kode tier paket.
+ */
+export function couponMatchesPlan(couponPlanCode: string | null | undefined, plan: PlanContext | null | undefined): boolean {
+  if (!couponPlanCode) return true;
+  if (!plan) return false;
+  if (couponPlanCode === plan.code) return true;
+  if (plan.tier && couponPlanCode === plan.tier.code) return true;
+  return false;
+}
+
 /**
  * Validasi kupon dan hitung diskon untuk nominal subtotal tertentu.
  * Melakukan pengecekan status, periode berlaku, kuota pemakaian, dan
- * kecocokan paket (planCode kupon kosong berarti berlaku untuk semua paket).
+ * kecocokan paket (planCode kupon kosong berarti berlaku untuk semua paket;
+ * planCode bisa berupa kode tier atau kode paket).
  */
-export async function resolveCouponForCheckout(code: string, subtotal: number, planCode?: string | null) {
+export async function resolveCouponForCheckout(code: string, subtotal: number, plan?: PlanContext | null) {
   const coupon = await couponRepository.findByCode(code);
   if (!coupon) {
     throw new ApiError("Kode kupon tidak valid", 404);
@@ -34,7 +52,7 @@ export async function resolveCouponForCheckout(code: string, subtotal: number, p
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) {
     throw new ApiError("Kuota pemakaian kupon sudah habis", 400);
   }
-  if (coupon.planCode && coupon.planCode !== planCode) {
+  if (!couponMatchesPlan(coupon.planCode, plan)) {
     throw new ApiError("Kupon ini hanya berlaku untuk paket tertentu", 400);
   }
 

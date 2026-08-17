@@ -1,8 +1,11 @@
 const ACTIVE_STATUSES = new Set(["trial", "active"]);
 
 export function isSubscriptionActive(
-  subscription: { status: string; expiresAt: Date } | null
+  subscription: { status: string; expiresAt: Date | string | null } | null
 ): boolean {
   if (!subscription) return false;
-  return ACTIVE_STATUSES.has(subscription.status) && subscription.expiresAt > new Date();
+  if (!ACTIVE_STATUSES.has(subscription.status)) return false;
+  // Free selamanya / langganan tanpa kedaluwarsa (expiresAt null) selalu aktif.
+  if (subscription.expiresAt == null) return true;
+  return new Date(subscription.expiresAt) > new Date();
 }

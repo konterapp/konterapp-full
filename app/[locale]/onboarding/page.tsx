@@ -55,7 +55,7 @@ export default function OnboardingPage() {
           {[
             'Perusahaan akan menjadi tempat usaha Anda di KonterApp',
             'Anda menjadi administrator perusahaan ini',
-            'Langganan free trial aktif otomatis setelah perusahaan dibuat',
+            'Paket Free aktif otomatis dan gratis selamanya setelah perusahaan dibuat',
           ].map((text) => (
             <div key={text} className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
