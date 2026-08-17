@@ -19,7 +19,7 @@ export const posCustomerRepository = {
     return prisma.appPosCustomer.findFirst({ where: { uuid } });
   },
 
-  create(data: { name: string; phone: string | null; email: string | null; address: string | null }) {
+  create(data: { name: string; phone: string | null; email: string | null; address: string | null; isDefault?: boolean }) {
     return prisma.appPosCustomer.create({ data });
   },
 

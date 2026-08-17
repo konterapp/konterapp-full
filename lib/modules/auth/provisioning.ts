@@ -18,6 +18,26 @@ const TENANT_DEFAULT_PAYMENT_METHODS = [
   { code: "GOPAY", name: "GoPay", type: "e_wallet" },
 ];
 
+const TENANT_DEFAULT_CUSTOMER = {
+  name: "Walk In Customer",
+  phone: "-",
+};
+
+const TENANT_DEFAULT_PRODUCT_CATEGORIES = [
+  { name: "Pulsa & Voucher", description: "Voucher pulsa, paket data, dan token listrik" },
+  { name: "Aksesoris HP", description: "Case, charger, headset, dan aksesoris ponsel lainnya" },
+  { name: "Minuman & Snack", description: "Minuman ringan, kopi, dan makanan ringan" },
+  { name: "Rokok", description: "Berbagai merek rokok dan produk tembakau" },
+  { name: "Percetakan", description: "Cetak foto, fotokopi, dan jasa percetakan lainnya" },
+];
+
+const TENANT_DEFAULT_UNITS = [
+  { name: "pcs", description: "Piece / Satuan" },
+  { name: "pack", description: "Pack / Kemasan" },
+  { name: "box", description: "Box / Kotak" },
+  { name: "lusin", description: "Lusin / 12 item" },
+];
+
 async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: string) {
   await tx.appPosBranch.create({
     data: {
@@ -39,6 +59,38 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
         name: pm.name,
         type: pm.type,
         isActive: true,
+      },
+    });
+  }
+
+  await tx.appPosCustomer.create({
+    data: {
+      uuid: uuidv7(),
+      companyUuid,
+      name: TENANT_DEFAULT_CUSTOMER.name,
+      phone: TENANT_DEFAULT_CUSTOMER.phone,
+      isDefault: true,
+    },
+  });
+
+  for (const cat of TENANT_DEFAULT_PRODUCT_CATEGORIES) {
+    await tx.appPosProductCategory.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        name: cat.name,
+        description: cat.description,
+      },
+    });
+  }
+
+  for (const unit of TENANT_DEFAULT_UNITS) {
+    await tx.appPosProductUnit.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        name: unit.name,
+        description: unit.description,
       },
     });
   }
