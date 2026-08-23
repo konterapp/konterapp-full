@@ -2,10 +2,10 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
-const STORAGE_KEY = 'sidebar-width';
-const DEFAULT_WIDTH = 288;
-const COLLAPSED_WIDTH = 80;
-const MIN_WIDTH = 200;
+const STORAGE_KEY = 'sidebar-width-v2';
+const DEFAULT_WIDTH = 256;
+const COLLAPSED_WIDTH = 72;
+const MIN_WIDTH = 176;
 const MAX_WIDTH = 400;
 const COLLAPSE_THRESHOLD = 120;
 

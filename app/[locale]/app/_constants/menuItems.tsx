@@ -65,47 +65,47 @@ export const allMenuItems: MenuItem[] = [
         section: 'Operasional',
         label: 'Dashboard',
         href: '/app',
-        icon: <LayoutDashboard className="w-5 h-5" />
+        icon: <LayoutDashboard className="w-[18px] h-[18px]" />
     },
     {
         section: 'Operasional',
         label: 'Langganan',
         href: '/app/billing',
-        icon: <CircleDollarSign className="w-5 h-5" />
+        icon: <CircleDollarSign className="w-[18px] h-[18px]" />
     },
     {
         section: 'Operasional',
         label: 'Point of Sales',
         href: '/app/pos', 
-        icon: <ShoppingCart className="w-5 h-5" />,
+        icon: <ShoppingCart className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.create'
     },
     {
         section: 'Operasional',
         label: 'Penjualan',
         href: '/app/pos/transactions', 
-        icon: <Receipt className="w-5 h-5" />,
+        icon: <Receipt className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.index'
     },
     {
         section: 'Operasional',
         label: 'Pembelian',
         href: '/app/pos/purchases',
-        icon: <ClipboardList className="w-5 h-5" />,
+        icon: <ClipboardList className="w-[18px] h-[18px]" />,
         permission: 'pos.purchase.index'
     },
     {
         section: 'Operasional',
         label: 'Shift Kasir',
         href: '/app/pos/shifts',
-        icon: <CircleDot className="w-5 h-5" />,
+        icon: <CircleDot className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.create'
     },
     {
         section: 'Operasional',
         label: 'Cek Harga',
         href: '/app/pos/price-check',
-        icon: <ScanLine className="w-5 h-5" />,
+        icon: <ScanLine className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.create'
     },
 
@@ -114,21 +114,21 @@ export const allMenuItems: MenuItem[] = [
         section: 'Produk',
         label: 'Produk',
         href: '/app/pos/products',
-        icon: <Package className="w-5 h-5" />,
+        icon: <Package className="w-[18px] h-[18px]" />,
         permission: 'pos.product.index'
     },
     {
         section: 'Produk',
         label: 'Kategori',
         href: '/app/pos/categories',
-        icon: <Tag className="w-5 h-5" />,
+        icon: <Tag className="w-[18px] h-[18px]" />,
         permission: 'pos.category.index'
     },
     {
         section: 'Produk',
         label: 'Satuan',
         href: '/app/pos/units',
-        icon: <Scale className="w-5 h-5" />,
+        icon: <Scale className="w-[18px] h-[18px]" />,
         permission: 'pos.unit.index'
     },
 
@@ -137,34 +137,34 @@ export const allMenuItems: MenuItem[] = [
         section: 'Master Data',
         label: 'Pelanggan',
         href: '/app/pos/customers',
-        icon: <UserRound className="w-5 h-5" />,
+        icon: <UserRound className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.create'
     },
     {
         section: 'Master Data',
         label: 'Supplier', 
         href: '/app/pos/suppliers', 
-        icon: <Truck className="w-5 h-5" />,
+        icon: <Truck className="w-[18px] h-[18px]" />,
         permission: 'pos.supplier.index'
     },
     {
         section: 'Master Data',
         label: 'Metode Pembayaran', 
         href: '/app/pos/payment-methods', 
-        icon: <CreditCard className="w-5 h-5" />,
+        icon: <CreditCard className="w-[18px] h-[18px]" />,
         permission: 'pos.payment-method.index'
     },
     {
         section: 'Master Data',
         label: 'Cabang/Lokasi', 
         href: '/app/pos/branches', 
-        icon: <Building2 className="w-5 h-5" />,
+        icon: <Building2 className="w-[18px] h-[18px]" />,
         permission: 'pos.branch.index'
     },
     {
         section: 'Master Data',
         label: 'Printer',
-        icon: <Printer className="w-5 h-5" />,
+        icon: <Printer className="w-[18px] h-[18px]" />,
         isPlaceholder: true
     },
 
@@ -173,35 +173,35 @@ export const allMenuItems: MenuItem[] = [
         section: 'Inventori & Keuangan',
         label: 'Stok On-Hand',
         href: '/app/pos/stock-on-hand',
-        icon: <History className="w-5 h-5" />,
+        icon: <History className="w-[18px] h-[18px]" />,
         permission: 'pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Mutasi Stok',
         href: '/app/pos/stock-movements',
-        icon: <ArrowLeftRight className="w-5 h-5" />,
+        icon: <ArrowLeftRight className="w-[18px] h-[18px]" />,
         permission: 'pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Stok Opname',
         href: '/app/pos/stock-opname',
-        icon: <ClipboardCheck className="w-5 h-5" />,
+        icon: <ClipboardCheck className="w-[18px] h-[18px]" />,
         permission: 'pos.stock-movement.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Piutang',
         href: '/app/pos/receivables',
-        icon: <Wallet className="w-5 h-5" />,
+        icon: <Wallet className="w-[18px] h-[18px]" />,
         permission: 'pos.sale.index'
     },
     {
         section: 'Inventori & Keuangan',
         label: 'Hutang',
         href: '/app/pos/payables',
-        icon: <Landmark className="w-5 h-5" />,
+        icon: <Landmark className="w-[18px] h-[18px]" />,
         permission: 'pos.purchase.index'
     },
     // Laporan
@@ -209,13 +209,13 @@ export const allMenuItems: MenuItem[] = [
         section: 'Laporan',
         label: 'Semua Laporan',
         href: '/app/pos/reports',
-        icon: <TrendingUp className="w-5 h-5" />,
+        icon: <TrendingUp className="w-[18px] h-[18px]" />,
         permission: 'pos.report.index'
     },
     {
         section: 'Laporan',
         label: 'Audit Log',
-        icon: <FileSearch className="w-5 h-5" />,
+        icon: <FileSearch className="w-[18px] h-[18px]" />,
         isPlaceholder: true
     },
 
@@ -224,21 +224,21 @@ export const allMenuItems: MenuItem[] = [
         section: 'PPOB',
         label: 'PPOB',
         href: '/app/pos/ppob',
-        icon: <Zap className="w-5 h-5" />,
+        icon: <Zap className="w-[18px] h-[18px]" />,
         permission: 'pos.ppob.index'
     },
     {
         section: 'PPOB',
         label: 'Riwayat PPOB',
         href: '/app/pos/ppob/transactions',
-        icon: <History className="w-5 h-5" />,
+        icon: <History className="w-[18px] h-[18px]" />,
         permission: 'pos.ppob.index'
     },
     {
         section: 'PPOB',
         label: 'Produk PPOB',
         href: '/app/pos/ppob/products',
-        icon: <Package className="w-5 h-5" />,
+        icon: <Package className="w-[18px] h-[18px]" />,
         permission: 'pos.ppob.index'
     },
 
@@ -247,27 +247,27 @@ export const allMenuItems: MenuItem[] = [
         section: 'Pengaturan',
         label: 'Perusahaan',
         href: '/app/company',
-        icon: <Building2 className="w-5 h-5" />,
+        icon: <Building2 className="w-[18px] h-[18px]" />,
         permission: 'company.update'
     },
     {
         section: 'Pengaturan',
         label: 'User',
         href: '/app/users',
-        icon: <UserRound className="w-5 h-5" />,
+        icon: <UserRound className="w-[18px] h-[18px]" />,
         permission: 'user.index'
     },
     {
         section: 'Pengaturan',
         label: 'Role',
         href: '/app/roles',
-        icon: <Shield className="w-5 h-5" />,
+        icon: <Shield className="w-[18px] h-[18px]" />,
         permission: 'role.index'
     },
     {
         section: 'Pengaturan',
         label: 'Referral',
         href: '/app/referral',
-        icon: <Gift className="w-5 h-5" />
+        icon: <Gift className="w-[18px] h-[18px]" />
     },
 ];
