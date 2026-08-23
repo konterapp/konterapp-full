@@ -90,3 +90,18 @@ export async function getBranchSaldo(uuid: string): Promise<{
   const response = await fetch(`/api/app/pos/branches/${uuid}/saldo`);
   return response.json();
 }
+
+/**
+ * Sama seperti getBranchSaldo, tapi dipakai di alur buka/tutup shift kasir --
+ * cukup permission pos.sale.create (yang dimiliki role Kasir), bukan
+ * pos.branch.index (permission kelola menu Cabang yang sengaja tidak
+ * diberikan ke role Kasir default).
+ */
+export async function getShiftBranchSaldo(uuid: string): Promise<{
+  status: string;
+  message?: string;
+  data: { branch: Branch; data: BranchSaldoItem[]; total_balance: number };
+}> {
+  const response = await fetch(`/api/app/pos/shifts/branch-saldo/${uuid}`);
+  return response.json();
+}

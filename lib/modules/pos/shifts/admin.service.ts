@@ -160,4 +160,18 @@ export const posShiftService = {
 
     return mapShift(updated);
   },
+
+  async getBranchSaldoForShift(branchUuid: string, userId: number) {
+    const branch = await posShiftRepository.findBranchByUuid(branchUuid);
+    if (!branch) {
+      throw new ApiError('Cabang tidak ditemukan atau tidak aktif', 404);
+    }
+
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(branch.companyUuid, userId);
+    if (assignedBranchUuids.length > 0 && !assignedBranchUuids.includes(branchUuid)) {
+      throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
+    }
+
+    return posBranchService.getBranchSaldo(branchUuid);
+  },
 };

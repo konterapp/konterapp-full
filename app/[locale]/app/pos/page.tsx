@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/app/product';
 import { getAllSaldoAccounts, SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
-import { getBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
+import { getShiftBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
 import { Customer } from '@/lib/api/app/customer';
 import { createSale, Sale, SaleItemCreateData } from '@/lib/api/app/sale';
 import CustomerSelect from './_components/CustomerSelect';
@@ -170,7 +170,7 @@ export default function KasirPage() {
     }
     let cancelled = false;
     setOpenShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
-    getBranchSaldo(openShiftForm.branch_uuid)
+    getShiftBranchSaldo(openShiftForm.branch_uuid)
       .then((res) => {
         if (cancelled) return;
         if (res.status === 'success' && res.data) {
@@ -198,7 +198,7 @@ export default function KasirPage() {
     }
     let cancelled = false;
     setCloseShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
-    getBranchSaldo(activeShift.branch.uuid)
+    getShiftBranchSaldo(activeShift.branch.uuid)
       .then((res) => {
         if (cancelled) return;
         if (res.status === 'success' && res.data) {
