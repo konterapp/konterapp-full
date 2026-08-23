@@ -205,8 +205,8 @@ export default function Sidebar() {
       />
     )}
     <aside
-      className={`fixed left-0 top-0 h-full z-50 ${isResizing ? '' : 'transition-all duration-300'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
-      style={{ width: currentWidth, backgroundColor: '#142D52' }}
+      className={`fixed left-0 top-0 h-full z-50 shadow-[4px_0_24px_rgba(0,0,0,0.25)] ${isResizing ? '' : 'transition-all duration-300'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      style={{ width: currentWidth, backgroundImage: 'linear-gradient(180deg, #17386a 0%, #142D52 45%, #0f2140 100%)' }}
     >
       <div className="flex flex-col h-full">
         {/* Logo Section */}
@@ -214,7 +214,7 @@ export default function Sidebar() {
           {!effectiveCollapsed && (
             <div className="flex-1 flex items-center justify-center">
               <div className="flex items-center gap-2">
-                <div className="bg-[#EBC170] p-1 rounded-lg text-[#142D52]">
+                <div className="bg-[#EBC170] p-1.5 rounded-lg text-[#142D52] shadow-[0_0_16px_rgba(235,193,112,0.35)]">
                   <Zap className="w-5 h-5 fill-current" />
                 </div>
                 <span className="text-lg font-bold text-white tracking-tight">KonterApp</span>
@@ -223,7 +223,7 @@ export default function Sidebar() {
           )}
           {effectiveCollapsed && (
             <div className="w-full flex justify-center">
-              <div className="bg-[#EBC170] p-1 rounded-lg text-[#142D52]">
+              <div className="bg-[#EBC170] p-1.5 rounded-lg text-[#142D52] shadow-[0_0_16px_rgba(235,193,112,0.35)]">
                 <Zap className="w-5 h-5 fill-current" />
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function Sidebar() {
           {!effectiveCollapsed && (
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer hidden lg:block"
+              className="p-2 rounded-lg hover:bg-white/10 active:scale-95 transition-all cursor-pointer hidden lg:block"
             >
               <ChevronLeft className="w-5 h-5 text-white" />
             </button>
@@ -240,20 +240,20 @@ export default function Sidebar() {
           {/* Mobile close button */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer lg:hidden"
+            className="p-2 rounded-lg hover:bg-white/10 active:scale-95 transition-all cursor-pointer lg:hidden"
           >
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
 
         {/* Menu Items */}
-        <nav className={`flex-1 p-3 space-y-1.5 ${effectiveCollapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
+        <nav className={`sidebar-scroll flex-1 p-3 space-y-2 ${effectiveCollapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {isLoadingPermissions ? (
             // Skeleton loading
             Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 px-3 py-2 rounded-lg animate-pulse"
+                className="flex items-center space-x-3 px-3 py-2 rounded-xl animate-pulse"
               >
                 <div className="w-5 h-5 bg-white/20 rounded"></div>
                 {!effectiveCollapsed && (
@@ -267,9 +267,12 @@ export default function Sidebar() {
             groupedMenuItems.map((group, sectionIndex) => (
               <div key={group.section} className="space-y-1">
                 {!effectiveCollapsed ? (
-                  <p className={`px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-white/45 ${sectionIndex === 0 ? 'pt-1' : 'pt-2'}`}>
-                    {tMenu(group.section)}
-                  </p>
+                  <div className={`flex items-center gap-1.5 px-3 pb-1.5 ${sectionIndex === 0 ? 'pt-1' : 'pt-3'}`}>
+                    <span className="w-3 h-px bg-[#EBC170]/50" />
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">
+                      {tMenu(group.section)}
+                    </p>
+                  </div>
                 ) : (
                   sectionIndex > 0 && <div className="my-2 border-t border-white/10" />
                 )}
@@ -281,19 +284,22 @@ export default function Sidebar() {
                   if (hasSubmenu && item.submenu) {
                     return (
                       <div key={item.label} className="space-y-1 relative group/menu">
+                        {isItemActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-[#EBC170]" />
+                        )}
                         <button
                           onClick={() => !effectiveCollapsed && toggleMenu(item.label)}
-                          className={`cursor-pointer w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2 rounded-lg transition-all duration-200 group ${isItemActive
-                            ? 'bg-[#EBC170] text-gray-900'
+                          className={`cursor-pointer w-full flex items-center ${effectiveCollapsed ? 'justify-center' : 'justify-between'} px-3.5 py-2.5 rounded-xl transition-all duration-200 group ${isItemActive
+                            ? 'bg-[#EBC170] text-gray-900 shadow-[0_2px_10px_rgba(235,193,112,0.3)]'
                             : 'text-white/80 hover:bg-white/10 hover:text-white'
                             }`}
                         >
-                          <div className={`flex items-center ${effectiveCollapsed ? '' : 'space-x-2.5 flex-1 min-w-0'}`}>
+                          <div className={`flex items-center ${effectiveCollapsed ? '' : 'space-x-3 flex-1 min-w-0'}`}>
                             <span className={isItemActive ? 'text-gray-900' : 'text-white/80 group-hover:text-white'}>
                               {item.icon}
                             </span>
                             {!effectiveCollapsed && (
-                              <span className="flex-1 font-medium text-sm text-left truncate">{tMenu(item.label)}</span>
+                              <span className="flex-1 font-medium text-[15px] text-left truncate">{tMenu(item.label)}</span>
                             )}
                           </div>
                           {!effectiveCollapsed && (
@@ -327,7 +333,7 @@ export default function Sidebar() {
                                     key={`${item.label}-${subItem.label}`}
                                     href={subItem.href}
                                     onClick={closeMobileSidebar}
-                                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 ${isSubActive
+                                    className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 ${isSubActive
                                       ? 'bg-[#EBC170] text-gray-900 shadow-md'
                                       : 'text-white/80 hover:bg-white/15 hover:text-white hover:translate-x-1'
                                       }`}
@@ -351,7 +357,7 @@ export default function Sidebar() {
                                   key={`${item.label}-expanded-${subItem.label}`}
                                   href={subItem.href}
                                   onClick={closeMobileSidebar}
-                                  className={`flex items-center justify-between px-2 py-2.5 rounded-lg transition-all duration-200 group ${isSubActive
+                                  className={`flex items-center justify-between px-2.5 py-2.5 rounded-xl transition-all duration-200 group ${isSubActive
                                     ? 'bg-white/15 text-white font-medium'
                                     : 'text-white/70 hover:bg-white/10 hover:text-white'
                                     }`}
@@ -373,7 +379,7 @@ export default function Sidebar() {
                     return (
                       <div key={item.label} className="relative group/menu">
                         <div
-                          className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-2.5'} px-3 py-2 rounded-lg transition-all duration-200 text-sm text-white/60 bg-white/[0.03] border border-white/5`}
+                          className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-3'} px-3.5 py-2.5 rounded-xl transition-all duration-200 text-sm text-white/60 bg-white/[0.03] border border-white/5`}
                           title={`${tMenu(item.label)} • ${tMenu('Segera')}`}
                         >
                           <span className="text-white/60">{item.icon}</span>
@@ -404,11 +410,14 @@ export default function Sidebar() {
 
                   return (
                     <div key={item.label} className="relative group/menu">
+                      {isItemActive && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-[#EBC170]" />
+                      )}
                       <Link
                         href={item.href}
                         onClick={closeMobileSidebar}
-                        className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-2.5'} px-3 py-2 rounded-lg transition-all duration-200 group ${isItemActive
-                          ? 'bg-[#EBC170] text-gray-900'
+                        className={`flex items-center ${effectiveCollapsed ? 'justify-center' : 'space-x-3'} px-3.5 py-2.5 rounded-xl transition-all duration-200 group ${isItemActive
+                          ? 'bg-[#EBC170] text-gray-900 shadow-[0_2px_10px_rgba(235,193,112,0.3)]'
                           : 'text-white/80 hover:bg-white/10 hover:text-white'
                           }`}
                       >
@@ -416,7 +425,7 @@ export default function Sidebar() {
                           {item.icon}
                         </span>
                         {!effectiveCollapsed && (
-                          <span className="flex-1 font-medium text-sm">{tMenu(item.label)}</span>
+                          <span className="flex-1 font-medium text-[15px]">{tMenu(item.label)}</span>
                         )}
                       </Link>
                       {/* Tooltip for collapsed state */}
@@ -438,13 +447,13 @@ export default function Sidebar() {
         </nav>
 
         {/* Logout Section */}
-        <div className="p-3 border-t border-white/10 relative group/logout">
+        <div className="px-3 pt-3 pb-0.5 border-t border-white/10 relative group/logout">
           <button
             onClick={handleLogout}
-            className={`flex items-center space-x-2.5 px-3 py-2 rounded-lg transition-all duration-200 w-full text-sm text-white/80 hover:bg-white/10 hover:text-white cursor-pointer ${effectiveCollapsed ? 'justify-center' : ''
+            className={`flex items-center space-x-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 w-full text-[15px] text-white/80 hover:bg-red-500/15 hover:text-red-200 cursor-pointer ${effectiveCollapsed ? 'justify-center' : ''
               }`}
           >
-            <LogOut className="w-[18px] h-[18px]" />
+            <LogOut className="w-5 h-5" />
             {!effectiveCollapsed && <span className="font-medium">Keluar</span>}
           </button>
           {/* Tooltip for collapsed state */}
@@ -458,6 +467,15 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        {/* App Version */}
+        {!effectiveCollapsed && (
+          <div className="px-3 pb-2 text-center">
+            <span className="text-sm font-semibold text-white/40 tracking-wide">
+              v{process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Resize Handle - hidden on mobile */}
