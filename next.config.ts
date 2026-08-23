@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
+  allowedDevOrigins: ['konterapp-wsl.linkinvite.id'],
   images: {
     remotePatterns: [
       {
