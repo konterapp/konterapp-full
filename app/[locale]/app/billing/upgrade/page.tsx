@@ -27,6 +27,8 @@ import {
   PlanTier,
 } from '@/lib/api/app/billing';
 import { useToast } from '@/components/toast/ToastContainer';
+import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -58,6 +60,7 @@ export default function UpgradePage() {
   const [data, setData] = useState<BillingStatus | null>(null);
   const [tiers, setTiers] = useState<PlanTier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedTierCode, setSelectedTierCode] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -79,14 +82,19 @@ export default function UpgradePage() {
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const [statusRes, plansRes] = await Promise.all([getBillingStatus(), getPlans()]);
       if (statusRes.status === 'success' && statusRes.data) {
         setData(statusRes.data);
+      } else {
+        setLoadError(statusRes.message || 'Gagal memuat status langganan');
       }
       if (plansRes.status === 'success' && plansRes.data) {
         setTiers(plansRes.data);
         setSelectedTierCode((prev) => prev ?? plansRes.data?.find((t) => t.code !== 'free')?.code ?? null);
+      } else {
+        setLoadError(plansRes.message || 'Gagal memuat daftar paket');
       }
     } finally {
       setIsLoading(false);
@@ -208,6 +216,13 @@ export default function UpgradePage() {
       {isLoading ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center py-8 text-gray-500">Memuat data...</div>
+        </div>
+      ) : loadError ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center space-y-4">
+          <Alert variant="error" message={loadError} className="justify-center" />
+          <Button variant="light" onClick={fetchData}>
+            Coba Lagi
+          </Button>
         </div>
       ) : alreadyActive ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
