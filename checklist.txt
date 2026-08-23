@@ -40,9 +40,11 @@ DOING:
 - konterapp-full-1
   - defualt data register
 - konterapp-full-2
-  - 
+  -
 - konterapp-full-3
 
 PENDING:
+- catatkonter
 - notif whatsapp
 - hapus users dan backup
+- apk android via Capacitor (bungkus web app ini) -> upload Play Store
