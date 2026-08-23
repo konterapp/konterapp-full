@@ -181,6 +181,41 @@ export default function PurchasesPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      className: 'whitespace-nowrap',
+      render: (_, row) => (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/app/pos/purchases/${row.uuid}`}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
+          </Link>
+          {row.payment_status === 'draft' && hasPermission('pos.purchase.create') && (
+            <Link
+              href={`/app/pos/purchases/${row.uuid}/edit`}
+              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit Draft</span>
+            </Link>
+          )}
+          {hasPermission('pos.purchase.delete') && row.payment_status !== 'void' && (
+            <button
+              onClick={() => handleDeleteClick(row)}
+              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Void</span>
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'purchase_number',
       label: 'No. Pembelian',
       sortable: true,
@@ -236,41 +271,6 @@ export default function PurchasesPage() {
       sortable: false,
       width: '12rem',
       render: (_, row) => getStatusBadge(row.payment_status),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      className: 'whitespace-nowrap',
-      render: (_, row) => (
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/app/pos/purchases/${row.uuid}`}
-            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-          >
-            <Eye className="w-3.5 h-3.5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
-          </Link>
-          {row.payment_status === 'draft' && hasPermission('pos.purchase.create') && (
-            <Link
-              href={`/app/pos/purchases/${row.uuid}/edit`}
-              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit Draft</span>
-            </Link>
-          )}
-          {hasPermission('pos.purchase.delete') && row.payment_status !== 'void' && (
-            <button
-              onClick={() => handleDeleteClick(row)}
-              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Void</span>
-            </button>
-          )}
-        </div>
-      ),
     },
   ];
 

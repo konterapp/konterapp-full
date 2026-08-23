@@ -199,6 +199,26 @@ export default function PpobTransactionsPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '5rem',
+      render: (_, row) => (
+        <div className="flex items-center gap-1">
+          {hasPermission('pos.ppob.create') && row.status === 'pending' && (
+            <button
+              onClick={() => handleCheckStatus(row.uuid)}
+              disabled={checkingStatus === row.uuid}
+              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
+              title="Cek Status"
+            >
+              <RefreshCw className={`h-4 w-4 text-gray-600 ${checkingStatus === row.uuid ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'transaction_number',
       label: 'No. Transaksi',
       sortable: true,
@@ -275,26 +295,6 @@ export default function PpobTransactionsPage() {
       sortValue: (row) => row.created_at,
       width: '12rem',
       render: (_, row) => <p className="text-sm text-gray-600">{formatDate(row.created_at)}</p>,
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      width: '5rem',
-      render: (_, row) => (
-        <div className="flex items-center gap-1">
-          {hasPermission('pos.ppob.create') && row.status === 'pending' && (
-            <button
-              onClick={() => handleCheckStatus(row.uuid)}
-              disabled={checkingStatus === row.uuid}
-              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
-              title="Cek Status"
-            >
-              <RefreshCw className={`h-4 w-4 text-gray-600 ${checkingStatus === row.uuid ? 'animate-spin' : ''}`} />
-            </button>
-          )}
-        </div>
-      ),
     },
   ];
 

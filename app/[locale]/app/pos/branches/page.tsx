@@ -180,6 +180,40 @@ export default function BranchesPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      className: 'whitespace-nowrap',
+      width: '11rem',
+      render: (_, row) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => handleSaldoClick(row)}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Saldo</span>
+          </button>
+          <Link
+            href={`/app/pos/branches/${row.uuid}/edit`}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => handleDeleteClick(row)}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
+          </button>
+        </div>
+      ),
+    },
+    {
       key: 'code',
       label: 'Kode',
       sortable: true,
@@ -246,40 +280,6 @@ export default function BranchesPage() {
         }`}>
           {row.is_active ? 'Aktif' : 'Tidak Aktif'}
         </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      className: 'whitespace-nowrap',
-      width: '11rem',
-      render: (_, row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => handleSaldoClick(row)}
-            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg transition-colors text-xs font-medium cursor-pointer"
-          >
-            <Wallet className="w-3.5 h-3.5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Saldo</span>
-          </button>
-          <Link
-            href={`/app/pos/branches/${row.uuid}/edit`}
-            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-          >
-            <Edit className="w-3.5 h-3.5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => handleDeleteClick(row)}
-            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
-          </button>
-        </div>
       ),
     },
   ];

@@ -143,26 +143,6 @@ export default function CategoriesPage() {
       },
     },
     {
-      key: 'name',
-      label: 'Nama Kategori',
-      sortable: true,
-      sortValue: (row) => row.name.toLowerCase(),
-      width: '20rem',
-      render: (_, row) => (
-        <p className="text-sm font-medium text-gray-900">{row.name}</p>
-      ),
-    },
-    {
-      key: 'description',
-      label: 'Deskripsi',
-      sortable: false,
-      render: (_, row) => (
-        <p className="text-sm text-gray-600">
-          {row.description || <span className="text-gray-400">-</span>}
-        </p>
-      ),
-    },
-    {
       key: 'actions',
       label: 'Aksi',
       sortable: false,
@@ -188,6 +168,26 @@ export default function CategoriesPage() {
             </button>
           )}
         </div>
+      ),
+    },
+    {
+      key: 'name',
+      label: 'Nama Kategori',
+      sortable: true,
+      sortValue: (row) => row.name.toLowerCase(),
+      width: '20rem',
+      render: (_, row) => (
+        <p className="text-sm font-medium text-gray-900">{row.name}</p>
+      ),
+    },
+    {
+      key: 'description',
+      label: 'Deskripsi',
+      sortable: false,
+      render: (_, row) => (
+        <p className="text-sm text-gray-600">
+          {row.description || <span className="text-gray-400">-</span>}
+        </p>
       ),
     },
   ];

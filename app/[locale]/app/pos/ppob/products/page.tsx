@@ -215,6 +215,40 @@ export default function PpobProductsPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '6rem',
+      render: (_, row) => (
+        <div className="flex items-center gap-1">
+          {hasPermission('pos.ppob.create') && (
+            <button
+              onClick={() => {
+                setEditProduct(row);
+                setShowFormModal(true);
+              }}
+              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
+              title="Edit"
+            >
+              <Pencil className="h-4 w-4 text-gray-600" />
+            </button>
+          )}
+          {hasPermission('pos.ppob.create') && (
+            <button
+              onClick={() => {
+                setDeleteTarget(row);
+                setShowDeleteModal(true);
+              }}
+              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-red-50"
+              title="Hapus"
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'product_name',
       label: 'Produk',
       sortable: true,
@@ -290,40 +324,6 @@ export default function PpobProductsPage() {
         <span className={`rounded-full px-2 py-1 text-xs font-medium ${row.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
           {row.is_active ? 'Aktif' : 'Nonaktif'}
         </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      width: '6rem',
-      render: (_, row) => (
-        <div className="flex items-center gap-1">
-          {hasPermission('pos.ppob.create') && (
-            <button
-              onClick={() => {
-                setEditProduct(row);
-                setShowFormModal(true);
-              }}
-              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
-              title="Edit"
-            >
-              <Pencil className="h-4 w-4 text-gray-600" />
-            </button>
-          )}
-          {hasPermission('pos.ppob.create') && (
-            <button
-              onClick={() => {
-                setDeleteTarget(row);
-                setShowDeleteModal(true);
-              }}
-              className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-red-50"
-              title="Hapus"
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </button>
-          )}
-        </div>
       ),
     },
   ];

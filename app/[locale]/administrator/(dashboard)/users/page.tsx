@@ -162,6 +162,59 @@ export default function UsersPage() {
          },
       },
       {
+         key: 'actions',
+         label: 'Actions',
+         sortable: false,
+         width: '10rem',
+         className: 'whitespace-nowrap',
+         render: (_, row) => {
+            const canEdit = true;
+            const canDelete = true;
+
+            return (
+               <div className="flex items-center gap-2">
+                  {canEdit && (
+                     <Link
+                        href={`/administrator/users/${row.uuid}`}
+                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
+                     >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
+                     </Link>
+                  )}
+                  {canEdit && (
+                     <button
+                        onClick={() => handleToggleActive(row)}
+                        className={`relative group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium cursor-pointer ${
+                           row.is_active
+                              ? 'bg-green-500 hover:bg-green-600 text-white'
+                              : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                        }`}
+                     >
+                        {row.is_active ? (
+                           <ToggleRight className="w-3.5 h-3.5" />
+                        ) : (
+                           <ToggleLeft className="w-3.5 h-3.5" />
+                        )}
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                           {row.is_active ? 'Tidak Aktif' : 'Aktif'}
+                        </span>
+                     </button>
+                  )}
+                  {canDelete && (
+                     <button
+                        onClick={() => handleDeleteClick(row)}
+                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+                     >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
+                     </button>
+                  )}
+               </div>
+            );
+         },
+      },
+      {
          key: 'user',
          label: 'Nama',
          sortable: true,
@@ -266,59 +319,6 @@ export default function UsersPage() {
                </span>
             )
          ),
-      },
-      {
-         key: 'actions',
-         label: 'Actions',
-         sortable: false,
-         width: '10rem',
-         className: 'whitespace-nowrap',
-         render: (_, row) => {
-            const canEdit = true;
-            const canDelete = true;
-
-            return (
-               <div className="flex items-center gap-2">
-                  {canEdit && (
-                     <Link
-                        href={`/administrator/users/${row.uuid}`}
-                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-                     >
-                        <Edit className="w-3.5 h-3.5" />
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
-                     </Link>
-                  )}
-                  {canEdit && (
-                     <button
-                        onClick={() => handleToggleActive(row)}
-                        className={`relative group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium cursor-pointer ${
-                           row.is_active
-                              ? 'bg-green-500 hover:bg-green-600 text-white'
-                              : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                        }`}
-                     >
-                        {row.is_active ? (
-                           <ToggleRight className="w-3.5 h-3.5" />
-                        ) : (
-                           <ToggleLeft className="w-3.5 h-3.5" />
-                        )}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                           {row.is_active ? 'Tidak Aktif' : 'Aktif'}
-                        </span>
-                     </button>
-                  )}
-                  {canDelete && (
-                     <button
-                        onClick={() => handleDeleteClick(row)}
-                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
-                     >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Hapus</span>
-                     </button>
-                  )}
-               </div>
-            );
-         },
       },
    ];
 

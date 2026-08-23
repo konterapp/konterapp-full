@@ -186,6 +186,20 @@ export default function TransactionsPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      render: (_, row) => (
+        <Link
+          href={`/app/pos/transactions/${row.uuid}`}
+          className="inline-flex cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
+          title="Lihat Detail"
+        >
+          <Eye className="h-4 w-4 text-gray-600" />
+        </Link>
+      ),
+    },
+    {
       key: 'sale_number',
       label: 'No. Transaksi',
       sortable: true,
@@ -235,20 +249,6 @@ export default function TransactionsPage() {
       sortable: false,
       width: '10rem',
       render: (_, row) => getStatusBadge(row.payment_status),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      render: (_, row) => (
-        <Link
-          href={`/app/pos/transactions/${row.uuid}`}
-          className="inline-flex cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
-          title="Lihat Detail"
-        >
-          <Eye className="h-4 w-4 text-gray-600" />
-        </Link>
-      ),
     },
   ];
 

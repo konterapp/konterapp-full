@@ -101,6 +101,24 @@ export default function BillingPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '6rem',
+      className: 'whitespace-nowrap',
+      render: (_, row) => (
+        <Link
+          href={`/administrator/billing/${row.uuid}`}
+          className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
+        >
+          <Eye className="w-3.5 h-3.5" />
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Detail
+          </span>
+        </Link>
+      ),
+    },
+    {
       key: 'provider_invoice_id',
       label: 'Kode Invoice',
       sortable: true,
@@ -169,24 +187,6 @@ export default function BillingPage() {
             year: 'numeric',
           })}
         </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      width: '6rem',
-      className: 'whitespace-nowrap',
-      render: (_, row) => (
-        <Link
-          href={`/administrator/billing/${row.uuid}`}
-          className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-        >
-          <Eye className="w-3.5 h-3.5" />
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Detail
-          </span>
-        </Link>
       ),
     },
   ];

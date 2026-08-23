@@ -283,6 +283,34 @@ export default function ProductsPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      className: 'whitespace-nowrap',
+      render: (_, row) => (
+        <div className="flex items-center space-x-2">
+          {hasPermission('pos.product.update') && (
+            <Link
+              href={`/app/pos/products/${row.uuid}/edit`}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Edit"
+            >
+              <Edit className="w-4 h-4 text-gray-600" />
+            </Link>
+          )}
+          {hasPermission('pos.product.delete') && (
+            <button
+              onClick={() => handleDeleteClick(row)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              title="Hapus"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'image',
       label: 'Gambar',
       sortable: false,
@@ -368,34 +396,6 @@ export default function ProductsPage() {
         }`}>
           {row.is_active ? 'Aktif' : 'Non-aktif'}
         </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      className: 'whitespace-nowrap',
-      render: (_, row) => (
-        <div className="flex items-center space-x-2">
-          {hasPermission('pos.product.update') && (
-            <Link
-              href={`/app/pos/products/${row.uuid}/edit`}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              title="Edit"
-            >
-              <Edit className="w-4 h-4 text-gray-600" />
-            </Link>
-          )}
-          {hasPermission('pos.product.delete') && (
-            <button
-              onClick={() => handleDeleteClick(row)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              title="Hapus"
-            >
-              <Trash2 className="w-4 h-4 text-red-600" />
-            </button>
-          )}
-        </div>
       ),
     },
   ];

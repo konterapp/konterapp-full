@@ -290,6 +290,29 @@ export default function PayablesPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '10rem',
+      className: 'whitespace-nowrap',
+      render: (_, row) =>
+        hasPermission('pos.purchase.create') ? (
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              openPaymentModal(row);
+            }}
+            disabled={row.outstanding_amount <= 0}
+            className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[#142D52] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0f2340] disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <HandCoins className="h-3.5 w-3.5" />
+            Bayar
+          </button>
+        ) : (
+          <span className="text-xs text-gray-400">-</span>
+        ),
+    },
+    {
       key: 'purchase_number',
       label: 'No. Pembelian',
       sortable: true,
@@ -353,29 +376,6 @@ export default function PayablesPage() {
       sortValue: (row) => row.payment_status,
       width: '10rem',
       render: (_, row) => getStatusBadge(row.payment_status),
-    },
-    {
-      key: 'actions',
-      label: 'Aksi',
-      sortable: false,
-      width: '10rem',
-      className: 'whitespace-nowrap',
-      render: (_, row) =>
-        hasPermission('pos.purchase.create') ? (
-          <button
-            onClick={(event) => {
-              event.stopPropagation();
-              openPaymentModal(row);
-            }}
-            disabled={row.outstanding_amount <= 0}
-            className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-[#142D52] px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0f2340] disabled:cursor-not-allowed disabled:bg-gray-300"
-          >
-            <HandCoins className="h-3.5 w-3.5" />
-            Bayar
-          </button>
-        ) : (
-          <span className="text-xs text-gray-400">-</span>
-        ),
     },
   ];
 

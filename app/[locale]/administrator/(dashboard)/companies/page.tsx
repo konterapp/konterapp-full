@@ -91,6 +91,41 @@ export default function CompaniesPage() {
          },
       },
       {
+         key: 'actions',
+         label: 'Actions',
+         sortable: false,
+         width: '10rem',
+         className: 'whitespace-nowrap',
+         render: (_, row) => (
+            <div className="flex items-center gap-2">
+               <Link
+                  href={`/administrator/companies/${row.uuid}/edit`}
+                  className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
+               >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
+               </Link>
+               <button
+                  onClick={() => handleToggleActive(row)}
+                  className={`relative group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium cursor-pointer ${
+                     row.is_active
+                        ? 'bg-green-500 hover:bg-green-600 text-white'
+                        : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                  }`}
+               >
+                  {row.is_active ? (
+                     <ToggleRight className="w-3.5 h-3.5" />
+                  ) : (
+                     <ToggleLeft className="w-3.5 h-3.5" />
+                  )}
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                     {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                  </span>
+               </button>
+            </div>
+         ),
+      },
+      {
          key: 'code',
          label: 'Kode',
          sortable: true,
@@ -180,41 +215,6 @@ export default function CompaniesPage() {
                </div>
             );
          },
-      },
-      {
-         key: 'actions',
-         label: 'Actions',
-         sortable: false,
-         width: '10rem',
-         className: 'whitespace-nowrap',
-         render: (_, row) => (
-            <div className="flex items-center gap-2">
-               <Link
-                  href={`/administrator/companies/${row.uuid}/edit`}
-                  className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
-               >
-                  <Edit className="w-3.5 h-3.5" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
-               </Link>
-               <button
-                  onClick={() => handleToggleActive(row)}
-                  className={`relative group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium cursor-pointer ${
-                     row.is_active
-                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                        : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
-                  }`}
-               >
-                  {row.is_active ? (
-                     <ToggleRight className="w-3.5 h-3.5" />
-                  ) : (
-                     <ToggleLeft className="w-3.5 h-3.5" />
-                  )}
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                     {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                  </span>
-               </button>
-            </div>
-         ),
       },
    ];
 
