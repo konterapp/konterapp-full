@@ -26,12 +26,17 @@ export const TENANT_DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
   },
   {
     name: TENANT_DEFAULT_ROLE_KASIR,
+    // Sengaja TIDAK dikasih pos.branch.index -- itu permission buat kelola
+    // menu Cabang (bukan sekadar lihat nama cabang buat dropdown filter,
+    // yang sudah dilayani endpoint /api/app/pos/branches/options tanpa
+    // syarat permission spesifik). Tanpa permission ini, role Kasir kena
+    // fitur pembatasan cabang: admin wajib pilih cabang penempatan saat
+    // bikin user dengan role ini.
     permissions: [
       "pos.sale.index",
       "pos.sale.create",
       "pos.product.index",
       "pos.category.index",
-      "pos.branch.index",
     ],
   },
 ];
