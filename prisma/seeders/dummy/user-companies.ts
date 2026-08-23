@@ -8,7 +8,7 @@
 import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { DEFAULT_USER_EMAIL } from "../users";
-import { TENANT_DEFAULT_ROLE_KASIR } from "../../../lib/modules/roles/templates";
+import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "../../../lib/modules/roles/templates";
 
 const EXTRA_MEMBERSHIPS = [
   { userEmail: DEFAULT_USER_EMAIL, companyCode: "CMP-002" },
@@ -42,23 +42,21 @@ export async function seedUserCompanies(prisma: PrismaClient) {
       },
     });
 
-    // User dapat role kasir di company tambahan ini (role milik company tsb)
+    // User dapat role administrator di company tambahan ini (role milik company
+    // tsb) -- company dummy ini tidak punya user lain, jadi harus ada admin
+    // supaya tidak jadi company tanpa administrator sama sekali. Role lama
+    // (kalau seeder pernah dijalankan sebelum role di sini diganti) dihapus
+    // dulu supaya user tidak berakhir punya 2 role sekaligus di company ini.
+    await prisma.modelHasRole.deleteMany({
+      where: { modelId: user.id, modelType: "App\\Models\\User", companyUuid: company.uuid },
+    });
     const role = await prisma.role.findFirst({
-      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_KASIR },
+      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
       select: { id: true },
     });
     if (role) {
-      await prisma.modelHasRole.upsert({
-        where: {
-          roleId_modelType_modelId_companyUuid: {
-            roleId: role.id,
-            modelType: "App\\Models\\User",
-            modelId: user.id,
-            companyUuid: company.uuid,
-          },
-        },
-        update: {},
-        create: {
+      await prisma.modelHasRole.create({
+        data: {
           roleId: role.id,
           modelType: "App\\Models\\User",
           modelId: user.id,
