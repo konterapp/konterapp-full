@@ -28,6 +28,7 @@ import {
 
 export type MenuSection =
     | 'Operasional'
+    | 'Produk'
     | 'Master Data'
     | 'Inventori & Keuangan'
     | 'Laporan'
@@ -108,28 +109,30 @@ export const allMenuItems: MenuItem[] = [
         permission: 'pos.sale.create'
     },
 
-    // Master Data
+    // Produk
     {
-        section: 'Master Data',
-        label: 'Produk', 
-        href: '/app/pos/products', 
+        section: 'Produk',
+        label: 'Produk',
+        href: '/app/pos/products',
         icon: <Package className="w-5 h-5" />,
         permission: 'pos.product.index'
     },
     {
-        section: 'Master Data',
+        section: 'Produk',
         label: 'Kategori',
-        href: '/app/pos/categories', 
+        href: '/app/pos/categories',
         icon: <Tag className="w-5 h-5" />,
         permission: 'pos.category.index'
     },
     {
-        section: 'Master Data',
+        section: 'Produk',
         label: 'Satuan',
         href: '/app/pos/units',
         icon: <Scale className="w-5 h-5" />,
         permission: 'pos.unit.index'
     },
+
+    // Master Data
     {
         section: 'Master Data',
         label: 'Pelanggan',
