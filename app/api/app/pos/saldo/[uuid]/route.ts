@@ -22,8 +22,6 @@ export const PUT = withPermission(
     const rawBody = await req.json();
     const body = {
       ...rawBody,
-      accountNumber: rawBody.accountNumber ?? rawBody.account_number,
-      accountName: rawBody.accountName ?? rawBody.account_name,
       isPaymentMethod: rawBody.isPaymentMethod ?? rawBody.is_payment_method,
       isActive: rawBody.isActive ?? rawBody.is_active,
     };

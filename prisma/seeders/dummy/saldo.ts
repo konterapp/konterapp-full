@@ -12,6 +12,12 @@ import { getDefaultCompanyUuid } from "../company";
 import { DEFAULT_ADMIN_EMAIL } from "../users";
 
 interface BalanceGroupSeed {
+  /** Nama grup, opsional (fallback "Grup N" di UI kalau kosong). */
+  name?: string;
+  /** Nomor rekening/akun & nama pemilik -- milik grup ini, bukan akun induk
+   * (tiap grup bisa punya rekening fisik berbeda). */
+  accountNumber?: string;
+  accountName?: string;
   /** Kode cabang yang masuk grup ini (harus sudah di-seed oleh branches.ts). */
   branchCodes: string[];
   openingBalance: number;
@@ -21,8 +27,6 @@ interface SaldoAccountSeed {
   code: string;
   name: string;
   type: string;
-  accountNumber?: string;
-  accountName?: string;
   description: string;
   isPaymentMethod: boolean;
   groups: BalanceGroupSeed[];
@@ -36,43 +40,63 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     description: "Uang tunai di laci kasir (terpisah per cabang)",
     isPaymentMethod: true,
     groups: [
-      { branchCodes: ["CB001"], openingBalance: 500000 },
-      { branchCodes: ["CB002"], openingBalance: 400000 },
-      { branchCodes: ["CB003"], openingBalance: 350000 },
+      { name: "Kas Pusat", branchCodes: ["CB001"], openingBalance: 500000 },
+      { name: "Kas Bandung", branchCodes: ["CB002"], openingBalance: 400000 },
+      { name: "Kas Surabaya", branchCodes: ["CB003"], openingBalance: 350000 },
     ],
   },
   {
     code: "BCA",
     name: "Transfer BCA",
     type: "bank",
-    accountNumber: "1234567890",
-    accountName: "PT Konter App",
     description: "Rekening bank BCA (dipakai bareng semua cabang)",
     isPaymentMethod: true,
-    groups: [{ branchCodes: ["CB001", "CB002", "CB003"], openingBalance: 3000000 }],
+    groups: [
+      {
+        accountNumber: "1234567890",
+        accountName: "PT Konter App",
+        branchCodes: ["CB001", "CB002", "CB003"],
+        openingBalance: 3000000,
+      },
+    ],
   },
   {
     code: "DANA",
     name: "Dana",
     type: "e_wallet",
-    accountNumber: "081234567890",
-    accountName: "PT Konter App",
     description: "Saldo aplikasi Dana (share Pusat+Bandung, Surabaya terpisah)",
     isPaymentMethod: true,
     groups: [
-      { branchCodes: ["CB001", "CB002"], openingBalance: 750000 },
-      { branchCodes: ["CB003"], openingBalance: 200000 },
+      {
+        name: "Pusat & Bandung",
+        accountNumber: "081234567890",
+        accountName: "PT Konter App",
+        branchCodes: ["CB001", "CB002"],
+        openingBalance: 750000,
+      },
+      {
+        name: "Surabaya",
+        accountNumber: "081234567892",
+        accountName: "PT Konter App Cabang Surabaya",
+        branchCodes: ["CB003"],
+        openingBalance: 200000,
+      },
     ],
   },
   {
     code: "GOPAY",
     name: "GoPay",
     type: "e_wallet",
-    accountNumber: "081234567891",
-    accountName: "PT Konter App",
     description: "Saldo aplikasi GoPay",
     isPaymentMethod: true,
-    groups: [{ branchCodes: ["CB001", "CB002", "CB003"], openingBalance: 250000 }],
+    groups: [
+      {
+        accountNumber: "081234567891",
+        accountName: "PT Konter App",
+        branchCodes: ["CB001", "CB002", "CB003"],
+        openingBalance: 250000,
+      },
+    ],
   },
   {
     code: "ORDERKUOTA",
@@ -118,8 +142,6 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
           code: data.code,
           name: data.name,
           type: data.type,
-          accountNumber: data.accountNumber ?? null,
-          accountName: data.accountName ?? null,
           description: data.description,
           isPaymentMethod: data.isPaymentMethod,
           isActive: true,
@@ -138,6 +160,9 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
             uuid: uuidv7(),
             companyUuid,
             saldoAccountUuid: account.uuid,
+            name: group.name ?? null,
+            accountNumber: group.accountNumber ?? null,
+            accountName: group.accountName ?? null,
             balance: 0,
           },
         });

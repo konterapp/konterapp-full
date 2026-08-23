@@ -35,10 +35,6 @@ const UUID_MODELS = new Set<string>([
   "AppPosSaldoMutation",
 ]);
 
-function modelToDelegateName(model: string): string {
-  return model.charAt(0).toLowerCase() + model.slice(1);
-}
-
 function mergeCompanyWhere(where: unknown, companyUuid: string): unknown {
   if (!where || typeof where !== "object") {
     return { companyUuid };
@@ -136,17 +132,30 @@ function createPrismaClient() {
           }
 
           if (operation === "findUnique" || operation === "findUniqueOrThrow") {
-            const delegateName = modelToDelegateName(model);
-            const delegateUnknown = (basePrisma as unknown as Record<string, unknown>)[delegateName];
-            if (delegateUnknown && typeof delegateUnknown === "object") {
-              const delegate = delegateUnknown as Record<string, (value: unknown) => Promise<unknown>>;
-              const method = operation === "findUnique" ? "findFirst" : "findFirstOrThrow";
-              const finder = delegate[method];
+            // findUnique(OrThrow) cuma terima where dengan field unique/index
+            // (tidak bisa di-AND-kan dengan companyUuid seperti findFirst),
+            // jadi tenant check dilakukan SETELAH row-nya didapat, bukan lewat
+            // rewrite where. PENTING: query(nextArgs) di sini WAJIB dipakai
+            // (bukan panggil delegate dari client lain/basePrisma) supaya tetap
+            // jalan di transaction client (tx) yang sedang aktif -- kalau
+            // dulu pernah diganti manggil basePrisma langsung, row yang baru
+            // dibuat di transaction yang sama jadi tidak kelihatan (belum
+            // committed di connection lain) dan salah dianggap "not found".
+            const result = await query(nextArgs);
+            const belongsToOtherTenant =
+              result &&
+              typeof result === "object" &&
+              "companyUuid" in (result as Record<string, unknown>) &&
+              (result as Record<string, unknown>).companyUuid !== companyUuid;
 
-              if (typeof finder === "function") {
-                return finder(withCompanyWhereArgs(nextArgs, companyUuid));
+            if (belongsToOtherTenant) {
+              if (operation === "findUniqueOrThrow") {
+                throw new Error(`No ${model} found matching the query.`);
               }
+              return null;
             }
+
+            return result;
           }
 
           if (["findMany", "findFirst", "count", "aggregate", "groupBy", "updateMany", "deleteMany"].includes(operation)) {

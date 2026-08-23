@@ -16,8 +16,11 @@ import {
   getSaldoMutations,
   adjustSaldoBalance,
   addSaldoBalanceGroup,
+  updateSaldoBalanceGroup,
   deleteSaldoBalanceGroup,
 } from '@/lib/api/app/saldo';
+
+const groupLabel = (group: SaldoBalanceGroup, index: number) => group.name || `Grup ${index + 1}`;
 import SaldoAccountForm from '../_components/SaldoAccountForm';
 
 const formatCurrency = (amount: number) => {
@@ -56,12 +59,24 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
   const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [linkedFilter, setLinkedFilter] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
+  const [addName, setAddName] = useState('');
+  const [addAccountNumber, setAddAccountNumber] = useState('');
+  const [addAccountName, setAddAccountName] = useState('');
   const [addBranchUuids, setAddBranchUuids] = useState<string[]>([]);
   const [addOpeningBalance, setAddOpeningBalance] = useState('');
   const [addNotes, setAddNotes] = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [addFieldErrors, setAddFieldErrors] = useState<Record<string, string[]>>({});
+
+  const [editTarget, setEditTarget] = useState<SaldoBalanceGroup | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editAccountNumber, setEditAccountNumber] = useState('');
+  const [editAccountName, setEditAccountName] = useState('');
+  const [editBranchUuids, setEditBranchUuids] = useState<string[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
+  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string[]>>({});
 
   const [deleteTarget, setDeleteTarget] = useState<SaldoBalanceGroup | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -186,6 +201,9 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
 
   const openAddModal = () => {
     const linkedBranchUuids = new Set(balanceGroups.flatMap(group => group.branches.map(b => b.uuid)));
+    setAddName('');
+    setAddAccountNumber('');
+    setAddAccountName('');
     setAddBranchUuids([]);
     setAddOpeningBalance('');
     setAddNotes('');
@@ -206,6 +224,9 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
     setAddFieldErrors({});
     try {
       const result = await addSaldoBalanceGroup(uuid, {
+        name: addName || undefined,
+        account_number: addAccountNumber || undefined,
+        account_name: addAccountName || undefined,
         branch_uuids: addBranchUuids,
         opening_balance: Number(addOpeningBalance) || 0,
         notes: addNotes || undefined,
@@ -225,6 +246,67 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
       setAddError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setAddLoading(false);
+    }
+  };
+
+  const toggleEditBranch = (branchUuid: string) => {
+    setEditBranchUuids(prev =>
+      prev.includes(branchUuid) ? prev.filter(item => item !== branchUuid) : [...prev, branchUuid]
+    );
+    if (editFieldErrors.branch_uuids) {
+      setEditFieldErrors(prev => {
+        const next = { ...prev };
+        delete next.branch_uuids;
+        return next;
+      });
+    }
+  };
+
+  const openEditModal = (group: SaldoBalanceGroup) => {
+    setEditTarget(group);
+    setEditName(group.name || '');
+    setEditAccountNumber(group.account_number || '');
+    setEditAccountName(group.account_name || '');
+    setEditBranchUuids(group.branches.map(b => b.uuid));
+    setEditError('');
+    setEditFieldErrors({});
+  };
+
+  // Cabang yang saat ini masuk grup LAIN (bukan grup yang sedang diedit) --
+  // dipilih di form edit tetap boleh, tapi otomatis pindah dari grup asalnya.
+  const findOtherGroupOwning = (branchUuid: string): SaldoBalanceGroup | null => {
+    if (!editTarget) return null;
+    return balanceGroups.find(g => g.uuid !== editTarget.uuid && g.branches.some(b => b.uuid === branchUuid)) || null;
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditLoading(true);
+    setEditError('');
+    setEditFieldErrors({});
+    try {
+      const result = await updateSaldoBalanceGroup(editTarget.uuid, {
+        name: editName || undefined,
+        account_number: editAccountNumber || undefined,
+        account_name: editAccountName || undefined,
+        branch_uuids: editBranchUuids,
+      });
+      if (result.status === 'success') {
+        toast.success('Grup balance berhasil diperbarui');
+        setEditTarget(null);
+        fetchAccount();
+        fetchMutations(1);
+      } else {
+        if (result.errors) {
+          setEditFieldErrors(result.errors);
+        }
+        setEditError(result.message || 'Gagal memperbarui grup balance');
+      }
+    } catch {
+      setEditError('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -348,7 +430,18 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
               <div key={group.uuid} className="border border-gray-200 rounded-lg p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">Grup {index + 1}</div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="text-sm font-semibold text-gray-900">{groupLabel(group, index)}</div>
+                      {hasPermission('pos.saldo.update') && (
+                        <button
+                          onClick={() => openEditModal(group)}
+                          className="p-0.5 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
+                          title="Edit grup"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
                       {group.branches.length === 0 ? (
                         <span className="text-xs text-gray-400 italic">Belum ada cabang ter-link</span>
@@ -361,6 +454,11 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                         ))
                       )}
                     </div>
+                    {(group.account_number || group.account_name) && (
+                      <div className="text-xs text-gray-500 mt-1.5">
+                        {group.account_number}{group.account_number && group.account_name ? ' – ' : ''}{group.account_name}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <div className="text-lg font-bold text-[#142D52]">{formatCurrency(group.balance)}</div>
@@ -404,7 +502,7 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
               <option value="">Semua Grup</option>
               {balanceGroups.map((group, index) => (
                 <option key={group.uuid} value={group.uuid}>
-                  Grup {index + 1} ({group.branches.map(b => b.name).join(', ')})
+                  {groupLabel(group, index)} ({group.branches.map(b => b.name).join(', ')})
                 </option>
               ))}
             </select>
@@ -423,6 +521,7 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                   <th className="py-2 pr-4 font-medium">Tipe</th>
                   <th className="py-2 pr-4 font-medium text-right">Jumlah</th>
                   <th className="py-2 pr-4 font-medium text-right">Saldo Sesudah</th>
+                  <th className="py-2 pr-4 font-medium">Grup</th>
                   <th className="py-2 pr-4 font-medium">Cabang</th>
                   <th className="py-2 pr-4 font-medium">Catatan</th>
                   <th className="py-2 pr-4 font-medium">Oleh</th>
@@ -441,6 +540,13 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                       {m.direction === 'in' ? '+' : '-'}{formatCurrency(m.amount)}
                     </td>
                     <td className="py-2 pr-4 text-right whitespace-nowrap text-gray-700">{formatCurrency(m.balance_after)}</td>
+                    <td className="py-2 pr-4 text-gray-600 whitespace-nowrap">
+                      {(() => {
+                        const idx = balanceGroups.findIndex(g => g.uuid === m.saldo_balance?.uuid);
+                        if (idx >= 0) return groupLabel(balanceGroups[idx], idx);
+                        return m.saldo_balance?.name || '-';
+                      })()}
+                    </td>
                     <td className="py-2 pr-4 text-gray-600">{m.branch?.name || '-'}</td>
                     <td className="py-2 pr-4 text-gray-600">{m.notes || '-'}</td>
                     <td className="py-2 pr-4 text-gray-600 whitespace-nowrap">{m.creator?.name || '-'}</td>
@@ -476,6 +582,49 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
             </div>
             <form onSubmit={handleAddSubmit} className="px-6 py-4 space-y-4">
               {addError && <Alert variant="error" message={addError} />}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nama Grup</label>
+                <input
+                  type="text"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                    addFieldErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="Opsional, misal: Pusat & Bandung"
+                />
+                {addFieldErrors.name && <div className="mt-1 text-sm text-red-600">{addFieldErrors.name[0]}</div>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Rekening/Akun</label>
+                  <input
+                    type="text"
+                    value={addAccountNumber}
+                    onChange={(e) => setAddAccountNumber(e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                      addFieldErrors.account_number ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                    }`}
+                    placeholder="Opsional"
+                  />
+                  {addFieldErrors.account_number && <div className="mt-1 text-sm text-red-600">{addFieldErrors.account_number[0]}</div>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nama Pemilik Akun</label>
+                  <input
+                    type="text"
+                    value={addAccountName}
+                    onChange={(e) => setAddAccountName(e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                      addFieldErrors.account_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                    }`}
+                    placeholder="Opsional"
+                  />
+                  {addFieldErrors.account_name && <div className="mt-1 text-sm text-red-600">{addFieldErrors.account_name[0]}</div>}
+                </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Cabang <span className="text-red-500">*</span></label>
@@ -542,6 +691,101 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
         </div>
       )}
 
+      {editTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditTarget(null); }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[85vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Grup Balance</h3>
+              <p className="text-sm text-gray-500 mt-1">Cabang yang masih ada di grup lain akan dipindahkan ke grup ini. Cabang yang di-uncheck akan dilepas dari grup ini.</p>
+            </div>
+            <form onSubmit={handleEditSubmit} className="px-6 py-4 space-y-4">
+              {editError && <Alert variant="error" message={editError} />}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nama Grup</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                    editFieldErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="Opsional, misal: Pusat & Bandung"
+                />
+                {editFieldErrors.name && <div className="mt-1 text-sm text-red-600">{editFieldErrors.name[0]}</div>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nomor Rekening/Akun</label>
+                  <input
+                    type="text"
+                    value={editAccountNumber}
+                    onChange={(e) => setEditAccountNumber(e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                      editFieldErrors.account_number ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                    }`}
+                    placeholder="Opsional"
+                  />
+                  {editFieldErrors.account_number && <div className="mt-1 text-sm text-red-600">{editFieldErrors.account_number[0]}</div>}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nama Pemilik Akun</label>
+                  <input
+                    type="text"
+                    value={editAccountName}
+                    onChange={(e) => setEditAccountName(e.target.value)}
+                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                      editFieldErrors.account_name ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                    }`}
+                    placeholder="Opsional"
+                  />
+                  {editFieldErrors.account_name && <div className="mt-1 text-sm text-red-600">{editFieldErrors.account_name[0]}</div>}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cabang</label>
+                <div className="space-y-2">
+                  {branchOptions.map(branch => {
+                    const otherOwner = findOtherGroupOwning(branch.uuid);
+                    const otherOwnerIndex = otherOwner ? balanceGroups.findIndex(g => g.uuid === otherOwner.uuid) : -1;
+                    return (
+                      <label key={branch.uuid} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editBranchUuids.includes(branch.uuid)}
+                          onChange={() => toggleEditBranch(branch.uuid)}
+                          className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+                        />
+                        <span>{branch.name}</span>
+                        <span className="text-xs text-gray-400 font-mono">{branch.code}</span>
+                        {otherOwner && (
+                          <span className="text-xs text-amber-600">(saat ini di {groupLabel(otherOwner, otherOwnerIndex)})</span>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+                {editFieldErrors.branch_uuids && <div className="mt-1 text-sm text-red-600">{editFieldErrors.branch_uuids[0]}</div>}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button type="button" variant="light" onClick={() => setEditTarget(null)} disabled={editLoading}>
+                  Batal
+                </Button>
+                <Button type="submit" variant="warning" isLoading={editLoading}>
+                  Simpan
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {adjustTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
@@ -553,7 +797,8 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                 {adjustDirection === 'in' ? 'Top-up / Tambah Saldo' : 'Koreksi Kurangi Saldo'}
               </h3>
               <p className="text-sm text-gray-500 mt-1">
-                Grup: {adjustTarget.branches.map(b => b.name).join(', ') || '-'}
+                Grup: {groupLabel(adjustTarget, balanceGroups.findIndex(g => g.uuid === adjustTarget.uuid))}
+                {' '}({adjustTarget.branches.map(b => b.name).join(', ') || '-'})
               </p>
             </div>
             <form onSubmit={handleAdjustSubmit} className="px-6 py-4 space-y-4">
@@ -606,7 +851,7 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteGroup}
         title="Hapus Grup Balance"
-        message={`Hapus grup balance (${deleteTarget?.branches.map(b => b.name).join(', ')})? Cabang di dalamnya akan kehilangan akses ke akun saldo ini sampai dimasukkan ke grup lain. Tindakan ini tidak dapat dibatalkan.`}
+        message={`Hapus ${deleteTarget ? groupLabel(deleteTarget, balanceGroups.findIndex(g => g.uuid === deleteTarget.uuid)) : 'grup ini'} (${deleteTarget?.branches.map(b => b.name).join(', ')})? Cabang di dalamnya akan kehilangan akses ke akun saldo ini sampai dimasukkan ke grup lain. Tindakan ini tidak dapat dibatalkan.`}
         confirmText="Ya, Hapus"
         cancelText="Batal"
         type="danger"

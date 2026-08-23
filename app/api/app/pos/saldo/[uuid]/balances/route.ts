@@ -13,6 +13,9 @@ export const POST = withPermission(
     const rawBody = await req.json();
     const body = {
       ...rawBody,
+      branchUuids: rawBody.branchUuids ?? rawBody.branch_uuids,
+      accountNumber: rawBody.accountNumber ?? rawBody.account_number,
+      accountName: rawBody.accountName ?? rawBody.account_name,
       openingBalance: rawBody.openingBalance ?? rawBody.opening_balance,
       notes: rawBody.notes ?? null,
     };

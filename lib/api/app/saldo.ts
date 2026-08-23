@@ -6,6 +6,9 @@ export interface SaldoBalanceBranch {
 
 export interface SaldoBalanceGroup {
   uuid: string;
+  name: string | null;
+  account_number: string | null;
+  account_name: string | null;
   balance: number;
   branches: SaldoBalanceBranch[];
   created_at: string;
@@ -16,8 +19,6 @@ export interface SaldoAccount {
   code: string;
   name: string;
   type: string;
-  account_number?: string | null;
-  account_name?: string | null;
   description?: string | null;
   balance: number;
   balances_count?: number;
@@ -37,6 +38,7 @@ export interface SaldoMutation {
   reference_type: string;
   reference_uuid: string | null;
   notes: string | null;
+  saldo_balance: { uuid: string; name: string | null } | null;
   branch: { uuid: string; name: string; code: string } | null;
   creator: { id: number; name: string } | null;
   created_at: string;
@@ -78,8 +80,6 @@ export async function updateSaldoAccount(
     code?: string;
     name?: string;
     type?: string;
-    account_number?: string;
-    account_name?: string;
     description?: string;
     is_payment_method?: boolean;
     is_active?: boolean;
@@ -102,10 +102,29 @@ export async function deleteSaldoAccount(uuid: string): Promise<{ status: string
 
 export async function addSaldoBalanceGroup(
   uuid: string,
-  data: { branch_uuids: string[]; opening_balance?: number; notes?: string }
+  data: {
+    name?: string;
+    account_number?: string;
+    account_name?: string;
+    branch_uuids: string[];
+    opening_balance?: number;
+    notes?: string;
+  }
 ): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
   const response = await fetch(`/api/app/pos/saldo/${uuid}/balances`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function updateSaldoBalanceGroup(
+  balanceUuid: string,
+  data: { name?: string; account_number?: string; account_name?: string; branch_uuids: string[] }
+): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
+  const response = await fetch(`/api/app/pos/saldo/balances/${balanceUuid}`, {
+    method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });

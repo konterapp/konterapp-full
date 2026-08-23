@@ -64,3 +64,29 @@ export async function deleteBranch(uuid: string): Promise<{ status: string }> {
   });
   return response.json();
 }
+
+export interface BranchSaldoItem {
+  account: {
+    uuid: string;
+    code: string;
+    name: string;
+    type: string;
+    is_payment_method: boolean;
+  };
+  group: {
+    uuid: string;
+    name: string | null;
+    balance: number;
+    account_number: string | null;
+    account_name: string | null;
+  };
+}
+
+export async function getBranchSaldo(uuid: string): Promise<{
+  status: string;
+  message?: string;
+  data: { branch: Branch; data: BranchSaldoItem[]; total_balance: number };
+}> {
+  const response = await fetch(`/api/app/pos/branches/${uuid}/saldo`);
+  return response.json();
+}

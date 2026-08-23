@@ -14,14 +14,31 @@ export const createSaldoAccountSchema = z.object({
   openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
 });
 
-export const updateSaldoAccountSchema = createSaldoAccountSchema.omit({ openingBalance: true });
+// Edit metadata akun induk TIDAK termasuk accountNumber/accountName --
+// nomor rekening/nama pemilik akun sekarang milik grup balance (1 akun
+// induk bisa punya beberapa grup dengan rekening fisik berbeda-beda).
+export const updateSaldoAccountSchema = createSaldoAccountSchema.omit({
+  openingBalance: true,
+  accountNumber: true,
+  accountName: true,
+});
 
 export const addSaldoBalanceGroupSchema = z.object({
+  name: z.string().max(100, "Nama grup maksimal 100 karakter").optional().nullable().or(z.literal("")),
+  accountNumber: z.string().max(100, "No. rekening maksimal 100 karakter").optional().nullable().or(z.literal("")),
+  accountName: z.string().max(100, "Nama akun maksimal 100 karakter").optional().nullable().or(z.literal("")),
   branchUuids: z
     .array(z.string({ error: "Cabang wajib dipilih" }).min(1, "Cabang tidak valid"))
     .min(1, "Pilih minimal 1 cabang untuk grup balance baru"),
   openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
   notes: z.string().max(255, "Catatan maksimal 255 karakter").optional().nullable().or(z.literal("")),
+});
+
+export const updateSaldoBalanceGroupSchema = z.object({
+  name: z.string().max(100, "Nama grup maksimal 100 karakter").optional().nullable().or(z.literal("")),
+  accountNumber: z.string().max(100, "No. rekening maksimal 100 karakter").optional().nullable().or(z.literal("")),
+  accountName: z.string().max(100, "Nama akun maksimal 100 karakter").optional().nullable().or(z.literal("")),
+  branchUuids: z.array(z.string({ error: "Cabang tidak valid" }).min(1, "Cabang tidak valid")).optional().default([]),
 });
 
 export const adjustSaldoSchema = z.object({

@@ -118,4 +118,31 @@ describe('lib/prisma.ts tenant-scoping extension (real DB)', () => {
     });
     expect(branchesVisibleToA.some((b) => b.companyUuid === companyA.uuid)).toBe(true);
   });
+
+  it('findUniqueOrThrow di dalam $transaction bisa baca row yang baru dibuat di transaction yang sama', async () => {
+    // Regresi nyata: sebelum diperbaiki, rewrite findUnique/findUniqueOrThrow
+    // di lib/prisma.ts memanggil delegate dari basePrisma (client di luar
+    // transaction) alih-alih `tx` yang aktif -- row yang baru di-insert di
+    // transaction yang belum commit jadi tidak kelihatan dari basePrisma
+    // (connection terpisah), dan findUniqueOrThrow salah lempar "not found"
+    // meskipun row-nya jelas ada. Ini persis pola yang dipakai
+    // applyMutationInTx di lib/modules/pos/saldo/repository.ts (create baris
+    // balance lalu langsung findUniqueOrThrow ke baris itu, di transaction
+    // yang sama).
+    const company = await createTestCompany('txread');
+
+    const branch = await runWithTenantContext(company.uuid, async () => {
+      return await prisma.$transaction(async (tx) => {
+        const created = await tx.appPosBranch.create({
+          data: { code: 'TX1', name: 'Cabang Dalam Transaction', isActive: true },
+        });
+
+        return await tx.appPosBranch.findUniqueOrThrow({
+          where: { uuid: created.uuid },
+        });
+      });
+    });
+
+    expect(branch.companyUuid).toBe(company.uuid);
+  });
 });

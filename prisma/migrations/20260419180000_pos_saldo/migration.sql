@@ -13,12 +13,21 @@ ALTER INDEX "app_pos_payment_methods_company_uuid_code_key" RENAME TO "app_pos_s
 -- baris AppPosSaldoAccountBalance (per kelompok cabang) di bawah.
 ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "is_payment_method" BOOLEAN NOT NULL DEFAULT true;
 
+-- AlterTable: account_number/account_name (warisan dari app_pos_payment_methods
+-- lewat rename di atas) pindah ke level baris balance per kelompok cabang --
+-- 1 akun induk bisa punya beberapa grup dengan nomor rekening berbeda-beda.
+ALTER TABLE "app_pos_saldo_accounts" DROP COLUMN "account_number";
+ALTER TABLE "app_pos_saldo_accounts" DROP COLUMN "account_name";
+
 -- CreateTable: baris balance per kelompok cabang (1 angka dipakai bareng
 -- oleh sekumpulan cabang; akun induk bisa punya banyak baris di sini).
 CREATE TABLE "app_pos_saldo_account_balances" (
     "uuid" CHAR(36) NOT NULL,
     "company_uuid" CHAR(36) NOT NULL,
     "saldo_account_uuid" CHAR(36) NOT NULL,
+    "name" VARCHAR(100),
+    "account_number" VARCHAR(100),
+    "account_name" VARCHAR(100),
     "balance" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,

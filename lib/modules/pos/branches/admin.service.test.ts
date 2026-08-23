@@ -21,7 +21,8 @@ vi.mock('./repository', () => ({
 
 vi.mock('@/lib/modules/pos/saldo/repository', () => ({
   posSaldoRepository: {
-    findLinksOfBranch: vi.fn(),
+    listActiveAccountUuids: vi.fn(),
+    createBalanceGroupInTx: vi.fn(),
   },
 }));
 
@@ -32,89 +33,56 @@ vi.mock('@/lib/modules/billing/plan-limits', () => ({
 const mockRepo = posBranchRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
 const mockSaldoRepo = posSaldoRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
-const mockTx = {
-  appPosSaldoAccountBalanceBranch: { createMany: vi.fn().mockResolvedValue({ count: 2 }) },
-};
+const mockTx = {};
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockTx.appPosSaldoAccountBalanceBranch.createMany.mockResolvedValue({ count: 2 });
   mockRepo.runInTransaction.mockImplementation((cb: (tx: unknown) => Promise<unknown>) => cb(mockTx));
   mockRepo.findByCode.mockResolvedValue(null);
   mockRepo.count.mockResolvedValue(0);
+  mockSaldoRepo.listActiveAccountUuids.mockResolvedValue([]);
 });
 
-describe('posBranchService.createBranch (copy pengaturan saldo)', () => {
+describe('posBranchService.createBranch (auto-provision grup balance saldo)', () => {
   const basePayload = { code: 'CB004', name: 'Cabang Baru' };
 
-  it('tanpa copy saldo -> tidak menyentuh pivot saldo sama sekali', async () => {
+  it('company belum punya akun saldo -> tidak bikin grup balance apa pun', async () => {
     mockRepo.create.mockResolvedValue({ uuid: 'br-new', code: 'CB004', name: 'Cabang Baru' });
+    mockSaldoRepo.listActiveAccountUuids.mockResolvedValue([]);
 
     await posBranchService.createBranch('company-1', basePayload);
 
-    expect(mockSaldoRepo.findLinksOfBranch).not.toHaveBeenCalled();
-    expect(mockTx.appPosSaldoAccountBalanceBranch.createMany).not.toHaveBeenCalled();
+    expect(mockSaldoRepo.listActiveAccountUuids).toHaveBeenCalledWith('company-1', mockTx);
+    expect(mockSaldoRepo.createBalanceGroupInTx).not.toHaveBeenCalled();
   });
 
-  it('dengan copy saldo -> pivot grup balance cabang sumber diduplikasi untuk cabang baru', async () => {
+  it('cabang baru otomatis dapat grup balance TERPISAH (saldo 0) untuk tiap akun saldo aktif', async () => {
     mockRepo.create.mockResolvedValue({ uuid: 'br-new', code: 'CB004', name: 'Cabang Baru' });
-    mockRepo.findByUuid.mockResolvedValue({ uuid: 'br-src', code: 'CB001', name: 'Pusat' });
-    mockSaldoRepo.findLinksOfBranch.mockResolvedValue([
-      { companyUuid: 'company-1', saldoAccountUuid: 'acc-dana', saldoAccountBalanceUuid: 'bal-dana-shared' },
-      { companyUuid: 'company-1', saldoAccountUuid: 'acc-cash', saldoAccountBalanceUuid: 'bal-cash-cb001' },
-    ]);
+    mockSaldoRepo.listActiveAccountUuids.mockResolvedValue([{ uuid: 'acc-cash' }, { uuid: 'acc-dana' }]);
 
-    await posBranchService.createBranch('company-1', { ...basePayload, copySaldoFromBranchUuid: 'br-src' });
+    await posBranchService.createBranch('company-1', basePayload);
 
-    expect(mockSaldoRepo.findLinksOfBranch).toHaveBeenCalledWith('br-src', mockTx);
-    expect(mockTx.appPosSaldoAccountBalanceBranch.createMany).toHaveBeenCalledWith({
-      data: [
-        {
-          companyUuid: 'company-1',
-          saldoAccountUuid: 'acc-dana',
-          saldoAccountBalanceUuid: 'bal-dana-shared',
-          branchUuid: 'br-new',
-        },
-        {
-          companyUuid: 'company-1',
-          saldoAccountUuid: 'acc-cash',
-          saldoAccountBalanceUuid: 'bal-cash-cb001',
-          branchUuid: 'br-new',
-        },
-      ],
+    expect(mockSaldoRepo.createBalanceGroupInTx).toHaveBeenCalledTimes(2);
+    expect(mockSaldoRepo.createBalanceGroupInTx).toHaveBeenCalledWith(mockTx, {
+      companyUuid: 'company-1',
+      saldoAccountUuid: 'acc-cash',
+      balance: 0,
+      branchUuids: ['br-new'],
     });
-  });
-
-  it('sumber tidak punya link saldo -> tidak ada createMany (bukan error)', async () => {
-    mockRepo.create.mockResolvedValue({ uuid: 'br-new', code: 'CB004', name: 'Cabang Baru' });
-    mockRepo.findByUuid.mockResolvedValue({ uuid: 'br-src' });
-    mockSaldoRepo.findLinksOfBranch.mockResolvedValue([]);
-
-    await posBranchService.createBranch('company-1', { ...basePayload, copySaldoFromBranchUuid: 'br-src' });
-
-    expect(mockTx.appPosSaldoAccountBalanceBranch.createMany).not.toHaveBeenCalled();
-  });
-
-  it('cabang sumber tidak ditemukan -> validation error field copy_saldo_from_branch_uuid', async () => {
-    mockRepo.findByUuid.mockResolvedValue(null);
-
-    await expect(
-      posBranchService.createBranch('company-1', { ...basePayload, copySaldoFromBranchUuid: 'hantu' })
-    ).rejects.toMatchObject({
-      name: 'ValidationApiError',
-      errors: { copy_saldo_from_branch_uuid: ['Cabang sumber tidak ditemukan'] },
+    expect(mockSaldoRepo.createBalanceGroupInTx).toHaveBeenCalledWith(mockTx, {
+      companyUuid: 'company-1',
+      saldoAccountUuid: 'acc-dana',
+      balance: 0,
+      branchUuids: ['br-new'],
     });
-    expect(mockRepo.runInTransaction).not.toHaveBeenCalled();
   });
 
   it('kode duplikat tetap ditolak sebelum urusan saldo', async () => {
     mockRepo.findByCode.mockResolvedValue({ uuid: 'existing' });
 
-    await expect(
-      posBranchService.createBranch('company-1', { ...basePayload, copySaldoFromBranchUuid: 'br-src' })
-    ).rejects.toMatchObject({
+    await expect(posBranchService.createBranch('company-1', basePayload)).rejects.toMatchObject({
       errors: { code: ['Kode cabang sudah digunakan'] },
     });
-    expect(mockSaldoRepo.findLinksOfBranch).not.toHaveBeenCalled();
+    expect(mockSaldoRepo.listActiveAccountUuids).not.toHaveBeenCalled();
   });
 });

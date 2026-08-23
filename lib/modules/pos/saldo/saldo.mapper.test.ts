@@ -16,6 +16,9 @@ describe('mapSaldoBalanceGroup', () => {
 
     expect(result).toEqual({
       uuid: 'bal-1',
+      name: null,
+      account_number: null,
+      account_name: null,
       balance: 150000,
       branches: [
         { uuid: 'b1', code: 'CB001', name: 'Pusat' },
@@ -50,8 +53,6 @@ describe('mapSaldoAccount', () => {
     code: 'CASH',
     name: 'Tunai',
     type: 'cash',
-    accountNumber: null,
-    accountName: null,
     description: null,
     isPaymentMethod: true,
     isActive: true,
@@ -82,13 +83,12 @@ describe('mapSaldoAccount', () => {
   });
 
   it('field API snake_case lengkap', () => {
-    const result = mapSaldoAccount({ ...baseAccount, accountNumber: '123', balances: [] });
+    const result = mapSaldoAccount({ ...baseAccount, balances: [] });
     expect(result).toMatchObject({
       uuid: 'acc-1',
       code: 'CASH',
       name: 'Tunai',
       type: 'cash',
-      account_number: '123',
       is_payment_method: true,
       is_active: true,
     });
@@ -122,6 +122,7 @@ describe('mapSaldoMutation', () => {
       notes: 'Saldo awal',
       branch: { uuid: 'b1', name: 'Pusat', code: 'CB001' },
       creator: { id: 7, name: 'Kasir A' },
+      saldoBalance: { uuid: 'bal-1', name: 'Kas Pusat' },
       createdAt,
     });
 
@@ -134,13 +135,14 @@ describe('mapSaldoMutation', () => {
       reference_type: 'opening_balance',
       reference_uuid: null,
       notes: 'Saldo awal',
+      saldo_balance: { uuid: 'bal-1', name: 'Kas Pusat' },
       branch: { uuid: 'b1', name: 'Pusat', code: 'CB001' },
       creator: { id: 7, name: 'Kasir A' },
       created_at: createdAt,
     });
   });
 
-  it('relasi branch/creator null aman', () => {
+  it('relasi branch/creator/saldoBalance null aman -- mutasi tetap milik grup meski relasinya tidak di-include', () => {
     const result = mapSaldoMutation({
       uuid: 'mut-2',
       direction: 'out',
@@ -152,9 +154,11 @@ describe('mapSaldoMutation', () => {
       notes: null,
       branch: null,
       creator: null,
+      saldoBalance: null,
       createdAt: new Date(),
     });
     expect(result.branch).toBeNull();
     expect(result.creator).toBeNull();
+    expect(result.saldo_balance).toBeNull();
   });
 });

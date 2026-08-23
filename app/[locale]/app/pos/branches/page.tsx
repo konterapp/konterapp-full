@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Plus, Edit, Trash2, Building2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Building2, Wallet, X } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
+import { getBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
+
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+};
 
 interface Branch {
   uuid: string;
@@ -33,6 +38,22 @@ export default function BranchesPage() {
     isOpen: false,
     branch: null,
     isLoading: false,
+  });
+
+  const [saldoModal, setSaldoModal] = useState<{
+    isOpen: boolean;
+    branch: Branch | null;
+    isLoading: boolean;
+    error: string;
+    items: BranchSaldoItem[];
+    totalBalance: number;
+  }>({
+    isOpen: false,
+    branch: null,
+    isLoading: false,
+    error: '',
+    items: [],
+    totalBalance: 0,
   });
 
   // Debounce search
@@ -114,6 +135,31 @@ export default function BranchesPage() {
 
   const handleDeleteCancel = () => {
     setDeleteModal({ isOpen: false, branch: null, isLoading: false });
+  };
+
+  const handleSaldoClick = async (branch: Branch) => {
+    setSaldoModal({ isOpen: true, branch, isLoading: true, error: '', items: [], totalBalance: 0 });
+    try {
+      const result = await getBranchSaldo(branch.uuid);
+      if (result.status === 'success' && result.data) {
+        setSaldoModal({
+          isOpen: true,
+          branch,
+          isLoading: false,
+          error: '',
+          items: result.data.data,
+          totalBalance: result.data.total_balance,
+        });
+      } else {
+        setSaldoModal(prev => ({ ...prev, isLoading: false, error: result.message || 'Gagal memuat data saldo cabang' }));
+      }
+    } catch {
+      setSaldoModal(prev => ({ ...prev, isLoading: false, error: 'Terjadi kesalahan saat memuat data saldo' }));
+    }
+  };
+
+  const handleSaldoClose = () => {
+    setSaldoModal({ isOpen: false, branch: null, isLoading: false, error: '', items: [], totalBalance: 0 });
   };
 
   const handleItemsPerPageChange = (value: number) => {
@@ -207,9 +253,17 @@ export default function BranchesPage() {
       label: 'Aksi',
       sortable: false,
       className: 'whitespace-nowrap',
-      width: '8rem',
+      width: '11rem',
       render: (_, row) => (
         <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => handleSaldoClick(row)}
+            className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg transition-colors text-xs font-medium cursor-pointer"
+          >
+            <Wallet className="w-3.5 h-3.5" />
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Saldo</span>
+          </button>
           <Link
             href={`/app/pos/branches/${row.uuid}/edit`}
             className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
@@ -285,6 +339,65 @@ export default function BranchesPage() {
         type="danger"
         isLoading={deleteModal.isLoading}
       />
+
+      {saldoModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
+          onClick={(e) => { if (e.target === e.currentTarget) handleSaldoClose(); }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Saldo Cabang {saldoModal.branch?.name}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Daftar akun saldo & nominal yang tersedia di cabang ini.</p>
+              </div>
+              <button onClick={handleSaldoClose} className="p-1 rounded hover:bg-gray-100 cursor-pointer">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4">
+              {saldoModal.isLoading ? (
+                <div className="text-center py-8 text-gray-500">Memuat data...</div>
+              ) : saldoModal.error ? (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{saldoModal.error}</div>
+              ) : saldoModal.items.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  Cabang ini belum ter-link ke akun saldo apa pun.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {saldoModal.items.map((item) => (
+                    <div key={item.group.uuid} className="flex items-start justify-between border border-gray-200 rounded-lg p-3">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{item.account.name}</div>
+                        <div className="text-xs text-gray-500 font-mono">{item.account.code}</div>
+                        {item.group.name && (
+                          <div className="text-xs text-gray-500 mt-0.5">Grup: {item.group.name}</div>
+                        )}
+                        {(item.group.account_number || item.group.account_name) && (
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {item.group.account_number}{item.group.account_number && item.group.account_name ? ' – ' : ''}{item.group.account_name}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm font-bold text-[#142D52] whitespace-nowrap">{formatCurrency(item.group.balance)}</div>
+                    </div>
+                  ))}
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total Saldo</span>
+                    <span className="text-base font-bold text-[#142D52]">{formatCurrency(saldoModal.totalBalance)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

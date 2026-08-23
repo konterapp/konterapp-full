@@ -17,7 +17,7 @@ vi.mock('./repository', () => ({
     findBalanceByUuid: vi.fn(),
     findBalanceWithAccount: vi.fn(),
     findBranchLink: vi.fn(),
-    findLinksOfBranch: vi.fn(),
+    listActiveAccountUuids: vi.fn(),
     createBalanceGroupInTx: vi.fn(),
     reassignBranchesInTx: vi.fn(),
     deleteBalanceByUuid: vi.fn(),
@@ -313,7 +313,7 @@ describe('posSaldoService.listMutations', () => {
 
     const arg = mockSaldoRepo.findMutations.mock.calls[0][0];
     expect(arg.where).toMatchObject({
-      saldoAccountBalance: { saldoAccountUuid: 'acc-1' },
+      saldoBalance: { saldoAccountUuid: 'acc-1' },
       saldoAccountBalanceUuid: 'bal-9',
     });
   });
@@ -326,7 +326,7 @@ describe('posSaldoService.listMutations', () => {
     await posSaldoService.listMutations('acc-1', { page: 2, perPage: 10 });
 
     const arg = mockSaldoRepo.findMutations.mock.calls[0][0];
-    expect(arg.where).toEqual({ saldoAccountBalance: { saldoAccountUuid: 'acc-1' } });
+    expect(arg.where).toEqual({ saldoBalance: { saldoAccountUuid: 'acc-1' } });
     expect(arg.skip).toBe(10);
   });
 });

@@ -778,8 +778,6 @@ model AppPosSaldoAccount {
   code            String   @db.VarChar(50)
   name            String   @db.VarChar(100)
   type            String   @default("cash") @db.VarChar(20) // cash, bank, e_wallet, other
-  accountNumber   String?  @map("account_number") @db.VarChar(100)
-  accountName     String?  @map("account_name") @db.VarChar(100)
   description     String?  @db.Text
   isPaymentMethod Boolean  @default(true) @map("is_payment_method")
   isActive        Boolean  @default(true) @map("is_active")
@@ -805,6 +803,9 @@ model AppPosSaldoAccountBalance {
   uuid             String   @id @default(uuid()) @db.Char(36)
   companyUuid      String   @map("company_uuid") @db.Char(36)
   saldoAccountUuid String   @map("saldo_account_uuid") @db.Char(36)
+  name             String?  @db.VarChar(100)
+  accountNumber    String?  @map("account_number") @db.VarChar(100)
+  accountName      String?  @map("account_name") @db.VarChar(100)
   balance          Decimal  @default(0) @db.Decimal(15, 2)
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")

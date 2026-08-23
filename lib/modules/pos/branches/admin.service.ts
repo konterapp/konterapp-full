@@ -3,6 +3,7 @@ import { posBranchRepository } from './repository';
 import { mapBranch, mapBranchListSimple } from './branch.mapper';
 import { assertBranchLimit } from '@/lib/modules/billing/plan-limits';
 import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
+import { mapBranchSaldoLink } from '@/lib/modules/pos/saldo/saldo.mapper';
 
 export const posBranchService = {
   async listBranches(params: {
@@ -57,6 +58,23 @@ export const posBranchService = {
     return mapBranch(branch);
   },
 
+  async getBranchSaldo(uuid: string) {
+    const branch = await posBranchRepository.findByUuid(uuid);
+    if (!branch) {
+      throw new ApiError('Branch not found', 404);
+    }
+
+    const links = await posSaldoRepository.findLinksForBranchWithDetails(uuid);
+    const items = links.map(mapBranchSaldoLink);
+    const totalBalance = items.reduce((sum, item) => sum + item.group.balance, 0);
+
+    return {
+      branch: mapBranch(branch),
+      data: items,
+      total_balance: Number(totalBalance.toFixed(2)),
+    };
+  },
+
   async createBranch(
     companyUuid: string,
     payload: {
@@ -67,7 +85,6 @@ export const posBranchService = {
       email?: string | null;
       isActive?: boolean;
       isMain?: boolean;
-      copySaldoFromBranchUuid?: string | null;
     }
   ) {
     const existing = await posBranchRepository.findByCode(companyUuid, payload.code);
@@ -77,18 +94,6 @@ export const posBranchService = {
 
     const branchCount = await posBranchRepository.count({ companyUuid });
     await assertBranchLimit(companyUuid, branchCount);
-
-    // Opsi "copy pengaturan saldo dari cabang lain": cabang baru otomatis
-    // masuk ke grup-grup balance yang sama dengan cabang sumber. Kalau tidak
-    // dipilih, cabang baru belum punya akun saldo apa pun sampai di-assign
-    // manual lewat halaman detail akun saldo.
-    let sourceBranch: { uuid: string } | null = null;
-    if (payload.copySaldoFromBranchUuid) {
-      sourceBranch = await posBranchRepository.findByUuid(payload.copySaldoFromBranchUuid);
-      if (!sourceBranch) {
-        throw new ValidationApiError({ copy_saldo_from_branch_uuid: ['Cabang sumber tidak ditemukan'] });
-      }
-    }
 
     return posBranchRepository.runInTransaction(async (tx) => {
       if (payload.isMain) {
@@ -109,18 +114,20 @@ export const posBranchService = {
         tx
       );
 
-      if (sourceBranch) {
-        const sourceLinks = await posSaldoRepository.findLinksOfBranch(sourceBranch.uuid, tx);
-        if (sourceLinks.length > 0) {
-          await tx.appPosSaldoAccountBalanceBranch.createMany({
-            data: sourceLinks.map((link) => ({
-              companyUuid,
-              saldoAccountUuid: link.saldoAccountUuid,
-              saldoAccountBalanceUuid: link.saldoAccountBalanceUuid,
-              branchUuid: branch.uuid,
-            })),
-          });
-        }
+      // Cabang baru otomatis dapat grup balance SENDIRI & TERPISAH (saldo 0)
+      // untuk setiap akun saldo aktif yang ada di company ini -- bukan ikut
+      // nimbrung ke grup cabang lain (itu berarti berbagi uang beneran).
+      // Kalau memang mau berbagi saldo dengan cabang lain, itu dilakukan
+      // eksplisit lewat "Tambah/Edit Grup Balance" di halaman detail akun
+      // saldo, bukan otomatis saat bikin cabang baru.
+      const saldoAccounts = await posSaldoRepository.listActiveAccountUuids(companyUuid, tx);
+      for (const account of saldoAccounts) {
+        await posSaldoRepository.createBalanceGroupInTx(tx, {
+          companyUuid,
+          saldoAccountUuid: account.uuid,
+          balance: 0,
+          branchUuids: [branch.uuid],
+        });
       }
 
       return mapBranch(branch);

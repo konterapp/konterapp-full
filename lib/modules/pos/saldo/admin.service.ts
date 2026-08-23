@@ -120,7 +120,9 @@ export const posSaldoService = {
 
     // Grup balance pertama otomatis mencakup semua cabang aktif company
     // (split per-cabang dilakukan belakangan lewat "Tambah Grup Balance"
-    // di halaman detail akun).
+    // di halaman detail akun). Nomor rekening/nama pemilik akun menempel di
+    // grup ini (bukan di akun induk), karena tiap grup bisa punya rekening
+    // fisik berbeda.
     const branches = await posBranchRepository.listSimple();
     const activeBranchUuids = branches.filter((b) => b.isActive).map((b) => b.uuid);
 
@@ -131,8 +133,6 @@ export const posSaldoService = {
           code: payload.code,
           name: payload.name,
           type: payload.type || 'cash',
-          accountNumber: payload.accountNumber || null,
-          accountName: payload.accountName || null,
           description: payload.description || null,
           isPaymentMethod: payload.isPaymentMethod ?? true,
           isActive: payload.isActive ?? true,
@@ -147,6 +147,8 @@ export const posSaldoService = {
         saldoAccountUuid: account.uuid,
         balance: 0,
         branchUuids: activeBranchUuids,
+        accountNumber: payload.accountNumber || null,
+        accountName: payload.accountName || null,
       });
 
       if (openingBalance > 0) {
@@ -189,8 +191,6 @@ export const posSaldoService = {
       code?: string;
       name?: string;
       type?: string;
-      accountNumber?: string | null;
-      accountName?: string | null;
       description?: string | null;
       isPaymentMethod?: boolean;
       isActive?: boolean;
@@ -212,8 +212,6 @@ export const posSaldoService = {
       code: payload.code || existing.code,
       name: payload.name || existing.name,
       type: payload.type || existing.type,
-      accountNumber: payload.accountNumber ?? existing.accountNumber,
-      accountName: payload.accountName ?? existing.accountName,
       description: payload.description ?? existing.description,
       isPaymentMethod: payload.isPaymentMethod ?? existing.isPaymentMethod,
       isActive: payload.isActive ?? existing.isActive,
@@ -249,7 +247,14 @@ export const posSaldoService = {
     uuid: string,
     companyUuid: string,
     userId: number,
-    payload: { branchUuids: string[]; openingBalance?: number; notes?: string | null }
+    payload: {
+      branchUuids: string[];
+      openingBalance?: number;
+      notes?: string | null;
+      name?: string | null;
+      accountNumber?: string | null;
+      accountName?: string | null;
+    }
   ) {
     const account = await posSaldoRepository.findByUuid(uuid);
     if (!account) {
@@ -269,6 +274,9 @@ export const posSaldoService = {
         saldoAccountUuid: uuid,
         balance: 0,
         branchUuids: [],
+        name: payload.name || null,
+        accountNumber: payload.accountNumber || null,
+        accountName: payload.accountName || null,
       });
 
       await posSaldoRepository.reassignBranchesInTx(tx, {
@@ -322,6 +330,68 @@ export const posSaldoService = {
     });
   },
 
+  /**
+   * Edit grup balance yang sudah ada: ganti nama + keanggotaan cabang.
+   * Cabang yang dipilih dan masih ter-link ke grup lain (termasuk akun
+   * saldo lain milik company yang sama tidak akan kesenggol, cek di bawah
+   * cuma scoped ke saldoAccountUuid grup ini) otomatis dipindahkan ke grup
+   * ini; cabang yang sebelumnya di grup ini tapi tidak lagi dipilih akan
+   * dilepas (bukan dihapus grupnya).
+   */
+  async updateBalanceGroup(
+    balanceUuid: string,
+    companyUuid: string,
+    payload: {
+      name?: string | null;
+      accountNumber?: string | null;
+      accountName?: string | null;
+      branchUuids: string[];
+    }
+  ) {
+    const balanceRow = await posSaldoRepository.findBalanceWithAccount(balanceUuid);
+    if (!balanceRow) {
+      throw new ApiError('Grup balance tidak ditemukan', 404);
+    }
+
+    const branchCount = await posBranchRepository.count({ companyUuid, uuid: { in: payload.branchUuids } });
+    if (branchCount !== payload.branchUuids.length) {
+      throw new ValidationApiError({ branch_uuids: ['Ada cabang yang tidak ditemukan'] });
+    }
+
+    return posSaldoRepository.runInTransaction(async (tx) => {
+      await posSaldoRepository.updateBalanceGroupInTx(tx, {
+        balanceUuid,
+        companyUuid,
+        saldoAccountUuid: balanceRow.saldoAccountUuid,
+        name: payload.name ?? null,
+        accountNumber: payload.accountNumber ?? null,
+        accountName: payload.accountName ?? null,
+        branchUuids: payload.branchUuids,
+      });
+
+      const full = await tx.appPosSaldoAccount.findFirst({
+        where: { uuid: balanceRow.saldoAccountUuid },
+        include: {
+          balances: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              branchLinks: {
+                orderBy: { createdAt: 'asc' },
+                include: { branch: { select: { uuid: true, code: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!full) {
+        throw new ApiError('Akun saldo tidak ditemukan', 404);
+      }
+
+      return mapSaldoAccount(full);
+    });
+  },
+
   async deleteBalanceGroup(balanceUuid: string) {
     const balanceRow = await posSaldoRepository.findBalanceWithAccount(balanceUuid);
     if (!balanceRow) {
@@ -343,7 +413,7 @@ export const posSaldoService = {
 
     const { page, perPage, balanceUuid } = params;
     const skip = (page - 1) * perPage;
-    const where: any = { saldoAccountBalance: { saldoAccountUuid: uuid } };
+    const where: any = { saldoBalance: { saldoAccountUuid: uuid } };
     if (balanceUuid) {
       where.saldoAccountBalanceUuid = balanceUuid;
     }
@@ -379,6 +449,13 @@ export const posSaldoService = {
       throw new ValidationApiError({ amount: ['Saldo tidak cukup untuk pengurangan sebesar ini'] });
     }
 
+    // Mutasi itu milik GRUP (saldo_account_balance_uuid), bukan milik
+    // cabang -- branch_uuid di sini cuma buat catat DI CABANG MANA
+    // transaksi itu SECARA NYATA terjadi (relevan untuk penjualan). Koreksi
+    // manual tidak punya "lokasi" seperti itu, jadi branch_uuid wajar null
+    // kecuali admin eksplisit pilih (payload.branchUuid). JANGAN infer dari
+    // keanggotaan cabang grup -- itu fakta konfigurasi statis, bukan bukti
+    // bahwa koreksi ini "terjadi" di cabang tsb.
     await posSaldoRepository.applyMutation({
       saldoAccountBalanceUuid: balanceUuid,
       companyUuid,

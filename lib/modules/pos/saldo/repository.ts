@@ -51,8 +51,6 @@ export const posSaldoRepository = {
     code: string;
     name: string;
     type: string;
-    accountNumber: string | null;
-    accountName: string | null;
     description: string | null;
     isPaymentMethod: boolean;
     isActive: boolean;
@@ -109,14 +107,32 @@ export const posSaldoRepository = {
   },
 
   /**
-   * Semua link pivot milik 1 cabang -- dipakai fitur "copy pengaturan saldo
-   * dari cabang lain" saat buat cabang baru.
+   * Semua akun saldo aktif milik company -- dipakai saat bikin cabang baru
+   * supaya cabang itu otomatis dapat grup balance sendiri (terpisah, saldo
+   * 0) untuk tiap akun saldo yang ada.
    */
-  findLinksOfBranch(branchUuid: string, tx?: Prisma.TransactionClient) {
+  listActiveAccountUuids(companyUuid: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? prisma;
-    return client.appPosSaldoAccountBalanceBranch.findMany({
+    return client.appPosSaldoAccount.findMany({
+      where: { companyUuid, isActive: true },
+      select: { uuid: true },
+    });
+  },
+
+  /**
+   * Semua grup balance (lengkap dengan akun induknya) yang ter-link ke 1
+   * cabang -- dipakai halaman "Saldo" di aksi tabel cabang, supaya admin
+   * bisa lihat nominal saldo cabang itu tanpa perlu buka tiap akun saldo
+   * satu-satu.
+   */
+  findLinksForBranchWithDetails(branchUuid: string) {
+    return prisma.appPosSaldoAccountBalanceBranch.findMany({
       where: { branchUuid },
-      select: { companyUuid: true, saldoAccountUuid: true, saldoAccountBalanceUuid: true },
+      include: {
+        saldoAccount: { select: { uuid: true, code: true, name: true, type: true, isPaymentMethod: true } },
+        saldoAccountBalance: { select: { uuid: true, name: true, balance: true, accountNumber: true, accountName: true } },
+      },
+      orderBy: { saldoAccount: { code: 'asc' } },
     });
   },
 
@@ -132,15 +148,21 @@ export const posSaldoRepository = {
       saldoAccountUuid: string;
       balance: number;
       branchUuids: string[];
+      name?: string | null;
+      accountNumber?: string | null;
+      accountName?: string | null;
     }
   ) {
-    const { companyUuid, saldoAccountUuid, balance, branchUuids } = data;
+    const { companyUuid, saldoAccountUuid, balance, branchUuids, name, accountNumber, accountName } = data;
 
     const balanceRow = await tx.appPosSaldoAccountBalance.create({
       data: {
         companyUuid,
         saldoAccountUuid,
         balance,
+        name: name ?? null,
+        accountNumber: accountNumber ?? null,
+        accountName: accountName ?? null,
       },
     });
 
@@ -174,6 +196,67 @@ export const posSaldoRepository = {
     });
   },
 
+  /**
+   * Edit 1 grup balance: ganti nama + keanggotaan cabang. Cabang yang
+   * dipilih tapi masih ter-link ke grup lain akan DIPINDAHKAN ke grup ini
+   * (sama seperti addBalanceGroup); cabang yang sebelumnya di grup ini tapi
+   * tidak lagi dipilih akan DILEPAS (jadi tidak masuk grup manapun untuk
+   * akun ini, bukan dihapus). Multi-write -- WAJIB dipanggil dalam
+   * transaction pemanggil.
+   */
+  async updateBalanceGroupInTx(
+    tx: Prisma.TransactionClient,
+    data: {
+      balanceUuid: string;
+      companyUuid: string;
+      saldoAccountUuid: string;
+      name?: string | null;
+      accountNumber?: string | null;
+      accountName?: string | null;
+      branchUuids: string[];
+    }
+  ) {
+    const { balanceUuid, companyUuid, saldoAccountUuid, name, accountNumber, accountName, branchUuids } = data;
+
+    await tx.appPosSaldoAccountBalance.update({
+      where: { uuid: balanceUuid },
+      data: { name: name ?? null, accountNumber: accountNumber ?? null, accountName: accountName ?? null },
+    });
+
+    // Lepas cabang yang sebelumnya di grup ini tapi tidak lagi dipilih.
+    await tx.appPosSaldoAccountBalanceBranch.deleteMany({
+      where: { saldoAccountBalanceUuid: balanceUuid, branchUuid: { notIn: branchUuids } },
+    });
+
+    if (branchUuids.length > 0) {
+      // Pindahkan cabang yang dipilih (dari grup lain kalau ada) ke grup ini.
+      await tx.appPosSaldoAccountBalanceBranch.updateMany({
+        where: { saldoAccountUuid, branchUuid: { in: branchUuids } },
+        data: { saldoAccountBalanceUuid: balanceUuid },
+      });
+
+      // Cabang yang dipilih tapi belum pernah punya pivot row sama sekali
+      // (baru pertama kali di-link ke akun ini) -> insert baru.
+      const existingLinks = await tx.appPosSaldoAccountBalanceBranch.findMany({
+        where: { saldoAccountBalanceUuid: balanceUuid },
+        select: { branchUuid: true },
+      });
+      const existingBranchUuids = new Set(existingLinks.map((link) => link.branchUuid));
+      const missingBranchUuids = branchUuids.filter((branchUuid) => !existingBranchUuids.has(branchUuid));
+
+      if (missingBranchUuids.length > 0) {
+        await tx.appPosSaldoAccountBalanceBranch.createMany({
+          data: missingBranchUuids.map((branchUuid) => ({
+            companyUuid,
+            saldoAccountUuid,
+            saldoAccountBalanceUuid: balanceUuid,
+            branchUuid,
+          })),
+        });
+      }
+    }
+  },
+
   deleteBalanceByUuid(balanceUuid: string, tx?: Prisma.TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccountBalance.delete({ where: { uuid: balanceUuid } });
@@ -189,6 +272,7 @@ export const posSaldoRepository = {
       include: {
         branch: { select: { uuid: true, name: true, code: true } },
         creator: { select: { id: true, name: true } },
+        saldoBalance: { select: { uuid: true, name: true } },
       },
     });
   },

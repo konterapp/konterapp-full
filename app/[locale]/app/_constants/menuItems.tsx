@@ -89,6 +89,13 @@ const coreMenuItems: MenuItem[] = [
         icon: <CircleDot className="w-5 h-5" />,
         permission: 'pos.sale.create'
     },
+    {
+        section: 'Operasional',
+        label: 'Saldo',
+        href: '/app/pos/saldo',
+        icon: <Banknote className="w-5 h-5" />,
+        permission: 'pos.saldo.index'
+    },
     // Produk
     {
         section: 'Produk',
@@ -164,13 +171,6 @@ const coreMenuItems: MenuItem[] = [
         permission: 'pos.stock-movement.index'
     },
     // Keuangan
-    {
-        section: 'Keuangan',
-        label: 'Saldo',
-        href: '/app/pos/saldo',
-        icon: <Banknote className="w-5 h-5" />,
-        permission: 'pos.saldo.index'
-    },
     {
         section: 'Keuangan',
         label: 'Piutang',

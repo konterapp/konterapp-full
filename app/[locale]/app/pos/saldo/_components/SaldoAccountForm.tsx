@@ -64,8 +64,8 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
           code: result.data.code || '',
           name: result.data.name || '',
           type: result.data.type || 'cash',
-          account_number: result.data.account_number || '',
-          account_name: result.data.account_name || '',
+          account_number: '',
+          account_name: '',
           description: result.data.description || '',
           is_payment_method: result.data.is_payment_method ?? true,
           is_active: result.data.is_active ?? true,
@@ -108,12 +108,16 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
         code: formData.code,
         name: formData.name,
         type: formData.type,
-        account_number: formData.account_number,
-        account_name: formData.account_name,
         description: formData.description,
         is_payment_method: formData.is_payment_method,
         is_active: formData.is_active,
-        ...(mode === 'create' ? { opening_balance: Number(formData.opening_balance) || 0 } : {}),
+        ...(mode === 'create'
+          ? {
+              account_number: formData.account_number,
+              account_name: formData.account_name,
+              opening_balance: Number(formData.opening_balance) || 0,
+            }
+          : {}),
       };
 
       const result = mode === 'edit' && saldoUuid
@@ -259,49 +263,53 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
             </div>
           )}
 
-          <div>
-            <label htmlFor="account_number" className="block text-sm font-medium text-gray-700 mb-2">
-              Nomor Rekening/Akun
-            </label>
-            <input
-              type="text"
-              id="account_number"
-              name="account_number"
-              value={formData.account_number}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.account_number
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
-              placeholder="Masukkan nomor rekening/akun"
-            />
-            {fieldErrors.account_number && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.account_number[0]}</div>
-            )}
-          </div>
+          {mode === 'create' && (
+            <>
+              <div>
+                <label htmlFor="account_number" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nomor Rekening/Akun (Grup Pertama)
+                </label>
+                <input
+                  type="text"
+                  id="account_number"
+                  name="account_number"
+                  value={formData.account_number}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                    fieldErrors.account_number
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                      : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="Masukkan nomor rekening/akun"
+                />
+                {fieldErrors.account_number && (
+                  <div className="mt-1 text-sm text-red-600">{fieldErrors.account_number[0]}</div>
+                )}
+              </div>
 
-          <div>
-            <label htmlFor="account_name" className="block text-sm font-medium text-gray-700 mb-2">
-              Nama Pemilik Akun
-            </label>
-            <input
-              type="text"
-              id="account_name"
-              name="account_name"
-              value={formData.account_name}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.account_name
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
-              placeholder="Masukkan nama pemilik akun"
-            />
-            {fieldErrors.account_name && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.account_name[0]}</div>
-            )}
-          </div>
+              <div>
+                <label htmlFor="account_name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Pemilik Akun (Grup Pertama)
+                </label>
+                <input
+                  type="text"
+                  id="account_name"
+                  name="account_name"
+                  value={formData.account_name}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                    fieldErrors.account_name
+                      ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                      : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="Masukkan nama pemilik akun"
+                />
+                {fieldErrors.account_name && (
+                  <div className="mt-1 text-sm text-red-600">{fieldErrors.account_name[0]}</div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="flex items-center gap-6">
             <div className="flex items-center">

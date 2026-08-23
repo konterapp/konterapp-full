@@ -16,13 +16,6 @@ interface BranchData {
   email: string;
   is_active: boolean;
   is_main: boolean;
-  copy_saldo_from_branch_uuid: string;
-}
-
-interface BranchOption {
-  uuid: string;
-  code: string;
-  name: string;
 }
 
 interface BranchFormProps {
@@ -38,7 +31,6 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
   const [error, setError] = useState('');
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
   const [formData, setFormData] = useState<BranchData>({
     code: '',
     name: '',
@@ -47,20 +39,9 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
     email: '',
     is_active: true,
     is_main: false,
-    copy_saldo_from_branch_uuid: '',
   });
 
   useEffect(() => {
-    if (mode === 'create') {
-      fetch('/api/app/pos/branches?per_page=100')
-        .then((res) => res.json())
-        .then((result) => {
-          if (result.status === 'success' && result.data?.data) {
-            setBranchOptions(result.data.data);
-          }
-        })
-        .catch(() => {});
-    }
     if (mode === 'edit' && branchId) {
       fetchBranch();
     }
@@ -84,7 +65,6 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
           email: result.data.email || '',
           is_active: result.data.is_active ?? true,
           is_main: result.data.is_main ?? false,
-          copy_saldo_from_branch_uuid: '',
         });
       } else {
         setError(result.message || 'Gagal memuat data cabang');
@@ -126,15 +106,10 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
       const url = mode === 'edit' && branchId ? `/api/app/pos/branches/${branchId}` : '/api/app/pos/branches';
       const method = mode === 'edit' && branchId ? 'PUT' : 'POST';
 
-      const payload = { ...formData };
-      if (mode === 'edit') {
-        delete (payload as Partial<BranchData>).copy_saldo_from_branch_uuid;
-      }
-
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
       });
 
       const result = await response.json();
@@ -316,38 +291,6 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
               </label>
             </div>
           </div>
-
-          {mode === 'create' && (
-            <div>
-              <label htmlFor="copy_saldo_from_branch_uuid" className="block text-sm font-medium text-gray-700 mb-2">
-                Pengaturan Saldo
-              </label>
-              <select
-                id="copy_saldo_from_branch_uuid"
-                name="copy_saldo_from_branch_uuid"
-                value={formData.copy_saldo_from_branch_uuid}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white cursor-pointer ${
-                  fieldErrors.copy_saldo_from_branch_uuid
-                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                    : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-                }`}
-              >
-                <option value="">Isi manual lewat menu Saldo (tidak ada metode bayar dulu)</option>
-                {branchOptions.map((branch) => (
-                  <option key={branch.uuid} value={branch.uuid}>
-                    Copy dari: {branch.name} ({branch.code})
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.copy_saldo_from_branch_uuid && (
-                <div className="mt-1 text-sm text-red-600">{fieldErrors.copy_saldo_from_branch_uuid[0]}</div>
-              )}
-              <p className="mt-1.5 text-xs text-gray-500">
-                Kalau di-copy, cabang baru otomatis masuk ke grup-grup balance akun saldo yang sama dengan cabang sumber.
-              </p>
-            </div>
-          )}
         </div>
 
         <div>
