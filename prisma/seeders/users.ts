@@ -73,6 +73,7 @@ async function createUserWithMembership(
     update: {
       isActive: true,
       isDefault: true,
+      invitationAcceptedAt: new Date(),
     },
     create: {
       uuid: uuidv7(),
@@ -80,6 +81,7 @@ async function createUserWithMembership(
       userId: user.id,
       isDefault: true,
       isActive: true,
+      invitationAcceptedAt: new Date(),
     },
   });
 

@@ -12,6 +12,7 @@ export async function getUserCompanyMemberships(userId: number): Promise<UserCom
     where: {
       userId,
       isActive: true,
+      invitationAcceptedAt: { not: null },
       company: { isActive: true },
     },
     include: {

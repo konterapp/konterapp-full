@@ -86,6 +86,8 @@ export const userRepository = {
           userId: newUser.id,
           isDefault: true,
           isActive: true,
+          // Dibuat langsung oleh administrator platform, bukan lewat alur undangan tenant.
+          invitationAcceptedAt: new Date(),
         },
       });
 

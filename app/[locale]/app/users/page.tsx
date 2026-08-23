@@ -16,6 +16,7 @@ interface UserRow {
   email: string;
   is_active: boolean;
   email_verified_at?: string | null;
+  invitation_accepted_at?: string | null;
   roles: { uuid: string; name: string }[];
   created_at?: string;
   updated_at?: string;
@@ -194,6 +195,28 @@ export default function UsersPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
             </svg>
             Belum
+          </span>
+        )
+      ),
+    },
+    {
+      key: 'invitation_accepted',
+      label: 'Undangan',
+      sortable: false,
+      render: (_, row) => (
+        row.invitation_accepted_at ? (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Diterima
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+            </svg>
+            Menunggu
           </span>
         )
       ),

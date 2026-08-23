@@ -6,9 +6,12 @@ const MODEL_TYPE_USER = "App\\Models\\User";
 
 type Client = Prisma.TransactionClient | typeof prisma;
 
-const memberInclude = {
-  modelHasRoles: { include: { role: true } },
-} as const;
+function memberInclude(companyUuid: string) {
+  return {
+    modelHasRoles: { include: { role: true } },
+    companyMemberships: { where: { companyUuid } },
+  } as const;
+}
 
 export const appUserRepository = {
   runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
@@ -22,7 +25,7 @@ export const appUserRepository = {
         companyMemberships: { some: { companyUuid } },
         ...where,
       },
-      include: memberInclude,
+      include: memberInclude(companyUuid),
       orderBy,
       skip,
       take,
@@ -46,7 +49,7 @@ export const appUserRepository = {
         deletedAt: null,
         companyMemberships: { some: { companyUuid } },
       },
-      include: memberInclude,
+      include: memberInclude(companyUuid),
     });
   },
 
@@ -58,6 +61,11 @@ export const appUserRepository = {
         ...(excludeUuid ? { NOT: { uuid: excludeUuid } } : {}),
       },
     });
+  },
+
+  async isCompanyMember(companyUuid: string, userId: number) {
+    const count = await prisma.companyUser.count({ where: { companyUuid, userId } });
+    return count > 0;
   },
 
   async findRoleByUuid(companyUuid: string, uuid: string) {
@@ -97,12 +105,13 @@ export const appUserRepository = {
 
       const existingMemberships = await tx.companyUser.count({ where: { userId: newUser.id } });
 
-      await tx.companyUser.create({
+      const companyUser = await tx.companyUser.create({
         data: {
           companyUuid,
           userId: newUser.id,
           isDefault: existingMemberships === 0,
           isActive: true,
+          invitationAcceptedAt: null,
         },
       });
 
@@ -110,7 +119,31 @@ export const appUserRepository = {
         data: { roleId, modelType: MODEL_TYPE_USER, modelId: newUser.id, companyUuid },
       });
 
-      return newUser;
+      return { user: newUser, companyUserUuid: companyUser.uuid };
+    });
+  },
+
+  async attachExistingMember(payload: { companyUuid: string; userId: number; roleId: number }) {
+    const { companyUuid, userId, roleId } = payload;
+
+    return prisma.$transaction(async (tx) => {
+      const existingMemberships = await tx.companyUser.count({ where: { userId } });
+
+      const companyUser = await tx.companyUser.create({
+        data: {
+          companyUuid,
+          userId,
+          isDefault: existingMemberships === 0,
+          isActive: true,
+          invitationAcceptedAt: null,
+        },
+      });
+
+      await tx.modelHasRole.create({
+        data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
+      });
+
+      return { companyUserUuid: companyUser.uuid };
     });
   },
 

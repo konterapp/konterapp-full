@@ -101,10 +101,23 @@ CREATE TABLE "company_users" (
     "role" VARCHAR(50),
     "is_default" BOOLEAN NOT NULL DEFAULT false,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "invitation_accepted_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "company_users_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable
+CREATE TABLE "company_invitation_tokens" (
+    "id" SERIAL NOT NULL,
+    "uuid" CHAR(36) NOT NULL,
+    "company_user_uuid" CHAR(36) NOT NULL,
+    "token_hash" CHAR(64) NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "company_invitation_tokens_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -115,6 +128,15 @@ CREATE INDEX "company_users_user_id_idx" ON "company_users"("user_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "company_users_company_uuid_user_id_key" ON "company_users"("company_uuid", "user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "company_invitation_tokens_uuid_key" ON "company_invitation_tokens"("uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "company_invitation_tokens_token_hash_key" ON "company_invitation_tokens"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "company_invitation_tokens_company_user_uuid_idx" ON "company_invitation_tokens"("company_user_uuid");
 
 -- CreateIndex
 CREATE INDEX "app_pos_branches_company_uuid_idx" ON "app_pos_branches"("company_uuid");
@@ -181,6 +203,9 @@ ALTER TABLE "company_users" ADD CONSTRAINT "company_users_company_uuid_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "company_users" ADD CONSTRAINT "company_users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "company_invitation_tokens" ADD CONSTRAINT "company_invitation_tokens_company_user_uuid_fkey" FOREIGN KEY ("company_user_uuid") REFERENCES "company_users"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_pos_product_categories" ADD CONSTRAINT "app_pos_product_categories_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

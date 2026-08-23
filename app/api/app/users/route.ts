@@ -36,6 +36,10 @@ export const POST = withPermission(
     if (!('data' in result)) return result;
 
     const user = await appUserService.createUser(context.companyUuid, result.data);
-    return successResponse('User created successfully', user, 201);
+    return successResponse(
+      `User berhasil ditambahkan. Email undangan bergabung telah dikirim ke ${user.email}.`,
+      user,
+      201
+    );
   })
 );

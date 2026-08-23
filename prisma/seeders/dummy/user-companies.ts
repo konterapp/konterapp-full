@@ -32,13 +32,14 @@ export async function seedUserCompanies(prisma: PrismaClient) {
           userId: user.id,
         },
       },
-      update: { isActive: true },
+      update: { isActive: true, invitationAcceptedAt: new Date() },
       create: {
         uuid: uuidv7(),
         companyUuid: company.uuid,
         userId: user.id,
         isDefault: false,
         isActive: true,
+        invitationAcceptedAt: new Date(),
       },
     });
 

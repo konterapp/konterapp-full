@@ -159,7 +159,8 @@ export default function UserForm({ userId, mode }: UserFormProps) {
       const result = await response.json();
 
       if (result.status === 'success') {
-        const successMsg = mode === 'edit' ? 'User berhasil diperbarui' : 'User berhasil ditambahkan';
+        const successMsg =
+          result.message || (mode === 'edit' ? 'User berhasil diperbarui' : 'User berhasil ditambahkan');
         toast.success(successMsg);
         router.push('/app/users');
       } else {

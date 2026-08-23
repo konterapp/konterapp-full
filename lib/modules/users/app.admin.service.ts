@@ -4,7 +4,7 @@ import { ApiError, ValidationApiError } from "@/lib/api-errors";
 import { appUserRepository } from "./app.repository";
 import { mapAppUser } from "./app.user.mapper";
 import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "@/lib/modules/roles/templates";
-import { emailVerificationService } from "@/lib/modules/auth/verification";
+import { companyInvitationService } from "@/lib/modules/auth/company-invitation";
 
 export interface AppUserListParams {
   page: number;
@@ -67,16 +67,36 @@ export const appUserService = {
   ) {
     const normalizedEmail = payload.email.trim().toLowerCase();
 
+    const role = await this.resolveRole(companyUuid, payload.role_uuid);
+
     const existing = await appUserRepository.findByEmail(normalizedEmail);
     if (existing) {
-      throw new ValidationApiError({ email: ["Email sudah terdaftar"] });
-    }
+      const alreadyMember = await appUserRepository.isCompanyMember(companyUuid, existing.id);
+      if (alreadyMember) {
+        throw new ValidationApiError({ email: ["Email sudah terdaftar di perusahaan ini"] });
+      }
 
-    const role = await this.resolveRole(companyUuid, payload.role_uuid);
+      // Email sudah dipakai user di company lain: gabungkan user yang sama ke company ini,
+      // jangan bikin User baru (email unik secara global) dan jangan timpa password lamanya.
+      // Membership baru menunggu user menerima undangan lewat email dulu.
+      const { companyUserUuid } = await appUserRepository.attachExistingMember({
+        companyUuid,
+        userId: existing.id,
+        roleId: role.id,
+      });
+
+      try {
+        await companyInvitationService.sendForMembership(companyUserUuid);
+      } catch (error) {
+        console.error("Gagal kirim email undangan:", error);
+      }
+
+      return this.getUserDetail(companyUuid, existing.uuid);
+    }
 
     const hashedPassword = await hash(payload.password, 10);
 
-    const created = await appUserRepository.createMember({
+    const { user: created, companyUserUuid } = await appUserRepository.createMember({
       companyUuid,
       userData: {
         uuid: uuidv7(),
@@ -84,17 +104,17 @@ export const appUserService = {
         email: normalizedEmail,
         password: hashedPassword,
         isActive: true,
-        // User buatan tenant wajib verifikasi email sebelum login.
+        // User baru wajib menerima undangan (sekaligus memverifikasi email) sebelum bisa login.
         emailVerifiedAt: null,
       },
       roleId: role.id,
     });
 
-    // Kirim email verifikasi; gagal kirim tidak membatalkan pembuatan user.
+    // Kirim email undangan; gagal kirim tidak membatalkan pembuatan user.
     try {
-      await emailVerificationService.sendForUser(created.id);
+      await companyInvitationService.sendForMembership(companyUserUuid);
     } catch (error) {
-      console.error("Gagal kirim email verifikasi:", error);
+      console.error("Gagal kirim email undangan:", error);
     }
 
     return this.getUserDetail(companyUuid, created.uuid);
