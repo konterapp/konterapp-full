@@ -61,7 +61,7 @@ export default function AdministratorLoginClient() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-lg text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent transition-all"
-              placeholder="administrator@konterapp.com"
+              placeholder="nama@email.com"
             />
           </div>
 
