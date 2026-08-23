@@ -321,6 +321,3 @@ ALTER TABLE "app_roles" ADD CONSTRAINT "app_roles_company_uuid_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- Add is_default to app_pos_customers
-ALTER TABLE "app_pos_customers" ADD COLUMN "is_default" BOOLEAN NOT NULL DEFAULT false;

@@ -95,7 +95,6 @@ export async function seedCustomers(prisma: PrismaClient) {
           name: data.name,
           email: data.email || null,
           address: data.address || null,
-          isDefault: false,
         },
       });
       createdOrUpdated++;
@@ -110,7 +109,6 @@ export async function seedCustomers(prisma: PrismaClient) {
         phone: data.phone,
         email: data.email || null,
         address: data.address || null,
-        isDefault: false,
       },
     });
     createdOrUpdated++;

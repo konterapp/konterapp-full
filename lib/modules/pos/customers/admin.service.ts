@@ -60,10 +60,6 @@ export const posCustomerService = {
       throw new ApiError('Customer not found', 404);
     }
 
-    if (existingCustomer.isDefault && payload.name && payload.name !== existingCustomer.name) {
-      throw new ApiError('Tidak dapat mengubah nama pelanggan default', 400);
-    }
-
     const customer = await posCustomerRepository.updateByUuid(uuid, {
       name: payload.name || existingCustomer.name,
       phone: payload.phone ?? existingCustomer.phone,
@@ -77,10 +73,6 @@ export const posCustomerService = {
     const customer = await posCustomerRepository.findByUuid(uuid);
     if (!customer) {
       throw new ApiError('Customer not found', 404);
-    }
-
-    if (customer.isDefault) {
-      throw new ApiError('Tidak dapat menghapus pelanggan default', 400);
     }
 
     const salesCount = await posCustomerRepository.countSales(uuid);

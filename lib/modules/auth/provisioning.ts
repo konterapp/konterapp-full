@@ -18,11 +18,6 @@ const TENANT_DEFAULT_PAYMENT_METHODS = [
   { code: "GOPAY", name: "GoPay", type: "e_wallet" },
 ];
 
-const TENANT_DEFAULT_CUSTOMER = {
-  name: "Walk In Customer",
-  phone: "-",
-};
-
 const TENANT_DEFAULT_PRODUCT_CATEGORIES = [
   { name: "Pulsa & Voucher", description: "Voucher pulsa, paket data, dan token listrik" },
   { name: "Aksesoris HP", description: "Case, charger, headset, dan aksesoris ponsel lainnya" },
@@ -62,16 +57,6 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
       },
     });
   }
-
-  await tx.appPosCustomer.create({
-    data: {
-      uuid: uuidv7(),
-      companyUuid,
-      name: TENANT_DEFAULT_CUSTOMER.name,
-      phone: TENANT_DEFAULT_CUSTOMER.phone,
-      isDefault: true,
-    },
-  });
 
   for (const cat of TENANT_DEFAULT_PRODUCT_CATEGORIES) {
     await tx.appPosProductCategory.create({
