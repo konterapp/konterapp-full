@@ -1,4 +1,4 @@
-import { ApiError, ValidationApiError } from '@/lib/api-errors';
+import { ApiError } from '@/lib/api-errors';
 import { Prisma } from '@prisma/client';
 import { posShiftRepository } from './repository';
 import { mapActiveShiftWithLiveTotals, mapShift } from './shift.mapper';
@@ -40,10 +40,7 @@ export const posShiftService = {
     const sortMap: Record<string, Prisma.AppPosCashierShiftOrderByWithRelationInput> = {
       opened_at: { openedAt: sortOrder },
       closed_at: { closedAt: sortOrder },
-      opening_cash: { openingCash: sortOrder },
       total_sales: { totalSales: sortOrder },
-      expected_cash: { expectedCash: sortOrder },
-      variance: { variance: sortOrder },
       status: { status: sortOrder },
       created_at: { createdAt: sortOrder },
     };
@@ -69,11 +66,9 @@ export const posShiftService = {
       });
 
       const currentTotalSales = toNumber(salesAgg._sum.totalAmount);
-      const currentExpectedCash = toNumber(activeShift.openingCash) + currentTotalSales;
 
       activeShiftMapped = mapActiveShiftWithLiveTotals(activeShift, {
         currentTotalSales,
-        currentExpectedCash,
       });
     }
 
@@ -95,15 +90,10 @@ export const posShiftService = {
   async openShift(
     payload: {
       branchUuid: string;
-      openingCash: number;
       notesOpen?: string | null;
     },
     userId: number
   ) {
-    if (payload.openingCash < 0) {
-      throw new ValidationApiError({ opening_cash: ['Kas awal tidak boleh negatif'] });
-    }
-
     const existingOpen = await posShiftRepository.findOpenByUser(userId);
     if (existingOpen) {
       throw new ApiError('Masih ada shift aktif. Tutup shift aktif terlebih dahulu.', 400);
@@ -114,18 +104,13 @@ export const posShiftService = {
       throw new ApiError('Cabang tidak ditemukan atau tidak aktif', 404);
     }
 
-    const openingCash = Number(payload.openingCash);
-
     const shift = await posShiftRepository.create({
       companyUuid: branch.companyUuid,
       branchUuid: payload.branchUuid,
       userId,
       status: 'open',
       openedAt: new Date(),
-      openingCash,
       totalSales: 0,
-      expectedCash: openingCash,
-      variance: 0,
       notesOpen: payload.notesOpen?.trim() || null,
     });
 
@@ -135,15 +120,10 @@ export const posShiftService = {
   async closeShift(
     shiftUuid: string,
     payload: {
-      closingCash: number;
       notesClose?: string | null;
     },
     userId: number
   ) {
-    if (payload.closingCash < 0) {
-      throw new ValidationApiError({ closing_cash: ['Kas akhir tidak boleh negatif'] });
-    }
-
     const existing = await posShiftRepository.findByUuidForUser(shiftUuid, userId);
     if (!existing) {
       throw new ApiError('Shift tidak ditemukan', 404);
@@ -162,17 +142,11 @@ export const posShiftService = {
     });
 
     const totalSales = toNumber(salesAgg._sum.totalAmount);
-    const expectedCash = toNumber(existing.openingCash) + totalSales;
-    const closingCash = Number(payload.closingCash);
-    const variance = closingCash - expectedCash;
 
     const updated = await posShiftRepository.updateByUuid(shiftUuid, {
       status: 'closed',
       closedAt: now,
       totalSales,
-      expectedCash,
-      closingCash,
-      variance,
       notesClose: payload.notesClose?.trim() || null,
     });
 

@@ -52,10 +52,10 @@ const SALES_DATA: SaleSeed[] = [
   {
     saleNumber: "INV-20260420-002",
     saleDate: "2026-04-20",
-    paymentCode: "QRIS",
+    paymentCode: "DANA",
     customerIndex: 1,
     paymentStatus: "paid",
-    notes: "Pembayaran QRIS",
+    notes: "Pembayaran Dana",
     items: [
       { productSlot: 2, qty: 3 },
       { productSlot: 3, qty: 1 },
@@ -87,7 +87,7 @@ const SALES_DATA: SaleSeed[] = [
   {
     saleNumber: "INV-20260420-005",
     saleDate: "2026-04-20",
-    paymentCode: "OVO",
+    paymentCode: "GOPAY",
     customerIndex: 3,
     paymentStatus: "paid",
     notes: "Pembayaran e-wallet",
@@ -117,16 +117,17 @@ async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
   return branch;
 }
 
-async function getPaymentMethods(prisma: PrismaClient, companyUuid: string) {
-  const methods = await prisma.appPosPaymentMethod.findMany({
+async function getSaldoAccounts(prisma: PrismaClient, companyUuid: string) {
+  const accounts = await prisma.appPosSaldoAccount.findMany({
     where: {
       companyUuid,
       isActive: true,
+      isPaymentMethod: true,
     },
-    select: { uuid: true, code: true, name: true },
+    select: { uuid: true, code: true, name: true, balance: true },
   });
 
-  return methods;
+  return accounts;
 }
 
 async function getCustomers(prisma: PrismaClient, companyUuid: string) {
@@ -208,14 +209,14 @@ export async function seedSales(prisma: PrismaClient) {
     return;
   }
 
-  const [paymentMethods, customers, productData] = await Promise.all([
-    getPaymentMethods(prisma, companyUuid),
+  const [saldoAccounts, customers, productData] = await Promise.all([
+    getSaldoAccounts(prisma, companyUuid),
     getCustomers(prisma, companyUuid),
     getProductCandidates(prisma, companyUuid, branch.uuid),
   ]);
 
-  if (paymentMethods.length === 0) {
-    console.log("⚠ Payment method not found, skipping sales seed");
+  if (saldoAccounts.length === 0) {
+    console.log("⚠ Saldo account not found, skipping sales seed");
     return;
   }
 
@@ -224,7 +225,8 @@ export async function seedSales(prisma: PrismaClient) {
     return;
   }
 
-  const paymentMethodByCode = new Map(paymentMethods.map((item) => [item.code, item]));
+  const saldoAccountByCode = new Map(saldoAccounts.map((item) => [item.code, item]));
+  const runningBalance = new Map(saldoAccounts.map((item) => [item.uuid, Number(item.balance)]));
   let createdCount = 0;
 
   for (const saleSeed of SALES_DATA) {
@@ -265,10 +267,10 @@ export async function seedSales(prisma: PrismaClient) {
     const paidAmount = resolvePaidAmount(totalAmount, saleSeed.paymentStatus);
     const changeAmount = Math.max(paidAmount - totalAmount, 0);
 
-    const paymentMethod =
-      paymentMethodByCode.get(saleSeed.paymentCode) ||
-      paymentMethodByCode.get("CASH") ||
-      paymentMethods[0];
+    const saldoAccount =
+      saldoAccountByCode.get(saleSeed.paymentCode) ||
+      saldoAccountByCode.get("CASH") ||
+      saldoAccounts[0];
 
     const customer =
       saleSeed.customerIndex !== undefined && customers.length > 0
@@ -286,7 +288,7 @@ export async function seedSales(prisma: PrismaClient) {
           saleNumber: saleSeed.saleNumber,
           branchUuid: branch.uuid,
           customerUuid: customer?.uuid ?? null,
-          paymentMethodUuid: paymentMethod.uuid,
+          paymentMethodUuid: saldoAccount.uuid,
           saleDate,
           subtotal,
           discountAmount: itemDiscount,
@@ -299,6 +301,35 @@ export async function seedSales(prisma: PrismaClient) {
           createdAt,
         },
       });
+
+      if (paidAmount > 0) {
+        const balanceBefore = runningBalance.get(saldoAccount.uuid) ?? 0;
+        const balanceAfter = balanceBefore + paidAmount;
+        runningBalance.set(saldoAccount.uuid, balanceAfter);
+
+        await tx.appPosSaldoAccount.update({
+          where: { uuid: saldoAccount.uuid },
+          data: { balance: balanceAfter },
+        });
+
+        await tx.appPosSaldoMutation.create({
+          data: {
+            uuid: uuidv7(),
+            companyUuid,
+            saldoAccountUuid: saldoAccount.uuid,
+            branchUuid: branch.uuid,
+            direction: "in",
+            amount: paidAmount,
+            balanceBefore,
+            balanceAfter,
+            referenceType: "sale",
+            referenceUuid: createdSale.uuid,
+            notes: `Dummy sale ${saleSeed.saleNumber}`,
+            createdBy: admin.id,
+            createdAt,
+          },
+        });
+      }
 
       for (const item of selectedItems) {
         const stock = await tx.appPosProductStock.findFirst({

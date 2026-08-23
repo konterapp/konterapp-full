@@ -3,48 +3,52 @@ import { successResponse } from '@/lib/response';
 import { withPermission } from '@/lib/api-middleware';
 import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { validateSchema } from '@/lib/validation';
-import { createPaymentMethodSchema } from '@/lib/validations/payment-method';
-import { posPaymentMethodService } from '@/lib/modules/pos/payment-methods/admin.service';
+import { createSaldoAccountSchema } from '@/lib/validations/saldo';
+import { posSaldoService } from '@/lib/modules/pos/saldo/admin.service';
 
 export const GET = withPermission(
-  'pos.payment-method.index',
+  'pos.saldo.index',
   withApiErrorHandling(async (req: NextRequest) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
     const search = searchParams.get('search') || '';
     const isActive = searchParams.get('is_active');
+    const isPaymentMethod = searchParams.get('is_payment_method');
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') || 'desc';
 
-    const result = await posPaymentMethodService.listPaymentMethods({
+    const result = await posSaldoService.listAccounts({
       page,
       perPage,
       search,
       isActive,
+      isPaymentMethod,
       sortBy,
       sortOrder,
     });
 
-    return successResponse('Payment methods retrieved successfully', result);
+    return successResponse('Daftar akun saldo berhasil dimuat', result);
   })
 );
 
 export const POST = withPermission(
-  'pos.payment-method.create',
+  'pos.saldo.create',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const rawBody = await req.json();
     const body = {
       ...rawBody,
       accountNumber: rawBody.accountNumber ?? rawBody.account_number,
       accountName: rawBody.accountName ?? rawBody.account_name,
+      isPaymentMethod: rawBody.isPaymentMethod ?? rawBody.is_payment_method,
       isActive: rawBody.isActive ?? rawBody.is_active,
+      openingBalance: rawBody.openingBalance ?? rawBody.opening_balance,
     };
 
-    const result = validateSchema(createPaymentMethodSchema, body);
+    const result = validateSchema(createSaldoAccountSchema, body);
     if (!('data' in result)) return result;
 
-    const paymentMethod = await posPaymentMethodService.createPaymentMethod(context.companyUuid, result.data);
-    return successResponse('Payment method created successfully', paymentMethod);
+    const account = await posSaldoService.createAccount(context.companyUuid, context.userId, result.data);
+    return successResponse('Akun saldo berhasil dibuat', account);
   })
 );

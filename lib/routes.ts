@@ -150,17 +150,17 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/pos/reports',
     permission: 'pos.report.index',
   },
-  'pos.payment-method.index': {
-    path: '/app/pos/payment-methods',
-    permission: 'pos.payment-method.index',
+  'pos.saldo.index': {
+    path: '/app/pos/saldo',
+    permission: 'pos.saldo.index',
   },
-  'pos.payment-method.create': {
-    path: '/app/pos/payment-methods/create',
-    permission: 'pos.payment-method.create',
+  'pos.saldo.create': {
+    path: '/app/pos/saldo/create',
+    permission: 'pos.saldo.create',
   },
-  'pos.payment-method.edit': {
-    path: '/app/pos/payment-methods/:id/edit',
-    permission: 'pos.payment-method.update',
+  'pos.saldo.detail': {
+    path: '/app/pos/saldo/:id',
+    permission: 'pos.saldo.index',
   },
   'pos.ppob.index': {
     path: '/app/pos/ppob',

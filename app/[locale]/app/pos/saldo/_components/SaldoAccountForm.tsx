@@ -7,52 +7,57 @@ import { Save, X } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/toast/ToastContainer';
+import { getSaldoAccount, createSaldoAccount, updateSaldoAccount } from '@/lib/api/app/saldo';
 
-interface PaymentMethodFormData {
+interface SaldoAccountFormData {
   code: string;
   name: string;
   type: string;
   account_number: string;
   account_name: string;
   description: string;
+  is_payment_method: boolean;
   is_active: boolean;
+  opening_balance: string;
 }
 
-interface PaymentMethodFormProps {
-  paymentMethodId?: string;
+interface SaldoAccountFormProps {
+  saldoUuid?: string;
   mode: 'create' | 'edit';
 }
 
-export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMethodFormProps) {
+export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormProps) {
   const router = useRouter();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(mode === 'edit');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  const [formData, setFormData] = useState<PaymentMethodFormData>({
+  const [formData, setFormData] = useState<SaldoAccountFormData>({
     code: '',
     name: '',
     type: 'cash',
     account_number: '',
     account_name: '',
     description: '',
+    is_payment_method: true,
     is_active: true,
+    opening_balance: '0',
   });
 
   useEffect(() => {
-    if (mode === 'edit' && paymentMethodId) {
-      fetchPaymentMethod();
+    if (mode === 'edit' && saldoUuid) {
+      fetchAccount();
     }
-  }, [mode, paymentMethodId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, saldoUuid]);
 
-  const fetchPaymentMethod = async () => {
-    if (!paymentMethodId) return;
+  const fetchAccount = async () => {
+    if (!saldoUuid) return;
 
     try {
       setIsLoadingData(true);
-      const response = await fetch(`/api/app/pos/payment-methods/${paymentMethodId}`);
-      const result = await response.json();
+      const result = await getSaldoAccount(saldoUuid);
 
       if (result.status === 'success' && result.data) {
         setFormData({
@@ -62,13 +67,15 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
           account_number: result.data.account_number || '',
           account_name: result.data.account_name || '',
           description: result.data.description || '',
+          is_payment_method: result.data.is_payment_method ?? true,
           is_active: result.data.is_active ?? true,
+          opening_balance: '0',
         });
       } else {
-        setError(result.message || 'Gagal memuat data metode pembayaran');
+        setError(result.message || 'Gagal memuat data akun saldo');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+    } catch {
+      setError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoadingData(false);
     }
@@ -97,23 +104,26 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
     setFieldErrors({});
 
     try {
-      const url = mode === 'edit' && paymentMethodId
-        ? `/api/app/pos/payment-methods/${paymentMethodId}`
-        : '/api/app/pos/payment-methods';
-      const method = mode === 'edit' && paymentMethodId ? 'PUT' : 'POST';
+      const payload = {
+        code: formData.code,
+        name: formData.name,
+        type: formData.type,
+        account_number: formData.account_number,
+        account_name: formData.account_name,
+        description: formData.description,
+        is_payment_method: formData.is_payment_method,
+        is_active: formData.is_active,
+        ...(mode === 'create' ? { opening_balance: Number(formData.opening_balance) || 0 } : {}),
+      };
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
+      const result = mode === 'edit' && saldoUuid
+        ? await updateSaldoAccount(saldoUuid, payload)
+        : await createSaldoAccount(payload);
 
       if (result.status === 'success') {
-        const successMsg = mode === 'edit' ? 'Metode pembayaran berhasil diperbarui' : 'Metode pembayaran berhasil ditambahkan';
+        const successMsg = mode === 'edit' ? 'Akun saldo berhasil diperbarui' : 'Akun saldo berhasil ditambahkan';
         toast.success(successMsg);
-        router.push('/app/pos/payment-methods');
+        router.push('/app/pos/saldo');
       } else {
         if (result.errors) {
           setFieldErrors(result.errors);
@@ -122,8 +132,8 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
         setError(errorMsg);
         toast.error(errorMsg);
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.';
+    } catch {
+      const errorMsg = 'Terjadi kesalahan. Silakan coba lagi.';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -146,7 +156,7 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {mode === 'edit' ? 'Edit Metode Pembayaran' : 'Tambah Metode Pembayaran'}
+        {mode === 'edit' ? 'Edit Akun Saldo' : 'Tambah Akun Saldo'}
       </h1>
 
       {error && (
@@ -170,7 +180,7 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
               }`}
-              placeholder="Contoh: CASH"
+              placeholder="Contoh: CASH, DANA, BRI"
             />
             {fieldErrors.code && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.code[0]}</div>
@@ -192,7 +202,7 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
               }`}
-              placeholder="Masukkan nama metode"
+              placeholder="Masukkan nama akun saldo"
             />
             {fieldErrors.name && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.name[0]}</div>
@@ -215,17 +225,39 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
               }`}
             >
               <option value="cash">Tunai</option>
-              <option value="bank_transfer">Transfer Bank</option>
-              <option value="qris">QRIS</option>
+              <option value="bank">Bank</option>
               <option value="e_wallet">E-Wallet</option>
-              <option value="credit_card">Kartu Kredit</option>
-              <option value="debit_card">Kartu Debit</option>
               <option value="other">Lainnya</option>
             </select>
             {fieldErrors.type && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.type[0]}</div>
             )}
           </div>
+
+          {mode === 'create' && (
+            <div>
+              <label htmlFor="opening_balance" className="block text-sm font-medium text-gray-700 mb-2">
+                Saldo Awal
+              </label>
+              <input
+                type="number"
+                id="opening_balance"
+                name="opening_balance"
+                min="0"
+                value={formData.opening_balance}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                  fieldErrors.opening_balance
+                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                    : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                }`}
+                placeholder="0"
+              />
+              {fieldErrors.opening_balance && (
+                <div className="mt-1 text-sm text-red-600">{fieldErrors.opening_balance[0]}</div>
+              )}
+            </div>
+          )}
 
           <div>
             <label htmlFor="account_number" className="block text-sm font-medium text-gray-700 mb-2">
@@ -271,18 +303,34 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
             )}
           </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="is_active"
-              name="is_active"
-              checked={formData.is_active}
-              onChange={handleInputChange}
-              className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
-            />
-            <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
-              Aktif
-            </label>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_payment_method"
+                name="is_payment_method"
+                checked={formData.is_payment_method}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+              />
+              <label htmlFor="is_payment_method" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
+                Bisa dipakai sebagai metode bayar
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_active"
+                name="is_active"
+                checked={formData.is_active}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+              />
+              <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
+                Aktif
+              </label>
+            </div>
           </div>
         </div>
 
@@ -301,7 +349,7 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                 : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
             }`}
-            placeholder="Masukkan deskripsi metode"
+            placeholder="Masukkan deskripsi akun saldo"
           />
           {fieldErrors.description && (
             <div className="mt-1 text-sm text-red-600">{fieldErrors.description[0]}</div>
@@ -309,7 +357,7 @@ export default function PaymentMethodForm({ paymentMethodId, mode }: PaymentMeth
         </div>
 
         <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-          <Link href="/app/pos/payment-methods">
+          <Link href="/app/pos/saldo">
             <Button type="button" variant="light" icon={X}>
               Batal
             </Button>

@@ -43,7 +43,6 @@ export const POST = withPermission(
     const shift = await posShiftService.openShift(
       {
         branchUuid: result.data.branch_uuid,
-        openingCash: result.data.opening_cash,
         notesOpen: result.data.notes_open || null,
       },
       context.userId

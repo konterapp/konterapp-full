@@ -22,7 +22,7 @@ const FEATURE_LABELS: Record<string, string> = {
   purchase: 'Pembelian',
   'stock-movement': 'Mutasi Stok',
   report: 'Laporan',
-  'payment-method': 'Metode Pembayaran',
+  saldo: 'Saldo',
   branch: 'Cabang/Lokasi',
   ppob: 'PPOB',
 };

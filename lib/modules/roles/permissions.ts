@@ -49,11 +49,11 @@ export const PERMISSIONS = [
   "pos.stock-movement.index",
   // POS - Report
   "pos.report.index",
-  // POS - Payment Method
-  "pos.payment-method.index",
-  "pos.payment-method.create",
-  "pos.payment-method.update",
-  "pos.payment-method.delete",
+  // POS - Saldo (akun uang konter, sebagian juga bisa jadi metode bayar)
+  "pos.saldo.index",
+  "pos.saldo.create",
+  "pos.saldo.update",
+  "pos.saldo.delete",
   // POS - Branch
   "pos.branch.index",
   "pos.branch.create",

@@ -64,7 +64,7 @@ export default function TransactionsPage() {
     try {
       const [branchRes, pmRes] = await Promise.all([
         fetch('/api/app/pos/branches/list').then((res) => res.json()),
-        fetch('/api/app/pos/payment-methods?per_page=1000').then((res) => res.json()),
+        fetch('/api/app/pos/saldo?per_page=1000').then((res) => res.json()),
       ]);
 
       if (branchRes.status === 'success' && branchRes.data) {

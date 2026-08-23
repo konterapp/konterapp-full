@@ -42,11 +42,18 @@ DONE:
 DOING:
 - konterapp-full-1
     - (done) isolasi menu-menu tenant
-    - defualt data register
+    - (done) defualt data register
+    - (done) db transaction
 - konterapp-full-2
     - (done) hapus users dan backup
+    - (done) menu saldo
+    - saldo shift (lihat plan-shift-saldo-snapshot.txt & plan-saldo-multi-cabang.txt)
 - konterapp-full-3
     - (done) hapus fitur berita
+    - (done) walkin customer
+    - (done) email sudah terdaftar
+
+
 
 PENDING:
 - catatkonter

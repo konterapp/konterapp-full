@@ -17,7 +17,6 @@ export const POST = withPermission(
     const shift = await posShiftService.closeShift(
       uuid,
       {
-        closingCash: result.data.closing_cash,
         notesClose: result.data.notes_close || null,
       },
       context.userId

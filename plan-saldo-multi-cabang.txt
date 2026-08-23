@@ -1,0 +1,213 @@
+PLAN: Saldo Multi-Cabang (Grouping Cabang per Akun Saldo)
+=============================================================
+Status: BELUM DIKERJAKAN -- ini hasil diskusi desain, belum ada
+migration/kode yang dibuat untuk plan ini. Fitur Saldo dasar (tanpa
+scoping cabang ini) SUDAH live & sudah di-migrate ke DB dev.
+
+Project: konterapp-full (Next.js 16 App Router + Prisma 6 + PostgreSQL,
+multi-tenant POS/SaaS). Baca CLAUDE.md di root project dulu (aturan
+wajib: validasi di API pakai zod, transaction untuk multi-write, semua
+tabel tenant wajib company_uuid + didaftarkan ke TENANT_MODELS, edit
+migration lama untuk tambah kolom tapi migration baru untuk tabel baru,
+version bump di package.json tiap commit, dst) -- berlaku juga untuk
+plan ini.
+
+File terkait lain: plan-shift-saldo-snapshot.txt (plan lain, dibuat
+sebelum ini, poin 2a di file itu -- soal apakah Cash shared/per-cabang --
+SEKARANG TERJAWAB oleh plan ini: bukan cuma "shared semua" vs "eksklusif
+1 cabang", tapi bisa "shared ke SEBAGIAN cabang tertentu". Kerjakan plan
+ini DULU sebelum lanjut plan shift-snapshot, karena shift-snapshot butuh
+konsep "saldo milik cabang mana" yang baru jelas setelah plan ini selesai).
+
+
+1. LATAR BELAKANG & MASALAH
+------------------------------
+Skema Saldo saat ini (model AppPosSaldoAccount di prisma/schema.prisma,
+sudah live) cuma punya company_uuid, TIDAK punya dimensi cabang sama
+sekali. Artinya 1 baris akun saldo = 1 balance yang otomatis dipakai
+bareng oleh SEMUA cabang di company itu tanpa kecuali.
+
+User kasih studi kasus nyata yang tidak bisa direpresentasikan skema
+sekarang:
+  - Cabang A dan Cabang B: masing-masing punya saldo Tunai & BRI SENDIRI
+    (balance beda, tidak boleh kecampur).
+  - Cabang A dan Cabang B: SALING BERBAGI 1 saldo Dana yang sama (balance
+    yang sama, transaksi dari A atau B sama-sama mempengaruhi 1 angka
+    yang sama).
+  - Cabang C: punya saldo Dana SENDIRI, terpisah dari punya A+B (meski
+    nama akunnya sama-sama "Dana").
+
+Jadi hubungan akun saldo <-> cabang itu MANY-TO-MANY, bukan 1-ke-1 atau
+"semua vs satu". Nullable `branch_uuid` tunggal di tabel akun TIDAK
+CUKUP untuk kasus ini (cuma bisa merepresentasikan "milik 1 cabang" atau
+"milik semua cabang", tidak bisa "milik sekumpulan cabang tertentu").
+
+
+2. DESAIN YANG DIUSULKAN (sudah didiskusikan garis besarnya ke user,
+   detail teknis di bawah belum dikonfirmasi user -- WAJIB tanya dulu
+   poin di section 3 sebelum mulai coding)
+------------------------------------------------------------------------
+Tambah tabel pivot baru many-to-many, `AppPosSaldoAccountBranch`:
+
+  model AppPosSaldoAccountBranch {
+    uuid            String   @id @default(uuid()) @db.Char(36)
+    companyUuid     String   @map("company_uuid") @db.Char(36)
+    saldoAccountUuid String  @map("saldo_account_uuid") @db.Char(36)
+    branchUuid      String   @map("branch_uuid") @db.Char(36)
+    createdAt       DateTime @default(now()) @map("created_at")
+
+    company      Company             @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+    saldoAccount AppPosSaldoAccount  @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+    branch       AppPosBranch        @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+
+    @@unique([saldoAccountUuid, branchUuid])
+    @@index([companyUuid])
+    @@index([branchUuid])
+    @@map("app_pos_saldo_account_branches")
+  }
+
+Catatan wajib (CLAUDE.md): tabel pivot ini TETAP WAJIB punya
+`company_uuid` sendiri meskipun bisa didapat lewat join ke parent --
+sudah ada aturan eksplisit soal ini di CLAUDE.md (alasannya: rencana
+offline/online sync & isolasi tenant, baca aturan lengkapnya di sana).
+Setelah tabel ini dibuat, WAJIB didaftarkan ke TENANT_MODELS
+(lib/tenant-context.ts) dan UUID_MODELS (lib/prisma.ts) -- kalau lupa,
+data bocor lintas tenant secara diam-diam tanpa error (baca contoh
+insiden nyata `app_pos_product_stocks` di CLAUDE.md).
+
+Cara pakai:
+  - 1 akun saldo "Dana" dipakai bareng Cabang A & B -> 1 baris
+    AppPosSaldoAccount ("Dana"), 2 baris pivot (Dana-A, Dana-B).
+  - Cabang C mau "Dana" sendiri -> admin buat AKUN BARU dengan code
+    beda (misal `DANA-C`, nama boleh tetap "Dana" karena `name` tidak
+    unique, cuma `code` yang unique per company), lalu 1 baris pivot
+    (Dana-C, hanya ke Cabang C).
+  - Tunai Cabang A dan Tunai Cabang B: 2 akun terpisah (code beda, misal
+    `CASH-A` / `CASH-B`, atau skema kode lain yang dipilih user), masing-
+    masing cuma di-link ke 1 cabang.
+
+Migration: karena ini TABEL BARU (bukan tambah kolom ke tabel yang
+sudah ada), sesuai CLAUDE.md pakai migration file baru, JANGAN edit
+migration lama.
+
+
+3. PERTANYAAN YANG WAJIB DIKONFIRMASI KE USER SEBELUM CODING
+------------------------------------------------------------------
+Jangan asumsi sendiri untuk poin-poin ini -- ini keputusan produk:
+
+a) Boleh tidak 1 akun saldo TIDAK di-link ke cabang manapun (0 baris
+   pivot)? Rekomendasi: TIDAK BOLEH -- akun yang tidak bisa dipakai di
+   cabang manapun itu membingungkan, jadi validasi minimal 1 cabang wajib
+   dipilih saat create akun saldo.
+
+b) Kalau company nambah cabang BARU di kemudian hari, akun-akun saldo
+   yang "shared ke banyak cabang" (misal Dana yang sudah di-link ke A+B)
+   apakah OTOMATIS ikut ke-link ke cabang baru itu, atau admin harus
+   manual tambahkan link-nya lewat form edit akun saldo? Rekomendasi:
+   MANUAL saja dulu (tidak ada auto-propagation) -- lebih simpel &
+   predictable, tidak ada "magic behavior" yang bikin bingung. Cabang
+   baru defaultnya tidak otomatis kebagian akun apa pun sampai admin
+   eksplisit link-kan.
+
+c) Data existing yang sudah kepalang dibuat SEBELUM plan ini (akun-akun
+   saldo dari provisioning tenant baru & seeder dummy yang sudah live)
+   -- saat migration dijalankan, apakah perlu data-migration otomatis
+   yang me-link semua akun existing ke SEMUA cabang company-nya (supaya
+   perilaku lama "bisa dipakai di cabang manapun" tetap sama persis
+   sebelum admin mulai mengatur ulang secara manual)? Rekomendasi: YA,
+   supaya tidak ada downtime/kejutan (tiba-tiba semua metode pembayaran
+   hilang dari POS karena tidak ada cabang yang ter-link) -- tulis
+   sebagai bagian dari migration.sql (INSERT ... SELECT dari kombinasi
+   semua saldo account x semua branch di company yang sama) atau sebagai
+   langkah seeder terpisah yang dijalankan sekali.
+
+d) Skema kode (`code`) untuk akun yang sengaja dibuat terpisah per
+   cabang (kasus CASH-A / CASH-B) -- mau dipaksa pakai suffix/pola
+   tertentu, atau bebas terserah admin isi sendiri asal unique per
+   company? Rekomendasi: bebas (cuma validasi unique per company seperti
+   sekarang), tidak usah dipaksa pola tertentu -- biar fleksibel dan
+   tidak nambah kompleksitas validasi.
+
+
+4. TITIK-TITIK KODE YANG PERLU DIUBAH (kalau plan ini dieksekusi)
+------------------------------------------------------------------
+- prisma/schema.prisma: tambah model AppPosSaldoAccountBranch + relasi
+  balik di AppPosSaldoAccount (`branches AppPosSaldoAccountBranch[]`)
+  dan AppPosBranch (`saldoAccounts AppPosSaldoAccountBranch[]`) dan
+  Company (relasi baru kalau perlu, ikuti pola field relasi existing).
+- Migration baru (folder prisma/migrations/<timestamp>_saldo_multi_cabang
+  atau nama serupa) -- CREATE TABLE pivot + data-migration INSERT kalau
+  poin 3c disetujui.
+- lib/tenant-context.ts, lib/prisma.ts -- daftarkan
+  "AppPosSaldoAccountBranch" ke TENANT_MODELS & UUID_MODELS.
+- lib/modules/pos/saldo/repository.ts:
+  - `create`/`updateByUuid` perlu terima `branchUuids: string[]` dan,
+    dalam SATU transaction (posSaldoRepository perlu `runInTransaction`
+    kalau belum ada -- cek dulu, saat ini repository ini masih pakai
+    `prisma` langsung tanpa wrapper transaction eksplisit untuk create/
+    update biasa), insert/replace baris-baris pivot terkait. INI MULTI-
+    WRITE (create/update akun + insert N baris pivot) -- WAJIB dibungkus
+    transaction sesuai aturan CLAUDE.md, jangan biarkan jalan
+    sendiri-sendiri.
+  - Tambah method baru, misal `findManyForBranch(companyUuid, branchUuid,
+    filters)` -- query akun saldo yang di-link ke branch_uuid tsb (join
+    ke pivot table), dipakai untuk selector metode bayar POS per cabang.
+  - `countUsages`/`deleteByUuid` -- pivot row otomatis kehapus lewat
+    onDelete: Cascade, tidak perlu logic tambahan.
+- lib/modules/pos/saldo/admin.service.ts -- createAccount/updateAccount
+  terima & teruskan branchUuids, validasi minimal 1 (poin 3a).
+- lib/modules/pos/saldo/saldo.mapper.ts -- tambah field `branches` di
+  response (array {uuid, name, code} cabang yang ter-link), supaya
+  frontend bisa nampilkan badge/label cabang per akun.
+- lib/validations/saldo.ts -- createSaldoAccountSchema/
+  updateSaldoAccountSchema tambah field `branch_uuids: z.array(z.string()).min(1, "Pilih minimal 1 cabang")`.
+- lib/modules/pos/transactions/admin.service.ts (createSale) -- validasi
+  saldo account yang dipilih customer sebagai payment method HARUS
+  ter-link ke branch_uuid dari sale itu (saat ini cuma cek
+  `isPaymentMethod && isActive`, perlu tambah cek keanggotaan cabang).
+- app/[locale]/app/pos/saldo/_components/SaldoAccountForm.tsx -- tambah
+  multi-select/checkbox list cabang (fetch daftar cabang company, mirip
+  pola yang dipakai form lain yang butuh pilih cabang).
+- app/[locale]/app/pos/saldo/page.tsx & app/[locale]/app/pos/saldo/[uuid]/page.tsx
+  -- tampilkan badge cabang mana saja yang pakai akun itu.
+- app/[locale]/app/pos/page.tsx (selector metode bayar di halaman kasir)
+  -- ganti dari fetch "semua akun is_payment_method" jadi fetch yang
+  di-filter by cabang aktif (branch shift yang sedang dibuka).
+- lib/api/app/saldo.ts -- update type SaldoAccount (tambah field
+  branches) & fungsi createSaldoAccount/updateSaldoAccount (tambah
+  branch_uuids ke payload).
+- lib/modules/auth/provisioning.ts (seedTenantDefaults) -- setelah bikin
+  akun saldo default (Cash/BCA/GoPay), langsung link ke `mainBranch` yang
+  baru dibuat di function yang sama (tenant baru cuma punya 1 cabang di
+  awal, jadi semua akun default otomatis ke-link ke situ).
+- prisma/seeders/dummy/saldo.ts -- update supaya bikin contoh multi-
+  cabang sesuai studi kasus user (Cash A terpisah dari Cash B, Dana
+  shared A+B, dst) supaya kelihatan fitur ini bekerja saat demo dummy
+  data. Ingat aturan CLAUDE.md: `uuid` wajib pakai `uuidv7()` eksplisit.
+
+
+5. VERIFIKASI SETELAH IMPLEMENTASI
+-------------------------------------
+- npx prisma format && npx prisma validate && npx prisma generate.
+- npx tsc --noEmit, eslint file-file yang diubah, npx vitest run,
+  npm run check:transactions (khusus untuk memastikan multi-write di
+  saldo repository/service sudah dibungkus transaction).
+- migrate reset + restart dev server + seed dummy BUTUH IZIN USER dulu
+  (destruktif ke DB dev, dan Claude Code classifier akan menolak kalau
+  AI coba jalankan sendiri tanpa approval eksplisit) -- minta user
+  jalankan manual atau approve dulu.
+- Manual test: buat 2 cabang, buat akun "Dana" link ke keduanya, buat
+  akun "Cash A" cuma link ke cabang 1, buat transaksi POS di cabang 1
+  pakai Dana -> cek saldo Dana bertambah dan MUNCUL juga kalau dicek dari
+  konteks cabang 2 (karena shared). Coba juga transaksi di cabang 2 pakai
+  "Cash A" (yang cuma di-link ke cabang 1) -> harus DITOLAK validasi.
+
+
+6. CATATAN
+------------
+- Ada kemungkinan sesi/AI lain bekerja di repo yang sama secara
+  bersamaan (sudah beberapa kali terjadi di project ini). Cek `git
+  status`/`git diff` dulu sebelum mulai, jangan ikut commit perubahan
+  yang tidak berhubungan dengan plan ini.
+- Plan ini BELUM final -- section 3 (a-d) wajib dikonfirmasi ulang ke
+  user sebelum mulai implementasi, jangan asumsi sendiri jawabannya.

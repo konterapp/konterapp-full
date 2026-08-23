@@ -8,7 +8,6 @@ import {
     Truck,
     ClipboardList,
     History,
-    CreditCard,
     TrendingUp,
     Zap,
     CircleDot,
@@ -17,6 +16,7 @@ import {
     ArrowLeftRight,
     ClipboardCheck,
     Wallet,
+    Banknote,
     Landmark,
     Scale,
     ScanLine,
@@ -135,14 +135,7 @@ const coreMenuItems: MenuItem[] = [
     },
     {
         section: 'Master Data',
-        label: 'Metode Pembayaran', 
-        href: '/app/pos/payment-methods', 
-        icon: <CreditCard className="w-5 h-5" />,
-        permission: 'pos.payment-method.index'
-    },
-    {
-        section: 'Master Data',
-        label: 'Cabang/Lokasi', 
+        label: 'Cabang/Lokasi',
         href: '/app/pos/branches', 
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
@@ -168,6 +161,13 @@ const coreMenuItems: MenuItem[] = [
         href: '/app/pos/stock-opname',
         icon: <ClipboardCheck className="w-5 h-5" />,
         permission: 'pos.stock-movement.index'
+    },
+    {
+        section: 'Inventori & Keuangan',
+        label: 'Saldo',
+        href: '/app/pos/saldo',
+        icon: <Banknote className="w-5 h-5" />,
+        permission: 'pos.saldo.index'
     },
     {
         section: 'Inventori & Keuangan',

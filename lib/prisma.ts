@@ -23,13 +23,14 @@ const UUID_MODELS = new Set<string>([
   "AppPosPurchase",
   "AppPosPurchaseItem",
   "AppPosStockMovement",
-  "AppPosPaymentMethod",
   "AppPosCustomer",
   "AppPosSale",
   "AppPosSaleItem",
   "AppPosCashierShift",
   "AppPosPpobProduct",
   "AppPosPpobTransaction",
+  "AppPosSaldoAccount",
+  "AppPosSaldoMutation",
 ]);
 
 function modelToDelegateName(model: string): string {

@@ -3,11 +3,7 @@ type ShiftRow = {
   status: string;
   openedAt: Date;
   closedAt: Date | null;
-  openingCash: unknown;
   totalSales: unknown;
-  expectedCash: unknown;
-  closingCash: unknown;
-  variance: unknown;
   notesOpen: string | null;
   notesClose: string | null;
   createdAt: Date;
@@ -37,11 +33,7 @@ export function mapShift(shift: ShiftRow) {
     status: shift.status,
     opened_at: shift.openedAt,
     closed_at: shift.closedAt,
-    opening_cash: toNumber(shift.openingCash),
     total_sales: toNumber(shift.totalSales),
-    expected_cash: toNumber(shift.expectedCash),
-    closing_cash: shift.closingCash === null ? null : toNumber(shift.closingCash),
-    variance: toNumber(shift.variance),
     notes_open: shift.notesOpen,
     notes_close: shift.notesClose,
     created_at: shift.createdAt,
@@ -66,12 +58,11 @@ export function mapShift(shift: ShiftRow) {
 
 export function mapActiveShiftWithLiveTotals(
   shift: ShiftRow,
-  params: { currentTotalSales: number; currentExpectedCash: number }
+  params: { currentTotalSales: number }
 ) {
   const mapped = mapShift(shift);
   return {
     ...mapped,
     current_total_sales: params.currentTotalSales,
-    current_expected_cash: params.currentExpectedCash,
   };
 }

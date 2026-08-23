@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/app/product';
-import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/app/payment-method';
+import { getAllSaldoAccounts, SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
 import { Customer } from '@/lib/api/app/customer';
 import { createSale, Sale, SaleItemCreateData } from '@/lib/api/app/sale';
 import CustomerSelect from './_components/CustomerSelect';
@@ -36,9 +36,7 @@ interface BranchOption {
 interface ActiveShift {
   uuid: string;
   opened_at: string;
-  opening_cash: number;
   current_total_sales: number;
-  current_expected_cash: number;
   branch: {
     uuid: string;
     name: string;
@@ -49,9 +47,7 @@ interface ActiveShift {
 interface ClosedShiftSummary {
   uuid: string;
   closed_at: string | null;
-  expected_cash: number;
-  closing_cash: number | null;
-  variance: number;
+  total_sales: number;
   branch: {
     uuid: string;
     name: string;
@@ -74,11 +70,9 @@ export default function KasirPage() {
   const [recentlyClosedShift, setRecentlyClosedShift] = useState<ClosedShiftSummary | null>(null);
   const [openShiftForm, setOpenShiftForm] = useState({
     branch_uuid: '',
-    opening_cash: '',
     notes_open: '',
   });
   const [closeShiftForm, setCloseShiftForm] = useState({
-    closing_cash: '',
     notes_close: '',
   });
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -120,10 +114,6 @@ export default function KasirPage() {
         setSelectedBranch(active.branch.uuid);
         setRecentlyClosedShift(null);
         setOpenShiftForm((prev) => ({ ...prev, branch_uuid: active.branch.uuid }));
-        setCloseShiftForm((prev) => ({
-          ...prev,
-          closing_cash: prev.closing_cash || String(Math.round(active.current_expected_cash || 0)),
-        }));
       } else {
         const defaultBranch = branchItems.find((item: BranchOption) => item.is_main) || branchItems[0];
         setSelectedBranch('');
@@ -131,7 +121,7 @@ export default function KasirPage() {
           ...prev,
           branch_uuid: prev.branch_uuid || defaultBranch?.uuid || '',
         }));
-        setCloseShiftForm({ closing_cash: '', notes_close: '' });
+        setCloseShiftForm({ notes_close: '' });
       }
     } catch (err) {
       console.error('Failed to load shift state:', err);
@@ -146,11 +136,9 @@ export default function KasirPage() {
     const loadData = async () => {
       try {
         await loadShiftState();
-        const paymentMethodsRes = await getAllPaymentMethods();
+        const paymentMethodsRes = await getAllSaldoAccounts({ isPaymentMethod: true });
         if (paymentMethodsRes.data) {
-          const paymentItems = Array.isArray(paymentMethodsRes.data)
-            ? paymentMethodsRes.data
-            : (paymentMethodsRes.data as { data?: PaymentMethod[] }).data || [];
+          const paymentItems = paymentMethodsRes.data.data || [];
           setPaymentMethods(paymentItems);
           const cashMethod = paymentItems.find(pm => pm.type === 'cash');
           if (cashMethod) setSelectedPaymentMethod(cashMethod.uuid);
@@ -281,12 +269,6 @@ export default function KasirPage() {
       return;
     }
 
-    const openingCash = Number(openShiftForm.opening_cash);
-    if (!Number.isFinite(openingCash) || openingCash < 0) {
-      setError('Kas awal wajib berupa angka >= 0');
-      return;
-    }
-
     setIsSubmittingShift(true);
     setError('');
     try {
@@ -295,7 +277,6 @@ export default function KasirPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branch_uuid: openShiftForm.branch_uuid,
-          opening_cash: openingCash,
           notes_open: openShiftForm.notes_open || null,
         }),
       });
@@ -305,7 +286,7 @@ export default function KasirPage() {
         throw new Error(result.message || 'Gagal membuka shift');
       }
 
-      setOpenShiftForm((prev) => ({ ...prev, opening_cash: '', notes_open: '' }));
+      setOpenShiftForm((prev) => ({ ...prev, notes_open: '' }));
       setRecentlyClosedShift(null);
       await loadShiftState();
       setProductSearch('');
@@ -367,12 +348,6 @@ export default function KasirPage() {
       return;
     }
 
-    const closingCash = Number(closeShiftForm.closing_cash);
-    if (!Number.isFinite(closingCash) || closingCash < 0) {
-      setError('Kas akhir wajib berupa angka >= 0');
-      return;
-    }
-
     setIsSubmittingCloseShift(true);
     setError('');
     try {
@@ -380,7 +355,6 @@ export default function KasirPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          closing_cash: closingCash,
           notes_close: closeShiftForm.notes_close || null,
         }),
       });
@@ -394,9 +368,7 @@ export default function KasirPage() {
         setRecentlyClosedShift({
           uuid: result.data.uuid,
           closed_at: result.data.closed_at || null,
-          expected_cash: Number(result.data.expected_cash || 0),
-          closing_cash: result.data.closing_cash === null ? null : Number(result.data.closing_cash),
-          variance: Number(result.data.variance || 0),
+          total_sales: Number(result.data.total_sales || 0),
           branch: result.data.branch || null,
         });
       }
@@ -521,22 +493,13 @@ export default function KasirPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
-                <p className="text-xs text-gray-500">Kas Seharusnya</p>
-                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.expected_cash)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
-                <p className="text-xs text-gray-500">Kas Real</p>
-                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.closing_cash ?? 0)}</p>
-              </div>
-              <div className="rounded-lg border border-gray-200 p-3 bg-gray-50">
-                <p className="text-xs text-gray-500">Selisih</p>
-                <p className={`text-sm font-semibold ${recentlyClosedShift.variance < 0 ? 'text-red-600' : recentlyClosedShift.variance > 0 ? 'text-green-600' : 'text-[#142D52]'}`}>
-                  {formatCurrency(recentlyClosedShift.variance)}
-                </p>
+                <p className="text-xs text-gray-500">Total Penjualan</p>
+                <p className="text-sm font-semibold text-[#142D52]">{formatCurrency(recentlyClosedShift.total_sales)}</p>
               </div>
             </div>
+            <p className="text-xs text-gray-500">Cocokkan kas laci dengan saldo akun Cash di menu Saldo.</p>
 
             <div className="flex flex-col sm:flex-row gap-2">
               <button
@@ -580,19 +543,6 @@ export default function KasirPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kas Awal</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={openShiftForm.opening_cash}
-                  onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, opening_cash: e.target.value }))}
-                  placeholder="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                />
               </div>
 
               <div>
@@ -965,21 +915,8 @@ export default function KasirPage() {
               <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm">
                 <p className="text-gray-600">Cabang Shift</p>
                 <p className="font-semibold text-[#142D52]">{activeShift.branch?.name || '-'}</p>
-                <p className="text-gray-600 mt-2">Kas Seharusnya (live)</p>
-                <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_expected_cash || 0)}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kas Akhir (Real)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={closeShiftForm.closing_cash}
-                  onChange={(e) => setCloseShiftForm((prev) => ({ ...prev, closing_cash: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                  placeholder="0"
-                />
+                <p className="text-gray-600 mt-2">Total Penjualan Berjalan</p>
+                <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
               </div>
 
               <div>

@@ -1,0 +1,221 @@
+PLAN: Snapshot Saldo per Shift (Buka/Tutup Shift)
+===================================================
+Status: BELUM DIKERJAKAN -- ini baru hasil diskusi desain, belum ada
+implementasi/migration/kode yang dibuat untuk plan ini.
+
+Project: konterapp-full (Next.js 16 App Router + Prisma 6 + PostgreSQL,
+multi-tenant POS/SaaS). Baca dulu CLAUDE.md di root project untuk aturan
+wajib (validasi di API pakai zod, transaction untuk multi-write, semua
+tabel tenant wajib company_uuid + didaftarkan ke TENANT_MODELS, dst)
+sebelum mulai coding -- semua aturan itu berlaku juga untuk fitur ini.
+
+>>> DEPENDENSI: kerjakan plan-saldo-multi-cabang.txt DULU sebelum plan
+    ini. Poin 2a di bawah (soal apakah Cash shared/per-cabang) sudah
+    terjawab oleh plan itu: hubungan akun saldo <-> cabang ternyata
+    many-to-many (1 akun bisa di-share ke sekumpulan cabang tertentu,
+    bukan cuma "1 cabang" atau "semua cabang"). Setelah plan multi-cabang
+    itu selesai, "cabang mana yang relevan untuk shift ini" jadi jelas
+    (branch_uuid milik shift itu sendiri, lalu tinggal query akun saldo
+    yang ter-link ke branch itu lewat tabel pivot
+    AppPosSaldoAccountBranch) -- baru lanjut ke plan snapshot ini.
+
+
+1. LATAR BELAKANG
+------------------
+Fitur "Saldo" (lihat lib/modules/pos/saldo/, app/[locale]/app/pos/saldo/,
+model AppPosSaldoAccount + AppPosSaldoMutation di prisma/schema.prisma)
+sudah selesai dibuat: akun uang company-scoped (Cash, Dana, BRI, GoPay,
+dst), punya balance berjalan, dan ledger mutasi (AppPosSaldoMutation) yang
+attach ke branch_uuid (opsional) + timestamp tiap kali ada pergerakan
+(penjualan POS, koreksi manual, saldo awal).
+
+Sebelumnya, cashier shift (AppPosCashierShift) punya kolom openingCash/
+expectedCash/closingCash/variance untuk rekonsiliasi kas per shift. Kolom-
+kolom itu SUDAH DIHAPUS (lihat migration
+prisma/migrations/20260419121438_pos_cashier_shifts/migration.sql yang
+sudah diedit langsung) karena user memutuskan rekonsiliasi cash sekarang
+lewat menu Saldo, bukan lewat shift. Shift sekarang cuma nyimpen: status
+open/closed, opened_at, closed_at, total_sales (agregat SUM penjualan
+selama shift, dihitung dari AppPosSale), notes_open, notes_close.
+
+User sekarang mau diskusi: gimana kalau tiap buka/tutup shift, ada record
+detail saldo-nya juga -- supaya kasir/admin bisa lihat kondisi saldo saat
+shift dibuka dan ditutup, semacam pengganti konsep opening_cash/
+closing_cash lama tapi digeneralisasi ke semua akun saldo (bukan cuma
+Cash).
+
+
+2. MASALAH DESAIN YANG PERLU DIPUTUSKAN DULU
+---------------------------------------------
+Sebelum implementasi, WAJIB konfirmasi ke user (jangan asumsi sendiri,
+ini keputusan produk, bukan detail teknis):
+
+a) [SUDAH TERJAWAB oleh plan-saldo-multi-cabang.txt -- baca file itu.
+   Ringkasan: bukan cuma "shared semua" vs "eksklusif 1 cabang", tapi
+   many-to-many lewat tabel pivot AppPosSaldoAccountBranch (1 akun bisa
+   di-link ke sekumpulan cabang tertentu). Setelah plan itu selesai,
+   snapshot shift tinggal query akun-akun yang ter-link ke branch_uuid
+   milik shift ybs -- jadi TIDAK ambigu lagi seperti dugaan awal di
+   bawah ini (paragraf di bawah dibiarkan sebagai catatan sejarah
+   diskusi, bukan keputusan final):]
+
+   Apakah akun Saldo "Cash" tetap company-scoped/shared lintas cabang
+   (sama seperti BRI/e-wallet, sesuai keputusan awal user: "untuk Saldo
+   ini bisa multi cabang, misal ada 2 cabang yg menggunakan 1 saldo BRI
+   yg sama"), atau justru Cash sebaiknya per-cabang (karena secara fisik
+   uang tunai ada di laci masing-masing cabang)?
+   - Kalau Cash tetap 1 akun shared company-wide dan dipakai banyak
+     cabang/kasir sekaligus, maka konsep "saldo di awal shift ini" jadi
+     ambigu -- bisa saja shift lain di cabang lain ikut mengubah balance
+     Cash yang sama di tengah-tengah shift kita. Snapshot jadi cuma
+     representasi "kondisi global saat itu", bukan sesuatu yang murni
+     milik shift ybs.
+   - Kalau user mau snapshot yang benar-benar exclusive per shift, opsi
+     paling bersih adalah Cash per-cabang (branch-scoped), atau minimal
+     shift-level snapshot hanya untuk akun yang benar relevan ke shift
+     (biasanya cuma Cash, bukan semua akun).
+
+b) Snapshot itu untuk SEMUA akun saldo, atau cuma akun yang relevan
+   (misal cuma akun bertipe "cash", atau cuma akun yang polanya dipakai
+   sebagai payment method aktif)? Snapshot semua akun tiap shift bisa
+   berlebihan kalau company punya banyak akun saldo yang tidak
+   berhubungan dengan shift kasir (contoh: akun "OrderKuota" yang cuma
+   dipakai internal untuk deposit provider PPOB, bukan uang fisik kasir).
+
+c) Mau snapshot POINT-IN-TIME tersimpan (tabel baru, ditulis saat
+   open/close), atau cukup DERIVE dari ledger AppPosSaldoMutation yang
+   sudah ada (filter by branch_uuid + rentang waktu opened_at..closed_at
+   shift, tanpa tabel baru)? Lihat opsi A vs B di bawah -- ini trade-off
+   utama yang sudah didiskusikan dengan user, TAPI KEPUTUSAN FINAL BELUM
+   DIAMBIL. AI yang lanjutkan plan ini WAJIB tanya ke user dulu pilih
+   yang mana sebelum mulai coding (pakai AskUserQuestion kalau tools-nya
+   tersedia, atau minimal tulis ulang pertanyaan ini ke user).
+
+
+3. DUA OPSI DESAIN (SUDAH DIDISKUSIKAN, BELUM DIPUTUSKAN USER)
+-----------------------------------------------------------------
+
+OPSI A -- Snapshot table (tulis data baru tiap open/close)
+- Tabel baru, misal AppPosCashierShiftSaldoSnapshot:
+    uuid, company_uuid, shift_uuid (FK ke AppPosCashierShift),
+    saldo_account_uuid (FK ke AppPosSaldoAccount), event ('open' | 'close'),
+    balance (Decimal 15,2 -- balance akun itu PERSIS pada saat event terjadi),
+    created_at.
+  Wajib didaftarkan ke TENANT_MODELS (lib/tenant-context.ts) dan
+  UUID_MODELS (lib/prisma.ts) sesuai aturan CLAUDE.md.
+- Saat openShift(): setelah shift dibuat, loop semua akun saldo yang
+  relevan (lihat poin 2b), insert 1 baris snapshot per akun dengan
+  event='open' dan balance = balance akun itu SAAT INI. WAJIB dalam
+  transaction yang sama dengan create shift (lihat aturan multi-write di
+  CLAUDE.md) -- pola: posShiftRepository.runInTransaction(async (tx) => {
+  create shift; loop insert snapshot; }).
+- Saat closeShift(): sama, insert baris event='close' untuk tiap akun
+  yang sama, dalam transaction yang sama dengan update shift jadi closed.
+- Plus/minus: gampang dibaca ulang kapan saja (tinggal query
+  shift_uuid), tapi nulis N baris ekstra tiap shift (N = jumlah akun
+  relevan) dan agak redundan karena datanya technically bisa dihitung
+  ulang dari ledger.
+
+OPSI B -- Derive dari ledger (tanpa tabel baru)
+- Tidak ada migration/model baru. Cukup tambah 1 method di
+  lib/modules/pos/saldo/repository.ts, misal `findMutationsForShift`,
+  yang query AppPosSaldoMutation where branch_uuid = shift.branch_uuid
+  AND created_at BETWEEN shift.opened_at AND (shift.closed_at ?? now()).
+- Endpoint detail shift (atau tab baru di halaman shift) tampilkan daftar
+  mutasi itu, dikelompokkan per akun saldo, dengan jumlah total in/out per
+  akun sebagai ringkasan "apa yang bergerak selama shift ini" -- BUKAN
+  "saldo pasti di titik X", karena kalau akunnya shared lintas
+  branch/shift lain, angka runningnya bisa kecampur pergerakan pihak
+  lain.
+- Plus/minus: tidak nambah kompleksitas skema, datanya sudah ada dan
+  konsisten dengan source of truth (ledger); tapi tidak bisa jawab
+  pertanyaan "berapa saldo PERSIS saat shift ini dibuka/ditutup" dengan
+  akurat kalau akunnya dipakai bareng-bareng.
+
+REKOMENDASI (dari diskusi sebelumnya): condong ke OPSI B dulu (tanpa
+tabel baru) karena lebih murah dan datanya sudah tersedia lewat ledger
+yang sudah dibangun rapi (branch_uuid + created_at per mutasi) -- KECUALI
+user memang mau angka "saldo pasti di titik itu" per shift, baru pakai
+OPSI A. Tapi ini rekomendasi awal, bukan keputusan final -- WAJIB
+dikonfirmasi ulang ke user sebelum implementasi, terutama terkait poin
+2a (apakah Cash mau tetap shared atau jadi per-cabang), karena itu
+mengubah levelnya dari "nice to have" jadi "perlu, supaya datanya
+bermakna".
+
+
+4. FILE-FILE YANG RELEVAN (referensi kalau lanjut implementasi)
+------------------------------------------------------------------
+- prisma/schema.prisma -- model AppPosCashierShift (baris ~673-697),
+  AppPosSaldoAccount, AppPosSaldoMutation.
+- lib/modules/pos/shifts/repository.ts, admin.service.ts,
+  shift.mapper.ts -- logic buka/tutup shift saat ini (openShift,
+  closeShift, listShifts).
+- lib/modules/pos/saldo/repository.ts -- posSaldoRepository, terutama
+  `applyMutationInTx` (pola atomic increment/decrement + insert mutation
+  row, JANGAN read-then-absolute-write) dan `findMutations` (contoh
+  query ledger yang sudah ada, bisa dicontoh untuk OPSI B).
+- lib/validations/shift.ts -- zod schema openShiftSchema/closeShiftSchema.
+- app/api/app/pos/shifts/route.ts, app/api/app/pos/shifts/[uuid]/close/route.ts
+  -- route handler shift.
+- app/[locale]/app/pos/shifts/page.tsx, app/[locale]/app/pos/page.tsx
+  (bagian buka/tutup shift di halaman kasir) -- frontend yang perlu
+  diupdate kalau mau nampilkan snapshot/ringkasan saldo di UI shift.
+- CLAUDE.md -- aturan wajib (transaction, tenant scoping, dummy seeder,
+  version bump di package.json tiap commit, cursor-pointer di elemen
+  clickable, dst) yang berlaku untuk perubahan apa pun di fitur ini.
+
+
+5. LANGKAH KERJA KALAU USER SUDAH PILIH OPSI (garis besar)
+---------------------------------------------------------------
+Kalau OPSI A dipilih:
+  1. Tanya user poin 2a & 2b dulu (Cash shared/per-cabang, akun mana
+     yang di-snapshot).
+  2. Tambah model AppPosCashierShiftSaldoSnapshot di schema.prisma,
+     migration baru (JANGAN edit migration lama karena ini tabel baru,
+     beda kasus dengan "tambah kolom" -- baca aturan migration di
+     CLAUDE.md baris pertama).
+  3. Daftarkan ke TENANT_MODELS (lib/tenant-context.ts) & UUID_MODELS
+     (lib/prisma.ts).
+  4. Update posShiftService.openShift/closeShift supaya insert snapshot
+     dalam transaction yang sama dengan create/update shift.
+  5. Tambah endpoint/response field untuk baca snapshot per shift (bisa
+     ditempel di response GET shift detail, atau endpoint baru
+     /api/app/pos/shifts/[uuid]/saldo-snapshot).
+  6. Update frontend shift (list + detail) untuk nampilkan snapshot.
+  7. Update seeder dummy relevan (prisma/seeders/dummy/cashier-shifts.ts,
+     prisma/seeders/dummy/saldo.ts) supaya ada contoh data snapshot,
+     sesuai aturan "setiap buat fitur sediakan data dummy" di CLAUDE.md.
+  8. Jalankan npx tsc --noEmit, eslint, vitest, npm run check:transactions
+     sebelum dianggap selesai. migrate reset + restart dev server perlu
+     izin user dulu (destruktif ke DB dev) -- classifier Claude Code akan
+     menolak kalau AI coba jalankan sendiri tanpa app khusus, jadi minta
+     user jalankan manual kalau perlu.
+
+Kalau OPSI B dipilih:
+  1. Tanya user poin 2b (akun mana yang mau ditampilkan/diringkas per
+     shift -- semua, atau cuma yang bertipe cash).
+  2. Tambah method di lib/modules/pos/saldo/repository.ts untuk query
+     mutasi by branch_uuid + rentang waktu.
+  3. Panggil method itu dari posShiftService (atau service saldo,
+     tergantung mana yang lebih pas secara arsitektur -- ikuti pola
+     modular route -> service -> repository di CLAUDE.md) saat build
+     response detail shift.
+  4. Update endpoint GET shift detail (atau tambah endpoint baru) +
+     frontend untuk nampilkan ringkasan mutasi per shift.
+  5. Tidak perlu migration baru, tapi tetap jalankan tsc/eslint/vitest
+     setelah selesai.
+
+
+6. CATATAN PENTING
+-------------------
+- JANGAN mulai coding sebelum poin 2 (a, b, c) dikonfirmasi ulang ke
+  user -- ini keputusan produk yang user sendiri bilang mau didiskusikan
+  dulu, bukan sekadar detail implementasi.
+- Ada kemungkinan sesi/AI lain bekerja di repo yang sama secara
+  bersamaan (sudah beberapa kali terjadi di project ini). Sebelum mulai,
+  cek `git status` dan `git diff` untuk lihat apakah ada perubahan
+  in-flight yang belum di-commit yang tidak berhubungan dengan plan ini
+  -- jangan ikut-ikutan commit perubahan itu.
+- Ikuti semua aturan di CLAUDE.md tanpa kecuali (transaction wajib untuk
+  multi-write, uuid pakai uuidv7() eksplisit di seeder, cursor-pointer di
+  elemen UI clickable, version bump di package.json tiap commit, dst).

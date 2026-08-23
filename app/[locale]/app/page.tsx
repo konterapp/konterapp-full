@@ -41,7 +41,6 @@ type ListResponse<T> = {
     opened_at: string;
     branch: { uuid: string; name: string; code?: string } | null;
     current_total_sales: number;
-    current_expected_cash: number;
   } | null;
 };
 

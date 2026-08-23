@@ -3,20 +3,20 @@ import { successResponse } from '@/lib/response';
 import { withPermission } from '@/lib/api-middleware';
 import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { validateSchema } from '@/lib/validation';
-import { updatePaymentMethodSchema } from '@/lib/validations/payment-method';
-import { posPaymentMethodService } from '@/lib/modules/pos/payment-methods/admin.service';
+import { updateSaldoAccountSchema } from '@/lib/validations/saldo';
+import { posSaldoService } from '@/lib/modules/pos/saldo/admin.service';
 
 export const GET = withPermission(
-  'pos.payment-method.index',
+  'pos.saldo.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
-    const paymentMethod = await posPaymentMethodService.getPaymentMethod(uuid);
-    return successResponse('Payment method retrieved successfully', paymentMethod);
+    const account = await posSaldoService.getAccount(uuid);
+    return successResponse('Akun saldo berhasil dimuat', account);
   })
 );
 
 export const PUT = withPermission(
-  'pos.payment-method.update',
+  'pos.saldo.update',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { uuid } = await context.params;
     const rawBody = await req.json();
@@ -24,22 +24,23 @@ export const PUT = withPermission(
       ...rawBody,
       accountNumber: rawBody.accountNumber ?? rawBody.account_number,
       accountName: rawBody.accountName ?? rawBody.account_name,
+      isPaymentMethod: rawBody.isPaymentMethod ?? rawBody.is_payment_method,
       isActive: rawBody.isActive ?? rawBody.is_active,
     };
 
-    const result = validateSchema(updatePaymentMethodSchema, body);
+    const result = validateSchema(updateSaldoAccountSchema, body);
     if (!('data' in result)) return result;
 
-    const paymentMethod = await posPaymentMethodService.updatePaymentMethod(uuid, context.companyUuid, result.data);
-    return successResponse('Payment method updated successfully', paymentMethod);
+    const account = await posSaldoService.updateAccount(uuid, context.companyUuid, result.data);
+    return successResponse('Akun saldo berhasil diperbarui', account);
   })
 );
 
 export const DELETE = withPermission(
-  'pos.payment-method.delete',
+  'pos.saldo.delete',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
-    await posPaymentMethodService.deletePaymentMethod(uuid);
-    return successResponse('Payment method deleted successfully', null);
+    await posSaldoService.deleteAccount(uuid);
+    return successResponse('Akun saldo berhasil dihapus', null);
   })
 );

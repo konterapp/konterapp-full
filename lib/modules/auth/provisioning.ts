@@ -11,10 +11,9 @@ import { generateReferralCode } from "@/lib/modules/referral/constants";
 
 const MODEL_TYPE_USER = "App\\Models\\User";
 
-const TENANT_DEFAULT_PAYMENT_METHODS = [
+const TENANT_DEFAULT_SALDO_ACCOUNTS = [
   { code: "CASH", name: "Tunai", type: "cash" },
-  { code: "BCA", name: "Transfer BCA", type: "bank_transfer" },
-  { code: "QRIS", name: "QRIS", type: "qris" },
+  { code: "BCA", name: "Transfer BCA", type: "bank" },
   { code: "GOPAY", name: "GoPay", type: "e_wallet" },
 ];
 
@@ -33,8 +32,47 @@ const TENANT_DEFAULT_UNITS = [
   { name: "lusin", description: "Lusin / 12 item" },
 ];
 
+// categoryName harus cocok dengan salah satu nama di TENANT_DEFAULT_PRODUCT_CATEGORIES.
+const TENANT_DEFAULT_PRODUCTS = [
+  {
+    categoryName: "Pulsa & Voucher",
+    name: "Pulsa Elektrik 10.000",
+    unit: "pcs",
+    purchasePrice: 10500,
+    sellingPrice: 12000,
+  },
+  {
+    categoryName: "Aksesoris HP",
+    name: "Kabel Data USB",
+    unit: "pcs",
+    purchasePrice: 12000,
+    sellingPrice: 20000,
+  },
+  {
+    categoryName: "Minuman & Snack",
+    name: "Air Mineral 600ml",
+    unit: "pcs",
+    purchasePrice: 3500,
+    sellingPrice: 5000,
+  },
+  {
+    categoryName: "Rokok",
+    name: "Rokok Kemasan",
+    unit: "pack",
+    purchasePrice: 22000,
+    sellingPrice: 25000,
+  },
+  {
+    categoryName: "Percetakan",
+    name: "Cetak Foto 4R",
+    unit: "pcs",
+    purchasePrice: 1500,
+    sellingPrice: 3000,
+  },
+];
+
 async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: string) {
-  await tx.appPosBranch.create({
+  const mainBranch = await tx.appPosBranch.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -45,21 +83,24 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
     },
   });
 
-  for (const pm of TENANT_DEFAULT_PAYMENT_METHODS) {
-    await tx.appPosPaymentMethod.create({
+  for (const saldo of TENANT_DEFAULT_SALDO_ACCOUNTS) {
+    await tx.appPosSaldoAccount.create({
       data: {
         uuid: uuidv7(),
         companyUuid,
-        code: pm.code,
-        name: pm.name,
-        type: pm.type,
+        code: saldo.code,
+        name: saldo.name,
+        type: saldo.type,
+        balance: 0,
+        isPaymentMethod: true,
         isActive: true,
       },
     });
   }
 
+  const categoryUuidByName = new Map<string, string>();
   for (const cat of TENANT_DEFAULT_PRODUCT_CATEGORIES) {
-    await tx.appPosProductCategory.create({
+    const created = await tx.appPosProductCategory.create({
       data: {
         uuid: uuidv7(),
         companyUuid,
@@ -67,6 +108,7 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
         description: cat.description,
       },
     });
+    categoryUuidByName.set(cat.name, created.uuid);
   }
 
   for (const unit of TENANT_DEFAULT_UNITS) {
@@ -76,6 +118,35 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
         companyUuid,
         name: unit.name,
         description: unit.description,
+      },
+    });
+  }
+
+  for (const product of TENANT_DEFAULT_PRODUCTS) {
+    const categoryUuid = categoryUuidByName.get(product.categoryName);
+    if (!categoryUuid) continue;
+
+    const createdProduct = await tx.appPosProduct.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        categoryUuid,
+        name: product.name,
+        sku: `DEF-${crypto.randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+        purchasePrice: product.purchasePrice,
+        sellingPrice: product.sellingPrice,
+        unit: product.unit,
+        isActive: true,
+      },
+    });
+
+    await tx.appPosProductStock.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        productUuid: createdProduct.uuid,
+        branchUuid: mainBranch.uuid,
+        stock: 0,
       },
     });
   }
@@ -162,6 +233,8 @@ export async function provisionCompanyForUser(params: {
         userId,
         isDefault: true,
         isActive: true,
+        // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
+        invitationAcceptedAt: new Date(),
       },
     });
 
@@ -269,6 +342,8 @@ export async function provisionTenantUser(params: {
         userId: user.id,
         isDefault: true,
         isActive: true,
+        // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
+        invitationAcceptedAt: new Date(),
       },
     });
 

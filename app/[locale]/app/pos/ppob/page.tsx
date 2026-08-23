@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Zap, Wallet, RefreshCw } from 'lucide-react';
 import { getAllBranches, Branch } from '@/lib/api/app/branch';
-import { getAllPaymentMethods, PaymentMethod } from '@/lib/api/app/payment-method';
+import { getAllSaldoAccounts, SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
 import { PpobProductLocal, PpobTransaction, getPpobProductsByCategory, getPpobBrandsByCategory, getProviderBalance } from '@/lib/api/app/ppob';
 import { detectBrandFromPhone } from '@/lib/utils/phone';
 import CategoryTabs from './_components/CategoryTabs';
@@ -46,7 +46,7 @@ export default function PpobPage() {
       try {
         const [branchesRes, paymentMethodsRes] = await Promise.all([
           getAllBranches(),
-          getAllPaymentMethods(),
+          getAllSaldoAccounts({ isPaymentMethod: true }),
         ]);
         if (branchesRes.data) {
           const branchItems = Array.isArray(branchesRes.data)
@@ -58,10 +58,7 @@ export default function PpobPage() {
           else if (branchItems.length === 1) setSelectedBranch(branchItems[0].uuid);
         }
         if (paymentMethodsRes.data) {
-          const paymentItems = Array.isArray(paymentMethodsRes.data)
-            ? paymentMethodsRes.data
-            : (paymentMethodsRes.data as { data?: PaymentMethod[] })?.data || [];
-          setPaymentMethods(paymentItems);
+          setPaymentMethods(paymentMethodsRes.data.data || []);
         }
       } catch (err) {
         console.error('Failed to load data:', err);

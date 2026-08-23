@@ -7,7 +7,7 @@ import { seedBranches } from "./branches";
 import { seedCategories } from "./categories";
 import { seedUnits } from "./units";
 import { seedCustomers } from "./customers";
-import { seedPaymentMethods } from "./payment-methods";
+import { seedSaldoAccounts } from "./saldo";
 import { seedProducts } from "./products";
 import { seedPurchases } from "./purchases";
 import { seedStockMovements } from "./stock-movements";
@@ -25,7 +25,7 @@ async function seedDummy(prisma: PrismaClient) {
   await seedCategories(prisma);
   await seedUnits(prisma);
   await seedCustomers(prisma);
-  await seedPaymentMethods(prisma);
+  await seedSaldoAccounts(prisma);
   await seedProducts(prisma);
   await seedPurchases(prisma);
   await seedStockMovements(prisma);

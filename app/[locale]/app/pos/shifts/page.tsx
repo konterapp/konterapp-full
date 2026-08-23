@@ -28,11 +28,7 @@ interface ShiftRecord {
   status: string;
   opened_at: string;
   closed_at: string | null;
-  opening_cash: number;
   total_sales: number;
-  expected_cash: number;
-  closing_cash: number | null;
-  variance: number;
   notes_open: string | null;
   notes_close: string | null;
   branch: ShiftBranch | null;
@@ -41,13 +37,6 @@ interface ShiftRecord {
 
 interface ActiveShift extends ShiftRecord {
   current_total_sales: number;
-  current_expected_cash: number;
-}
-
-function toNumberInput(value: string): number {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return NaN;
-  return parsed;
 }
 
 function formatDateTime(value: string | null) {
@@ -100,12 +89,10 @@ export default function CashierShiftsPage() {
 
   const [openForm, setOpenForm] = useState({
     branch_uuid: '',
-    opening_cash: '',
     notes_open: '',
   });
 
   const [closeForm, setCloseForm] = useState({
-    closing_cash: '',
     notes_close: '',
   });
 
@@ -146,13 +133,6 @@ export default function CashierShiftsPage() {
           setBranches(result.data.filters?.branches || []);
           setTotalPages(result.data.pagination?.totalPages || 1);
           setTotalItems(result.data.pagination?.total || 0);
-
-          if (result.data.active_shift && !closeForm.closing_cash) {
-            setCloseForm((prev) => ({
-              ...prev,
-              closing_cash: String(Math.round(result.data.active_shift.current_expected_cash || 0)),
-            }));
-          }
         } else {
           setRows([]);
           setActiveShift(null);
@@ -168,7 +148,7 @@ export default function CashierShiftsPage() {
         setIsLoading(false);
       }
     },
-    [itemsPerPage, debouncedSearch, sortBy, sortOrder, filters.branch_uuid, filters.status, closeForm.closing_cash]
+    [itemsPerPage, debouncedSearch, sortBy, sortOrder, filters.branch_uuid, filters.status]
   );
 
   useEffect(() => {
@@ -183,12 +163,6 @@ export default function CashierShiftsPage() {
       return;
     }
 
-    const openingCash = toNumberInput(openForm.opening_cash);
-    if (!Number.isFinite(openingCash) || openingCash < 0) {
-      toast.error('Kas awal wajib berupa angka >= 0');
-      return;
-    }
-
     setIsSubmittingOpen(true);
     try {
       const response = await fetch('/api/app/pos/shifts', {
@@ -196,7 +170,6 @@ export default function CashierShiftsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branch_uuid: openForm.branch_uuid,
-          opening_cash: openingCash,
           notes_open: openForm.notes_open,
         }),
       });
@@ -204,8 +177,8 @@ export default function CashierShiftsPage() {
 
       if (result.status === 'success') {
         toast.success('Shift kasir berhasil dibuka');
-        setOpenForm({ branch_uuid: '', opening_cash: '', notes_open: '' });
-        setCloseForm({ closing_cash: '', notes_close: '' });
+        setOpenForm({ branch_uuid: '', notes_open: '' });
+        setCloseForm({ notes_close: '' });
         fetchShifts(1);
         setCurrentPage(1);
       } else {
@@ -226,19 +199,12 @@ export default function CashierShiftsPage() {
       return;
     }
 
-    const closingCash = toNumberInput(closeForm.closing_cash);
-    if (!Number.isFinite(closingCash) || closingCash < 0) {
-      toast.error('Kas akhir wajib berupa angka >= 0');
-      return;
-    }
-
     setIsSubmittingClose(true);
     try {
       const response = await fetch(`/api/app/pos/shifts/${activeShift.uuid}/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          closing_cash: closingCash,
           notes_close: closeForm.notes_close,
         }),
       });
@@ -246,7 +212,7 @@ export default function CashierShiftsPage() {
 
       if (result.status === 'success') {
         toast.success('Shift kasir berhasil ditutup');
-        setCloseForm({ closing_cash: '', notes_close: '' });
+        setCloseForm({ notes_close: '' });
         fetchShifts(1);
         setCurrentPage(1);
       } else {
@@ -327,46 +293,10 @@ export default function CashierShiftsPage() {
       render: (_, row) => <span className="text-sm text-gray-700">{row.user?.name || '-'}</span>,
     },
     {
-      key: 'opening_cash',
-      label: 'Kas Awal',
-      sortable: true,
-      render: (_, row) => <span className="text-sm text-gray-700">{formatCurrency(row.opening_cash)}</span>,
-    },
-    {
       key: 'total_sales',
       label: 'Total Sales',
       sortable: true,
       render: (_, row) => <span className="text-sm text-gray-700">{formatCurrency(row.total_sales)}</span>,
-    },
-    {
-      key: 'expected_cash',
-      label: 'Kas Seharusnya',
-      sortable: true,
-      render: (_, row) => <span className="text-sm text-gray-700">{formatCurrency(row.expected_cash)}</span>,
-    },
-    {
-      key: 'closing_cash',
-      label: 'Kas Akhir',
-      sortable: false,
-      render: (_, row) => <span className="text-sm text-gray-700">{formatCurrency(row.closing_cash)}</span>,
-    },
-    {
-      key: 'variance',
-      label: 'Selisih',
-      sortable: true,
-      render: (_, row) => (
-        <span
-          className={
-            row.variance > 0
-              ? 'text-green-600 font-semibold'
-              : row.variance < 0
-              ? 'text-red-600 font-semibold'
-              : 'text-gray-700 font-semibold'
-          }
-        >
-          {formatCurrency(row.variance)}
-        </span>
-      ),
     },
     {
       key: 'status',
@@ -393,7 +323,7 @@ export default function CashierShiftsPage() {
           <CircleDot className="w-6 h-6" />
           Shift Kasir
         </h1>
-        <p className="text-gray-600 mt-1">Buka/tutup shift kasir dan pantau histori kas per shift.</p>
+        <p className="text-gray-600 mt-1">Buka/tutup shift kasir dan pantau histori shift. Rekonsiliasi kas sekarang dilakukan lewat menu Saldo.</p>
       </div>
 
       {activeShift ? (
@@ -405,34 +335,14 @@ export default function CashierShiftsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Kas Awal</p>
-              <p className="text-sm font-semibold text-gray-900">{formatCurrency(activeShift.opening_cash)}</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
               <p className="text-xs text-gray-500">Total Sales Berjalan</p>
               <p className="text-sm font-semibold text-gray-900">{formatCurrency(activeShift.current_total_sales)}</p>
             </div>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Kas Seharusnya (Live)</p>
-              <p className="text-sm font-semibold text-gray-900">{formatCurrency(activeShift.current_expected_cash)}</p>
-            </div>
           </div>
 
-          <form onSubmit={handleCloseShift} className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kas Akhir (Real)</label>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={closeForm.closing_cash}
-                onChange={(e) => setCloseForm((prev) => ({ ...prev, closing_cash: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                placeholder="0"
-              />
-            </div>
+          <form onSubmit={handleCloseShift} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tutup Shift</label>
               <input
@@ -457,7 +367,7 @@ export default function CashierShiftsPage() {
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-[#142D52] mb-3">Buka Shift Baru</h2>
-          <form onSubmit={handleOpenShift} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <form onSubmit={handleOpenShift} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
               <select
@@ -472,18 +382,6 @@ export default function CashierShiftsPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Kas Awal</label>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={openForm.opening_cash}
-                onChange={(e) => setOpenForm((prev) => ({ ...prev, opening_cash: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                placeholder="0"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Buka Shift</label>

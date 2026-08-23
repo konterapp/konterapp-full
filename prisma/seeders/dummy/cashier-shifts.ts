@@ -11,9 +11,7 @@ type ClosedShiftSeed = {
   marker: string;
   openedAt: Date;
   closedAt: Date;
-  openingCash: number;
   totalSales: number;
-  closingCash: number;
   notesClose: string;
 };
 
@@ -22,26 +20,21 @@ const CLOSED_SHIFTS: ClosedShiftSeed[] = [
     marker: "dummy-shift-2026-04-15-pagi",
     openedAt: new Date("2026-04-15T08:00:00+07:00"),
     closedAt: new Date("2026-04-15T16:00:00+07:00"),
-    openingCash: 500000,
     totalSales: 1350000,
-    closingCash: 1860000,
-    notesClose: "Selisih +10.000 dari pembulatan transaksi tunai.",
+    notesClose: "Shift pagi selesai normal.",
   },
   {
     marker: "dummy-shift-2026-04-16-pagi",
     openedAt: new Date("2026-04-16T08:00:00+07:00"),
     closedAt: new Date("2026-04-16T16:00:00+07:00"),
-    openingCash: 450000,
     totalSales: 1180000,
-    closingCash: 1620000,
-    notesClose: "Selisih -10.000, sudah dicatat di kas kecil.",
+    notesClose: "Shift pagi selesai normal.",
   },
 ];
 
 const OPEN_SHIFT = {
   marker: "dummy-shift-open-2026-04-19",
   openedAt: new Date("2026-04-19T08:00:00+07:00"),
-  openingCash: 550000,
   notesOpen: "Shift aktif dummy untuk uji fitur tutup shift.",
 };
 
@@ -86,9 +79,6 @@ export async function seedCashierShifts(prisma: PrismaClient) {
   let createdOrUpdated = 0;
 
   for (const seed of CLOSED_SHIFTS) {
-    const expectedCash = seed.openingCash + seed.totalSales;
-    const variance = seed.closingCash - expectedCash;
-
     const existing = await prisma.appPosCashierShift.findFirst({
       where: {
         companyUuid,
@@ -105,11 +95,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
           status: "closed",
           openedAt: seed.openedAt,
           closedAt: seed.closedAt,
-          openingCash: seed.openingCash,
           totalSales: seed.totalSales,
-          expectedCash,
-          closingCash: seed.closingCash,
-          variance,
           notesClose: seed.notesClose,
         },
       });
@@ -126,11 +112,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
         status: "closed",
         openedAt: seed.openedAt,
         closedAt: seed.closedAt,
-        openingCash: seed.openingCash,
         totalSales: seed.totalSales,
-        expectedCash,
-        closingCash: seed.closingCash,
-        variance,
         notesOpen: seed.marker,
         notesClose: seed.notesClose,
       },
@@ -155,10 +137,7 @@ export async function seedCashierShifts(prisma: PrismaClient) {
         userId: admin.id,
         status: "open",
         openedAt: OPEN_SHIFT.openedAt,
-        openingCash: OPEN_SHIFT.openingCash,
         totalSales: 0,
-        expectedCash: OPEN_SHIFT.openingCash,
-        variance: 0,
         notesOpen: OPEN_SHIFT.notesOpen,
       },
     });

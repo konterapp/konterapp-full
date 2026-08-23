@@ -3,6 +3,7 @@ import { posTransactionRepository } from './repository';
 import { mapTransaction } from './transaction.mapper';
 import { Prisma } from '@prisma/client';
 import { posShiftRepository } from '../shifts/repository';
+import { posSaldoRepository } from '../saldo/repository';
 import { getTenantCompanyUuid } from '@/lib/tenant-context';
 import { assertTransactionLimit } from '@/lib/modules/billing/plan-limits';
 
@@ -137,6 +138,14 @@ if (!companyUuid) {
 }
 await assertTransactionLimit(companyUuid);
 
+const saldoAccount = await posSaldoRepository.findByUuid(paymentMethodUuid);
+if (!saldoAccount || saldoAccount.companyUuid !== companyUuid) {
+  throw new ValidationApiError({ paymentMethodUuid: ['Metode pembayaran tidak ditemukan'] });
+}
+if (!saldoAccount.isPaymentMethod || !saldoAccount.isActive) {
+  throw new ValidationApiError({ paymentMethodUuid: ['Akun saldo ini tidak bisa dipakai sebagai metode pembayaran'] });
+}
+
 let subtotal = 0;
     let totalDiscount = discountAmount || 0;
 
@@ -262,6 +271,20 @@ let subtotal = 0;
             notes: `Sale: ${saleNumber}`,
             createdBy: userId,
           },
+        });
+      }
+
+      if (finalPaidAmount > 0) {
+        await posSaldoRepository.applyMutationInTx(tx, {
+          saldoAccountUuid: paymentMethodUuid,
+          companyUuid,
+          branchUuid,
+          direction: 'in',
+          amount: finalPaidAmount,
+          referenceType: 'sale',
+          referenceUuid: createdSale.uuid,
+          notes: `Penjualan ${saleNumber}`,
+          createdBy: userId,
         });
       }
 

@@ -83,13 +83,13 @@ async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
   });
 }
 
-async function ensurePaymentMethod(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.appPosPaymentMethod.findFirst({
+async function ensureSaldoAccount(prisma: PrismaClient, companyUuid: string) {
+  const existing = await prisma.appPosSaldoAccount.findFirst({
     where: { companyUuid, code: 'CASH' },
   });
   if (existing) return existing;
 
-  return prisma.appPosPaymentMethod.create({
+  return prisma.appPosSaldoAccount.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
@@ -97,6 +97,7 @@ async function ensurePaymentMethod(prisma: PrismaClient, companyUuid: string) {
       name: 'Tunai',
       type: 'cash',
       description: 'Pembayaran tunai',
+      isPaymentMethod: true,
       isActive: true,
     },
   });
@@ -108,7 +109,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
   if (!admin) return;
 
   const branch = await ensureBranch(prisma, companyUuid);
-  const paymentMethod = await ensurePaymentMethod(prisma, companyUuid);
+  const saldoAccount = await ensureSaldoAccount(prisma, companyUuid);
 
   for (const item of TRANSACTIONS_DATA) {
     await prisma.appPosPpobTransaction.upsert({
@@ -124,7 +125,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
         adminFee: item.adminFee,
         sellingPrice: item.sellingPrice,
         profit: item.profit,
-        paymentMethodUuid: paymentMethod.uuid,
+        paymentMethodUuid: saldoAccount.uuid,
         providerReference: item.providerReference,
         provider: item.provider,
         status: item.status,
@@ -148,7 +149,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
         adminFee: item.adminFee,
         sellingPrice: item.sellingPrice,
         profit: item.profit,
-        paymentMethodUuid: paymentMethod.uuid,
+        paymentMethodUuid: saldoAccount.uuid,
         providerReference: item.providerReference,
         provider: item.provider,
         status: item.status,

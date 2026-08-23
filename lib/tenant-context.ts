@@ -27,13 +27,14 @@ export const TENANT_MODELS = new Set<string>([
   "AppPosPurchase",
   "AppPosPurchaseItem",
   "AppPosStockMovement",
-  "AppPosPaymentMethod",
   "AppPosCustomer",
   "AppPosSale",
   "AppPosSaleItem",
   "AppPosCashierShift",
   "AppPosPpobProduct",
   "AppPosPpobTransaction",
+  "AppPosSaldoAccount",
+  "AppPosSaldoMutation",
 ]);
 
 export function runWithTenantContext<T>(companyUuid: string, callback: () => Promise<T>): Promise<T> {

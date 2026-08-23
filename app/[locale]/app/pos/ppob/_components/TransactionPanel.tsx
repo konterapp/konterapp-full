@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, Search, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { PpobProductLocal, PpobInquiryResult, PpobTransaction, inquiryBill, purchasePrepaid, payPostpaid } from '@/lib/api/app/ppob';
 import { Branch } from '@/lib/api/app/branch';
-import { PaymentMethod } from '@/lib/api/app/payment-method';
+import { SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
 
 interface TransactionPanelProps {
   selectedProduct: PpobProductLocal | null;
