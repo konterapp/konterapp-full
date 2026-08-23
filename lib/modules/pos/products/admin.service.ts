@@ -1,5 +1,6 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { removeFileIfExists, saveUploadedFile } from '@/lib/utils/file-upload';
+import { prisma } from '@/lib/prisma';
 import { posProductRepository } from './repository';
 import { mapProduct, mapProductDetailWithStocks, mapProductListItem, mapProductLookupBarcode } from './product.mapper';
 import { getTenantCompanyUuid } from '@/lib/tenant-context';
@@ -236,43 +237,54 @@ export const posProductService = {
       }
     }
 
-    const product = await posProductRepository.create({
-      categoryUuid: payload.category_uuid,
-      name: payload.name,
-      sku: payload.sku,
-      barcode: payload.barcode || null,
-      purchasePrice: payload.purchase_price ?? 0,
-      sellingPrice: payload.selling_price,
-      wholesalePrice: payload.wholesale_price ?? 0,
-      minStock: payload.min_stock ?? 0,
-      unit: payload.unit || 'pcs',
-      isActive: payload.is_active ?? true,
+    // File disimpan dulu di luar transaction (I/O disk tidak bisa di-rollback
+    // DB); kalau transaction di bawah gagal, file yatim ini cuma sampah
+    // ringan, jauh lebih aman daripada produk yatim di database.
+    const savedImageFilenames: string[] = [];
+    for (const file of imageFiles) {
+      savedImageFilenames.push(await saveProductImage(file));
+    }
+
+    const productUuid = await posProductRepository.runInTransaction<string>(async (tx) => {
+      const product = await posProductRepository.create(tx, {
+        categoryUuid: payload.category_uuid,
+        name: payload.name,
+        sku: payload.sku,
+        barcode: payload.barcode || null,
+        purchasePrice: payload.purchase_price ?? 0,
+        sellingPrice: payload.selling_price,
+        wholesalePrice: payload.wholesale_price ?? 0,
+        minStock: payload.min_stock ?? 0,
+        unit: payload.unit || 'pcs',
+        isActive: payload.is_active ?? true,
+      });
+
+      if (dedupedAdditionalBarcodes.length > 0) {
+        await posProductRepository.replaceAdditionalBarcodes(tx, companyUuid, product.uuid, dedupedAdditionalBarcodes);
+      }
+
+      if (Array.isArray(payload.unit_conversions)) {
+        await posProductRepository.replaceUnitConversions(tx, companyUuid, product.uuid, payload.unit_conversions);
+      }
+
+      if (Array.isArray(payload.branch_prices)) {
+        await posProductRepository.replaceBranchPrices(tx, companyUuid, product.uuid, payload.branch_prices);
+      }
+
+      for (let index = 0; index < savedImageFilenames.length; index += 1) {
+        await posProductRepository.createImage(tx, {
+          companyUuid,
+          productUuid: product.uuid,
+          image: savedImageFilenames[index],
+          isPrimary: index === 0,
+          sortOrder: index,
+        });
+      }
+
+      return product.uuid;
     });
 
-    if (dedupedAdditionalBarcodes.length > 0) {
-      await posProductRepository.replaceAdditionalBarcodes(companyUuid, product.uuid, dedupedAdditionalBarcodes);
-    }
-
-    if (Array.isArray(payload.unit_conversions)) {
-      await posProductRepository.replaceUnitConversions(companyUuid, product.uuid, payload.unit_conversions);
-    }
-
-    if (Array.isArray(payload.branch_prices)) {
-      await posProductRepository.replaceBranchPrices(companyUuid, product.uuid, payload.branch_prices);
-    }
-
-    for (let index = 0; index < imageFiles.length; index += 1) {
-      const filename = await saveProductImage(imageFiles[index]);
-      await posProductRepository.createImage({
-        companyUuid,
-        productUuid: product.uuid,
-        image: filename,
-        isPrimary: index === 0,
-        sortOrder: index,
-      });
-    }
-
-    const created = await posProductRepository.findByUuid(product.uuid);
+    const created = await posProductRepository.findByUuid(productUuid);
     if (!created) {
       throw new ApiError('Product not found', 404);
     }
@@ -336,64 +348,79 @@ export const posProductService = {
       }
     }
 
-    await posProductRepository.updateByUuid(uuid, {
-      categoryUuid: payload.category_uuid ?? existingProduct.categoryUuid,
-      name: payload.name ?? existingProduct.name,
-      sku: payload.sku ?? existingProduct.sku,
-      barcode: payload.barcode ?? existingProduct.barcode,
-      purchasePrice: payload.purchase_price ?? existingProduct.purchasePrice,
-      sellingPrice: payload.selling_price ?? existingProduct.sellingPrice,
-      wholesalePrice: payload.wholesale_price ?? existingProduct.wholesalePrice,
-      minStock: payload.min_stock ?? existingProduct.minStock,
-      unit: payload.unit ?? existingProduct.unit,
-      isActive: payload.is_active ?? existingProduct.isActive,
-    });
-
-    if (additionalBarcodes) {
-      await posProductRepository.replaceAdditionalBarcodes(existingProduct.companyUuid, uuid, additionalBarcodes);
-    }
-
-    if (Array.isArray(payload.unit_conversions)) {
-      await posProductRepository.replaceUnitConversions(existingProduct.companyUuid, uuid, payload.unit_conversions);
-    }
-
-    if (Array.isArray(payload.branch_prices)) {
-      await posProductRepository.replaceBranchPrices(existingProduct.companyUuid, uuid, payload.branch_prices);
-    }
-
+    // File disimpan/dihapus dulu di luar transaction (I/O disk tidak bisa
+    // di-rollback DB); kalau transaction di bawah gagal, file yang sudah
+    // disimpan cuma sampah ringan, jauh lebih aman daripada state produk
+    // setengah jadi di database.
+    let imagesToDeleteUuids: string[] = [];
     if (deleteImages.length > 0) {
-      const imagesToDelete = await posProductRepository.findImagesByUuids(uuid, deleteImages);
+      const imagesToDelete = await posProductRepository.findImagesByUuids(prisma, uuid, deleteImages);
       for (const img of imagesToDelete) {
         await removeFileIfExists(PRODUCT_UPLOAD_FOLDER, img.image);
       }
-      await posProductRepository.deleteImagesByUuids(uuid, deleteImages);
+      imagesToDeleteUuids = imagesToDelete.map((img) => img.uuid);
     }
 
-    if (imageFiles.length > 0) {
-      const maxSort = await posProductRepository.aggregateMaxSortOrder(uuid);
-      const startOrder = (maxSort._max.sortOrder ?? -1) + 1;
+    const savedImageFilenames: string[] = [];
+    for (const file of imageFiles) {
+      savedImageFilenames.push(await saveProductImage(file));
+    }
 
-      for (let index = 0; index < imageFiles.length; index += 1) {
-        const filename = await saveProductImage(imageFiles[index]);
-        await posProductRepository.createImage({
-          companyUuid: existingProduct.companyUuid,
-          productUuid: uuid,
-          image: filename,
-          isPrimary: false,
-          sortOrder: startOrder + index,
-        });
+    await posProductRepository.runInTransaction(async (tx) => {
+      await posProductRepository.updateByUuid(tx, uuid, {
+        categoryUuid: payload.category_uuid ?? existingProduct.categoryUuid,
+        name: payload.name ?? existingProduct.name,
+        sku: payload.sku ?? existingProduct.sku,
+        barcode: payload.barcode ?? existingProduct.barcode,
+        purchasePrice: payload.purchase_price ?? existingProduct.purchasePrice,
+        sellingPrice: payload.selling_price ?? existingProduct.sellingPrice,
+        wholesalePrice: payload.wholesale_price ?? existingProduct.wholesalePrice,
+        minStock: payload.min_stock ?? existingProduct.minStock,
+        unit: payload.unit ?? existingProduct.unit,
+        isActive: payload.is_active ?? existingProduct.isActive,
+      });
+
+      if (additionalBarcodes) {
+        await posProductRepository.replaceAdditionalBarcodes(tx, existingProduct.companyUuid, uuid, additionalBarcodes);
       }
-    }
 
-    if (primaryImage) {
-      await posProductRepository.setAllImagesNonPrimary(uuid);
-      await posProductRepository.setImagePrimary(uuid, primaryImage);
-    }
+      if (Array.isArray(payload.unit_conversions)) {
+        await posProductRepository.replaceUnitConversions(tx, existingProduct.companyUuid, uuid, payload.unit_conversions);
+      }
 
-    const imagesAfter = await posProductRepository.findImagesByProduct(uuid);
-    if (imagesAfter.length > 0 && !imagesAfter.some((img) => img.isPrimary)) {
-      await posProductRepository.setImagePrimaryByUuid(imagesAfter[0].uuid);
-    }
+      if (Array.isArray(payload.branch_prices)) {
+        await posProductRepository.replaceBranchPrices(tx, existingProduct.companyUuid, uuid, payload.branch_prices);
+      }
+
+      if (imagesToDeleteUuids.length > 0) {
+        await posProductRepository.deleteImagesByUuids(tx, uuid, imagesToDeleteUuids);
+      }
+
+      if (savedImageFilenames.length > 0) {
+        const maxSort = await posProductRepository.aggregateMaxSortOrder(tx, uuid);
+        const startOrder = (maxSort._max.sortOrder ?? -1) + 1;
+
+        for (let index = 0; index < savedImageFilenames.length; index += 1) {
+          await posProductRepository.createImage(tx, {
+            companyUuid: existingProduct.companyUuid,
+            productUuid: uuid,
+            image: savedImageFilenames[index],
+            isPrimary: false,
+            sortOrder: startOrder + index,
+          });
+        }
+      }
+
+      if (primaryImage) {
+        await posProductRepository.setAllImagesNonPrimary(tx, uuid);
+        await posProductRepository.setImagePrimary(tx, uuid, primaryImage);
+      }
+
+      const imagesAfter = await posProductRepository.findImagesByProduct(tx, uuid);
+      if (imagesAfter.length > 0 && !imagesAfter.some((img) => img.isPrimary)) {
+        await posProductRepository.setImagePrimaryByUuid(tx, imagesAfter[0].uuid);
+      }
+    });
 
     const updated = await posProductRepository.findByUuid(uuid);
     if (!updated) {
@@ -414,13 +441,15 @@ export const posProductService = {
       throw new ApiError('Cannot delete product with existing transactions', 400);
     }
 
-    const images = await posProductRepository.findImagesByProduct(uuid);
+    const images = await posProductRepository.findImagesByProduct(prisma, uuid);
     for (const img of images) {
       await removeFileIfExists(PRODUCT_UPLOAD_FOLDER, img.image);
     }
 
-    await posProductRepository.deleteImagesByProduct(uuid);
-    await posProductRepository.deleteByUuid(uuid);
+    // Baris app_pos_product_images ikut kehapus otomatis lewat onDelete:
+    // Cascade -- tidak perlu deleteImagesByProduct terpisah (itu sendiri
+    // sebelumnya tidak atomic dengan delete produk ini).
+    await posProductRepository.deleteByUuid(prisma, uuid);
   },
 
   async lookupBarcode(barcode: string, branchUuid?: string | null) {

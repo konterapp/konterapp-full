@@ -70,11 +70,15 @@ export const appRoleService = {
       throw new ApiError("Nama role sudah digunakan", 400);
     }
 
-    const role = await appRoleRepository.create({ companyUuid, name, isFullAccess });
+    const role = await appRoleRepository.runInTransaction(async (tx) => {
+      const createdRole = await appRoleRepository.create(tx, { companyUuid, name, isFullAccess });
 
-    if (!isFullAccess && permissions.length > 0) {
-      await appRoleRepository.replacePermissions(role.id, permissions);
-    }
+      if (!isFullAccess && permissions.length > 0) {
+        await appRoleRepository.replacePermissions(tx, createdRole.id, permissions);
+      }
+
+      return createdRole;
+    });
 
     return this.getRoleDetail(companyUuid, role.uuid);
   },
@@ -106,16 +110,18 @@ export const appRoleService = {
 
     const isFullAccess = payload.is_full_access ?? role.isFullAccess;
 
-    await appRoleRepository.updateByUuid(companyUuid, uuid, {
-      name,
-      isFullAccess,
-    });
+    await appRoleRepository.runInTransaction(async (tx) => {
+      await appRoleRepository.updateByUuid(tx, companyUuid, uuid, {
+        name,
+        isFullAccess,
+      });
 
-    if (isFullAccess) {
-      await appRoleRepository.clearPermissions(role.id);
-    } else if (payload.permissions !== undefined) {
-      await appRoleRepository.replacePermissions(role.id, payload.permissions);
-    }
+      if (isFullAccess) {
+        await appRoleRepository.clearPermissions(tx, role.id);
+      } else if (payload.permissions !== undefined) {
+        await appRoleRepository.replacePermissions(tx, role.id, payload.permissions);
+      }
+    });
 
     return this.getRoleDetail(companyUuid, uuid);
   },

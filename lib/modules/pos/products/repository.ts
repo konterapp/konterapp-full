@@ -1,6 +1,13 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
+type Client = Prisma.TransactionClient | typeof prisma;
+
 export const posProductRepository = {
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return prisma.$transaction(cb);
+  },
+
   findMany(params: { where: any; skip: number; take: number; orderBy: any; branchUuid?: string | null }) {
     const { where, skip, take, orderBy, branchUuid } = params;
 
@@ -90,84 +97,80 @@ export const posProductRepository = {
     });
   },
 
-  create(data: Record<string, unknown>) {
-    return prisma.appPosProduct.create({ data: data as any });
+  create(tx: Client, data: Record<string, unknown>) {
+    return tx.appPosProduct.create({ data: data as any });
   },
 
-  updateByUuid(uuid: string, data: Record<string, unknown>) {
-    return prisma.appPosProduct.update({ where: { uuid }, data: data as any });
+  updateByUuid(tx: Client, uuid: string, data: Record<string, unknown>) {
+    return tx.appPosProduct.update({ where: { uuid }, data: data as any });
   },
 
-  deleteByUuid(uuid: string) {
-    return prisma.appPosProduct.delete({ where: { uuid } });
+  deleteByUuid(tx: Client, uuid: string) {
+    return tx.appPosProduct.delete({ where: { uuid } });
   },
 
-  replaceAdditionalBarcodes(companyUuid: string, productUuid: string, barcodes: string[]) {
-    return prisma.$transaction(async (tx) => {
-      await tx.appPosProductBarcode.deleteMany({ where: { productUuid } });
-      if (barcodes.length > 0) {
-        await tx.appPosProductBarcode.createMany({
-          data: barcodes.map((barcode) => ({ companyUuid, productUuid, barcode })),
-        });
-      }
-    });
+  async replaceAdditionalBarcodes(tx: Client, companyUuid: string, productUuid: string, barcodes: string[]) {
+    await tx.appPosProductBarcode.deleteMany({ where: { productUuid } });
+    if (barcodes.length > 0) {
+      await tx.appPosProductBarcode.createMany({
+        data: barcodes.map((barcode) => ({ companyUuid, productUuid, barcode })),
+      });
+    }
   },
 
-  replaceUnitConversions(
+  async replaceUnitConversions(
+    tx: Client,
     companyUuid: string,
     productUuid: string,
     rows: Array<{ unit: string; factor_to_base: number; is_active?: boolean }>
   ) {
-    return prisma.$transaction(async (tx) => {
-      await tx.appPosProductUnitConversion.deleteMany({ where: { productUuid } });
-      if (rows.length > 0) {
-        await tx.appPosProductUnitConversion.createMany({
-          data: rows.map((row) => ({
-            companyUuid,
-            productUuid,
-            unit: row.unit,
-            factorToBase: row.factor_to_base,
-            isActive: row.is_active ?? true,
-          })),
-        });
-      }
-    });
+    await tx.appPosProductUnitConversion.deleteMany({ where: { productUuid } });
+    if (rows.length > 0) {
+      await tx.appPosProductUnitConversion.createMany({
+        data: rows.map((row) => ({
+          companyUuid,
+          productUuid,
+          unit: row.unit,
+          factorToBase: row.factor_to_base,
+          isActive: row.is_active ?? true,
+        })),
+      });
+    }
   },
 
-  replaceBranchPrices(
+  async replaceBranchPrices(
+    tx: Client,
     companyUuid: string,
     productUuid: string,
     rows: Array<{ branch_uuid: string; selling_price: number; wholesale_price: number }>
   ) {
-    return prisma.$transaction(async (tx) => {
-      await tx.appPosProductBranchPrice.deleteMany({ where: { productUuid } });
-      if (rows.length > 0) {
-        await tx.appPosProductBranchPrice.createMany({
-          data: rows.map((row) => ({
-            companyUuid,
-            productUuid,
-            branchUuid: row.branch_uuid,
-            sellingPrice: row.selling_price,
-            wholesalePrice: row.wholesale_price,
-          })),
-        });
-      }
-    });
+    await tx.appPosProductBranchPrice.deleteMany({ where: { productUuid } });
+    if (rows.length > 0) {
+      await tx.appPosProductBranchPrice.createMany({
+        data: rows.map((row) => ({
+          companyUuid,
+          productUuid,
+          branchUuid: row.branch_uuid,
+          sellingPrice: row.selling_price,
+          wholesalePrice: row.wholesale_price,
+        })),
+      });
+    }
   },
 
-  createImage(data: { companyUuid: string; productUuid: string; image: string; isPrimary: boolean; sortOrder: number }) {
-    return prisma.appPosProductImage.create({ data });
+  createImage(tx: Client, data: { companyUuid: string; productUuid: string; image: string; isPrimary: boolean; sortOrder: number }) {
+    return tx.appPosProductImage.create({ data });
   },
 
-  findImagesByProduct(productUuid: string) {
-    return prisma.appPosProductImage.findMany({
+  findImagesByProduct(tx: Client, productUuid: string) {
+    return tx.appPosProductImage.findMany({
       where: { productUuid },
       orderBy: { sortOrder: 'asc' },
     });
   },
 
-  findImagesByUuids(productUuid: string, uuids: string[]) {
-    return prisma.appPosProductImage.findMany({
+  findImagesByUuids(tx: Client, productUuid: string, uuids: string[]) {
+    return tx.appPosProductImage.findMany({
       where: {
         productUuid,
         uuid: { in: uuids },
@@ -175,8 +178,8 @@ export const posProductRepository = {
     });
   },
 
-  deleteImagesByUuids(productUuid: string, uuids: string[]) {
-    return prisma.appPosProductImage.deleteMany({
+  deleteImagesByUuids(tx: Client, productUuid: string, uuids: string[]) {
+    return tx.appPosProductImage.deleteMany({
       where: {
         productUuid,
         uuid: { in: uuids },
@@ -184,33 +187,29 @@ export const posProductRepository = {
     });
   },
 
-  deleteImagesByProduct(productUuid: string) {
-    return prisma.appPosProductImage.deleteMany({ where: { productUuid } });
-  },
-
-  setAllImagesNonPrimary(productUuid: string) {
-    return prisma.appPosProductImage.updateMany({
+  setAllImagesNonPrimary(tx: Client, productUuid: string) {
+    return tx.appPosProductImage.updateMany({
       where: { productUuid },
       data: { isPrimary: false },
     });
   },
 
-  setImagePrimary(productUuid: string, imageUuid: string) {
-    return prisma.appPosProductImage.updateMany({
+  setImagePrimary(tx: Client, productUuid: string, imageUuid: string) {
+    return tx.appPosProductImage.updateMany({
       where: { productUuid, uuid: imageUuid },
       data: { isPrimary: true },
     });
   },
 
-  setImagePrimaryByUuid(imageUuid: string) {
-    return prisma.appPosProductImage.update({
+  setImagePrimaryByUuid(tx: Client, imageUuid: string) {
+    return tx.appPosProductImage.update({
       where: { uuid: imageUuid },
       data: { isPrimary: true },
     });
   },
 
-  aggregateMaxSortOrder(productUuid: string) {
-    return prisma.appPosProductImage.aggregate({
+  aggregateMaxSortOrder(tx: Client, productUuid: string) {
+    return tx.appPosProductImage.aggregate({
       where: { productUuid },
       _max: { sortOrder: true },
     });

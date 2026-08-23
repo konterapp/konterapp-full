@@ -160,12 +160,16 @@ export const appUserService = {
       }
     }
 
-    if (Object.keys(userData).length > 0) {
-      await appUserRepository.updateUserData(user.id, userData);
-    }
+    if (Object.keys(userData).length > 0 || roleId !== null) {
+      await appUserRepository.runInTransaction(async (tx) => {
+        if (Object.keys(userData).length > 0) {
+          await appUserRepository.updateUserData(tx, user.id, userData);
+        }
 
-    if (roleId !== null) {
-      await appUserRepository.replaceCompanyRole(companyUuid, user.id, roleId);
+        if (roleId !== null) {
+          await appUserRepository.replaceCompanyRole(tx, companyUuid, user.id, roleId);
+        }
+      });
     }
 
     return this.getUserDetail(companyUuid, uuid);
@@ -190,7 +194,9 @@ export const appUserService = {
       }
     }
 
-    await appUserRepository.removeFromCompany(companyUuid, user.id);
+    await appUserRepository.runInTransaction(async (tx) => {
+      await appUserRepository.removeFromCompany(tx, companyUuid, user.id);
+    });
   },
 
   async resolveRole(companyUuid: string, roleUuid: string) {

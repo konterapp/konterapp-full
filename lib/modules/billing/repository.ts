@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+type Client = Prisma.TransactionClient | typeof prisma;
+
 export const billingRepository = {
   async findTierByCode(code: string) {
     return prisma.planTier.findUnique({ where: { code } });
@@ -79,22 +81,25 @@ export const billingRepository = {
     });
   },
 
-  async createInvoice(data: {
-    companyUuid: string;
-    planUuid: string;
-    provider: string;
-    providerInvoiceId: string;
-    amount: number;
-    userId?: number | null;
-    couponCode?: string | null;
-    discountAmount?: number | null;
-    referralCode?: string | null;
-    referralDiscountAmount?: number | null;
-    referralBalanceUsed?: number | null;
-    paymentLink?: string | null;
-    expiredAt?: Date | null;
-  }) {
-    return prisma.subscriptionInvoice.create({ data, include: { plan: { include: { tier: true } } } });
+  async createInvoice(
+    tx: Client,
+    data: {
+      companyUuid: string;
+      planUuid: string;
+      provider: string;
+      providerInvoiceId: string;
+      amount: number;
+      userId?: number | null;
+      couponCode?: string | null;
+      discountAmount?: number | null;
+      referralCode?: string | null;
+      referralDiscountAmount?: number | null;
+      referralBalanceUsed?: number | null;
+      paymentLink?: string | null;
+      expiredAt?: Date | null;
+    }
+  ) {
+    return tx.subscriptionInvoice.create({ data, include: { plan: { include: { tier: true } } } });
   },
 
   async listInvoices(params: {
@@ -136,5 +141,9 @@ export const billingRepository = {
       where: { providerInvoiceId },
       data: { status: "paid", paidAt },
     });
+  },
+
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return prisma.$transaction(cb);
   },
 };

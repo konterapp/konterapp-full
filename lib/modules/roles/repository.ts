@@ -1,5 +1,8 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { v7 as uuidv7 } from 'uuid';
+
+type Client = Prisma.TransactionClient | typeof prisma;
 
 const roleInclude = {
   roleHasPermissions: { select: { permissionName: true } },
@@ -7,6 +10,10 @@ const roleInclude = {
 } as const;
 
 export const appRoleRepository = {
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return prisma.$transaction(cb);
+  },
+
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
     const { where, skip, take, orderBy } = params;
     return prisma.role.findMany({
@@ -33,12 +40,15 @@ export const appRoleRepository = {
     return prisma.role.findFirst({ where: { companyUuid, name } });
   },
 
-  create(data: {
-    companyUuid: string;
-    name: string;
-    isFullAccess: boolean;
-  }) {
-    return prisma.role.create({
+  create(
+    tx: Client,
+    data: {
+      companyUuid: string;
+      name: string;
+      isFullAccess: boolean;
+    }
+  ) {
+    return tx.role.create({
       data: {
         uuid: uuidv7(),
         companyUuid: data.companyUuid,
@@ -48,8 +58,8 @@ export const appRoleRepository = {
     });
   },
 
-  updateByUuid(companyUuid: string, uuid: string, data: { name?: string; isFullAccess?: boolean }) {
-    return prisma.role.update({ where: { uuid }, data });
+  updateByUuid(tx: Client, companyUuid: string, uuid: string, data: { name?: string; isFullAccess?: boolean }) {
+    return tx.role.update({ where: { uuid }, data });
   },
 
   deleteByUuid(companyUuid: string, uuid: string) {
@@ -60,20 +70,16 @@ export const appRoleRepository = {
     return prisma.modelHasRole.count({ where: { roleId } });
   },
 
-  replacePermissions(roleId: number, permissions: string[]) {
-    return prisma.$transaction([
-      prisma.roleHasPermission.deleteMany({ where: { roleId } }),
-      ...(permissions.length > 0
-        ? [
-            prisma.roleHasPermission.createMany({
-              data: permissions.map((permissionName) => ({ roleId, permissionName })),
-            }),
-          ]
-        : []),
-    ]);
+  async replacePermissions(tx: Client, roleId: number, permissions: string[]) {
+    await tx.roleHasPermission.deleteMany({ where: { roleId } });
+    if (permissions.length > 0) {
+      await tx.roleHasPermission.createMany({
+        data: permissions.map((permissionName) => ({ roleId, permissionName })),
+      });
+    }
   },
 
-  clearPermissions(roleId: number) {
-    return prisma.roleHasPermission.deleteMany({ where: { roleId } });
+  clearPermissions(tx: Client, roleId: number) {
+    return tx.roleHasPermission.deleteMany({ where: { roleId } });
   },
 };

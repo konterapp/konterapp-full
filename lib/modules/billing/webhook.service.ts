@@ -56,8 +56,6 @@ export const billingWebhookService = {
     }
 
     const now = new Date();
-    await billingRepository.markInvoicePaid(payload.order_id, now);
-
     const existingSubscription = await billingRepository.findSubscriptionByCompanyUuid(invoice.companyUuid);
     const plan = await billingRepository.findPlanByUuid(invoice.planUuid);
     if (!plan) {
@@ -69,21 +67,33 @@ export const billingWebhookService = {
     // Paket Free tak melewati webhook (tidak ada pembayaran). durationDays null -> tak cari harga baru.
     const expiresAt = plan.durationDays != null ? addDays(baseDate, plan.durationDays) : null;
 
-    if (existingSubscription) {
-      await billingRepository.updateSubscription(invoice.companyUuid, {
-        planUuid: plan.uuid,
-        status: "active",
-        expiresAt,
+    // Tandai invoice lunas & aktifkan subscription dalam satu transaction --
+    // kalau salah satu gagal, invoice TIDAK boleh nyangkut "paid" tanpa
+    // subscription aktif (retry webhook dari Midtrans jadi no-op karena guard
+    // invoice.status === "paid" di atas, subscription tidak akan pernah aktif).
+    await billingRepository.runInTransaction(async (tx) => {
+      await tx.subscriptionInvoice.update({
+        where: { providerInvoiceId: payload.order_id },
+        data: { status: "paid", paidAt: now },
       });
-    } else {
-      await billingRepository.createSubscription({
-        companyUuid: invoice.companyUuid,
-        planUuid: plan.uuid,
-        status: "active",
-        startedAt: now,
-        expiresAt,
-      });
-    }
+
+      if (existingSubscription) {
+        await tx.companySubscription.update({
+          where: { companyUuid: invoice.companyUuid },
+          data: { planUuid: plan.uuid, status: "active", expiresAt },
+        });
+      } else {
+        await tx.companySubscription.create({
+          data: {
+            companyUuid: invoice.companyUuid,
+            planUuid: plan.uuid,
+            status: "active",
+            startedAt: now,
+            expiresAt,
+          },
+        });
+      }
+    });
 
     // Berikan komisi referral ke referrer (hanya pembayaran pertama, idempoten)
     // dan debit saldo referral yang dipakai di invoice ini.

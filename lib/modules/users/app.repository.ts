@@ -1,13 +1,20 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "@/lib/modules/roles/templates";
 
 const MODEL_TYPE_USER = "App\\Models\\User";
+
+type Client = Prisma.TransactionClient | typeof prisma;
 
 const memberInclude = {
   modelHasRoles: { include: { role: true } },
 } as const;
 
 export const appUserRepository = {
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return prisma.$transaction(cb);
+  },
+
   async listMembers(companyUuid: string, where: any, orderBy: any, skip: number, take: number) {
     return prisma.user.findMany({
       where: {
@@ -107,24 +114,24 @@ export const appUserRepository = {
     });
   },
 
-  async updateUserData(userId: number, userData: Record<string, unknown>) {
-    return prisma.user.update({ where: { id: userId }, data: userData });
+  async updateUserData(tx: Client, userId: number, userData: Record<string, unknown>) {
+    return tx.user.update({ where: { id: userId }, data: userData });
   },
 
-  async replaceCompanyRole(companyUuid: string, userId: number, roleId: number) {
-    await prisma.modelHasRole.deleteMany({
+  async replaceCompanyRole(tx: Client, companyUuid: string, userId: number, roleId: number) {
+    await tx.modelHasRole.deleteMany({
       where: { modelId: userId, modelType: MODEL_TYPE_USER, companyUuid },
     });
 
-    await prisma.modelHasRole.create({
+    await tx.modelHasRole.create({
       data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
     });
   },
 
-  async removeFromCompany(companyUuid: string, userId: number) {
-    await prisma.modelHasRole.deleteMany({
+  async removeFromCompany(tx: Client, companyUuid: string, userId: number) {
+    await tx.modelHasRole.deleteMany({
       where: { modelId: userId, modelType: MODEL_TYPE_USER, companyUuid },
     });
-    await prisma.companyUser.deleteMany({ where: { companyUuid, userId } });
+    await tx.companyUser.deleteMany({ where: { companyUuid, userId } });
   },
 };

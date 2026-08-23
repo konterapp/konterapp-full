@@ -138,37 +138,41 @@ export const billingTenantService = {
       redirectUrl,
     });
 
-    const invoice = await billingRepository.createInvoice({
-      companyUuid: company.uuid,
-      planUuid: plan.uuid,
-      provider: "midtrans",
-      providerInvoiceId: orderId,
-      amount: grossAmount,
-      userId,
-      couponCode: invoiceCouponCode,
-      discountAmount: invoiceDiscountAmount,
-      referralCode: invoiceReferralCode,
-      referralDiscountAmount: invoiceReferralDiscountAmount,
-      referralBalanceUsed: saldoUsed > 0 ? saldoUsed : null,
-      paymentLink: snapTransaction.redirect_url,
-      expiredAt: new Date(now.getTime() + INVOICE_PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000),
+    const invoice = await billingRepository.runInTransaction(async (tx) => {
+      const createdInvoice = await billingRepository.createInvoice(tx, {
+        companyUuid: company.uuid,
+        planUuid: plan.uuid,
+        provider: "midtrans",
+        providerInvoiceId: orderId,
+        amount: grossAmount,
+        userId,
+        couponCode: invoiceCouponCode,
+        discountAmount: invoiceDiscountAmount,
+        referralCode: invoiceReferralCode,
+        referralDiscountAmount: invoiceReferralDiscountAmount,
+        referralBalanceUsed: saldoUsed > 0 ? saldoUsed : null,
+        paymentLink: snapTransaction.redirect_url,
+        expiredAt: new Date(now.getTime() + INVOICE_PAYMENT_EXPIRY_HOURS * 60 * 60 * 1000),
+      });
+
+      // Klaim kuota kupon setelah invoice berhasil dibuat (reservasi pemakaian).
+      if (promoCouponUuid) {
+        await tx.coupon.update({
+          where: { uuid: promoCouponUuid },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
+      // Catat referrer bila referral kode dimasukkan manual saat checkout.
+      if (setReferredBy) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { referredByUserId: setReferredBy },
+        });
+      }
+
+      return createdInvoice;
     });
-
-    // Klaim kuota kupon setelah invoice berhasil dibuat (reservasi pemakaian).
-    if (promoCouponUuid) {
-      await prisma.coupon.update({
-        where: { uuid: promoCouponUuid },
-        data: { usedCount: { increment: 1 } },
-      });
-    }
-
-    // Catat referrer bila referral kode dimasukkan manual saat checkout.
-    if (setReferredBy) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { referredByUserId: setReferredBy },
-      });
-    }
 
     return formatInvoice(invoice);
   },
