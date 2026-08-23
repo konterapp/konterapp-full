@@ -132,9 +132,10 @@ export const posTransactionService = {
 const saleNumber = generateSaleNumber();
 
 const companyUuid = getTenantCompanyUuid();
-if (companyUuid) {
-  await assertTransactionLimit(companyUuid);
+if (!companyUuid) {
+  throw new ApiError('Konteks perusahaan tidak ditemukan', 500);
 }
+await assertTransactionLimit(companyUuid);
 
 let subtotal = 0;
     let totalDiscount = discountAmount || 0;
@@ -169,6 +170,7 @@ let subtotal = 0;
       for (const item of items) {
         const stock = await tx.appPosProductStock.findFirst({
           where: {
+            companyUuid,
             productUuid: item.productUuid,
             branchUuid,
           },
@@ -181,6 +183,7 @@ let subtotal = 0;
 
       const createdSale = await tx.appPosSale.create({
         data: {
+          companyUuid,
           saleNumber,
           branchUuid,
           customerUuid: customerUuid || null,
@@ -214,6 +217,7 @@ let subtotal = 0;
       for (const item of items) {
         await tx.appPosSaleItem.create({
           data: {
+            companyUuid,
             saleUuid: createdSale.uuid,
             productUuid: item.productUuid,
             quantity: item.quantity,
@@ -225,6 +229,7 @@ let subtotal = 0;
 
         const stock = await tx.appPosProductStock.findFirst({
           where: {
+            companyUuid,
             productUuid: item.productUuid,
             branchUuid,
           },
@@ -232,6 +237,7 @@ let subtotal = 0;
 
         await tx.appPosProductStock.updateMany({
           where: {
+            companyUuid,
             productUuid: item.productUuid,
             branchUuid,
           },
@@ -244,6 +250,7 @@ let subtotal = 0;
 
         await tx.appPosStockMovement.create({
           data: {
+            companyUuid,
             branchUuid,
             productUuid: item.productUuid,
             movementType: 'out',

@@ -89,24 +89,31 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  memberships       CompanyUser[]
-  roles             Role[]
-  modelHasRoles     ModelHasRole[]
-  subscription      CompanySubscription?
-  invoices          SubscriptionInvoice[]
-  productCategories AppPosProductCategory[]
-  productUnits      AppPosProductUnit[]
-  branches          AppPosBranch[]
-  products          AppPosProduct[]
-  suppliers         AppPosSupplier[]
-  purchases         AppPosPurchase[]
-  stockMovements    AppPosStockMovement[]
-  paymentMethods    AppPosPaymentMethod[]
-  customers         AppPosCustomer[]
-  sales             AppPosSale[]
-  cashierShifts     AppPosCashierShift[]
-  ppobProducts      AppPosPpobProduct[]
-  ppobTransactions  AppPosPpobTransaction[]
+  memberships            CompanyUser[]
+  roles                  Role[]
+  modelHasRoles          ModelHasRole[]
+  subscription           CompanySubscription?
+  invoices               SubscriptionInvoice[]
+  productCategories      AppPosProductCategory[]
+  productUnits           AppPosProductUnit[]
+  productStocks          AppPosProductStock[]
+  productBarcodes        AppPosProductBarcode[]
+  productUnitConversions AppPosProductUnitConversion[]
+  productBranchPrices    AppPosProductBranchPrice[]
+  productImages          AppPosProductImage[]
+  purchaseItems          AppPosPurchaseItem[]
+  saleItems              AppPosSaleItem[]
+  branches               AppPosBranch[]
+  products               AppPosProduct[]
+  suppliers              AppPosSupplier[]
+  purchases              AppPosPurchase[]
+  stockMovements         AppPosStockMovement[]
+  paymentMethods         AppPosPaymentMethod[]
+  customers              AppPosCustomer[]
+  sales                  AppPosSale[]
+  cashierShifts          AppPosCashierShift[]
+  ppobProducts           AppPosPpobProduct[]
+  ppobTransactions       AppPosPpobTransaction[]
 
   @@map("companies")
 }
@@ -417,19 +424,23 @@ model AppPosProduct {
 
 model AppPosProductBarcode {
   uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   barcode     String   @unique @db.VarChar(100)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
   @@index([productUuid])
+  @@index([companyUuid])
   @@map("app_pos_product_barcodes")
 }
 
 model AppPosProductUnitConversion {
   uuid         String   @id @default(uuid()) @db.Char(36)
+  companyUuid  String   @map("company_uuid") @db.Char(36)
   productUuid  String   @map("product_uuid") @db.Char(36)
   unit         String   @db.VarChar(20)
   factorToBase Decimal  @map("factor_to_base") @db.Decimal(12, 4)
@@ -437,15 +448,18 @@ model AppPosProductUnitConversion {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
   @@unique([productUuid, unit], name: "product_unit_conversion_unique")
   @@index([productUuid])
+  @@index([companyUuid])
   @@map("app_pos_product_unit_conversions")
 }
 
 model AppPosProductBranchPrice {
   uuid           String   @id @default(uuid()) @db.Char(36)
+  companyUuid    String   @map("company_uuid") @db.Char(36)
   productUuid    String   @map("product_uuid") @db.Char(36)
   branchUuid     String   @map("branch_uuid") @db.Char(36)
   sellingPrice   Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
@@ -453,16 +467,19 @@ model AppPosProductBranchPrice {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
   branch  AppPosBranch  @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
 
   @@unique([productUuid, branchUuid], name: "product_branch_price_unique")
   @@index([branchUuid])
+  @@index([companyUuid])
   @@map("app_pos_product_branch_prices")
 }
 
 model AppPosProductImage {
   uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   image       String   @db.VarChar(255)
   isPrimary   Boolean  @default(false) @map("is_primary")
@@ -470,23 +487,28 @@ model AppPosProductImage {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
+  @@index([companyUuid])
   @@map("app_pos_product_images")
 }
 
 model AppPosProductStock {
   uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   branchUuid  String   @map("branch_uuid") @db.Char(36)
   stock       Int      @default(0)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
   branch  AppPosBranch  @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
 
   @@unique([productUuid, branchUuid], name: "product_branch_unique")
+  @@index([companyUuid])
   @@map("app_pos_product_stocks")
 }
 
@@ -539,6 +561,7 @@ model AppPosPurchase {
 
 model AppPosPurchaseItem {
   uuid         String   @id @default(uuid()) @db.Char(36)
+  companyUuid  String   @map("company_uuid") @db.Char(36)
   purchaseUuid String   @map("purchase_uuid") @db.Char(36)
   productUuid  String   @map("product_uuid") @db.Char(36)
   quantity     Int
@@ -551,9 +574,11 @@ model AppPosPurchaseItem {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  company  Company        @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   purchase AppPosPurchase @relation(fields: [purchaseUuid], references: [uuid], onDelete: Cascade)
   product  AppPosProduct  @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
+  @@index([companyUuid])
   @@map("app_pos_purchase_items")
 }
 
@@ -659,6 +684,7 @@ model AppPosSale {
 
 model AppPosSaleItem {
   uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
   saleUuid    String   @map("sale_uuid") @db.Char(36)
   productUuid String   @map("product_uuid") @db.Char(36)
   quantity    Int
@@ -668,9 +694,11 @@ model AppPosSaleItem {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  company Company       @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   sale    AppPosSale    @relation(fields: [saleUuid], references: [uuid], onDelete: Cascade)
   product AppPosProduct @relation(fields: [productUuid], references: [uuid], onDelete: Cascade)
 
+  @@index([companyUuid])
   @@map("app_pos_sale_items")
 }
 

@@ -204,9 +204,10 @@ export const posProductService = {
     }
 
     const companyUuid = getTenantCompanyUuid();
-    if (companyUuid) {
-      await assertProductLimit(companyUuid);
+    if (!companyUuid) {
+      throw new ApiError('Konteks perusahaan tidak ditemukan', 500);
     }
+    await assertProductLimit(companyUuid);
 
     const existingSku = await posProductRepository.findBySku(payload.sku);
     if (existingSku) {
@@ -249,20 +250,21 @@ export const posProductService = {
     });
 
     if (dedupedAdditionalBarcodes.length > 0) {
-      await posProductRepository.replaceAdditionalBarcodes(product.uuid, dedupedAdditionalBarcodes);
+      await posProductRepository.replaceAdditionalBarcodes(companyUuid, product.uuid, dedupedAdditionalBarcodes);
     }
 
     if (Array.isArray(payload.unit_conversions)) {
-      await posProductRepository.replaceUnitConversions(product.uuid, payload.unit_conversions);
+      await posProductRepository.replaceUnitConversions(companyUuid, product.uuid, payload.unit_conversions);
     }
 
     if (Array.isArray(payload.branch_prices)) {
-      await posProductRepository.replaceBranchPrices(product.uuid, payload.branch_prices);
+      await posProductRepository.replaceBranchPrices(companyUuid, product.uuid, payload.branch_prices);
     }
 
     for (let index = 0; index < imageFiles.length; index += 1) {
       const filename = await saveProductImage(imageFiles[index]);
       await posProductRepository.createImage({
+        companyUuid,
         productUuid: product.uuid,
         image: filename,
         isPrimary: index === 0,
@@ -348,15 +350,15 @@ export const posProductService = {
     });
 
     if (additionalBarcodes) {
-      await posProductRepository.replaceAdditionalBarcodes(uuid, additionalBarcodes);
+      await posProductRepository.replaceAdditionalBarcodes(existingProduct.companyUuid, uuid, additionalBarcodes);
     }
 
     if (Array.isArray(payload.unit_conversions)) {
-      await posProductRepository.replaceUnitConversions(uuid, payload.unit_conversions);
+      await posProductRepository.replaceUnitConversions(existingProduct.companyUuid, uuid, payload.unit_conversions);
     }
 
     if (Array.isArray(payload.branch_prices)) {
-      await posProductRepository.replaceBranchPrices(uuid, payload.branch_prices);
+      await posProductRepository.replaceBranchPrices(existingProduct.companyUuid, uuid, payload.branch_prices);
     }
 
     if (deleteImages.length > 0) {
@@ -374,6 +376,7 @@ export const posProductService = {
       for (let index = 0; index < imageFiles.length; index += 1) {
         const filename = await saveProductImage(imageFiles[index]);
         await posProductRepository.createImage({
+          companyUuid: existingProduct.companyUuid,
           productUuid: uuid,
           image: filename,
           isPrimary: false,

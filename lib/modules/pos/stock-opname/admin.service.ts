@@ -211,6 +211,7 @@ export const posStockOpnameService = {
         }),
         tx.appPosProductStock.findMany({
           where: {
+            companyUuid,
             branchUuid: payload.branchUuid,
             productUuid: { in: productUuids },
           },
@@ -238,6 +239,7 @@ export const posStockOpnameService = {
         } else {
           await tx.appPosProductStock.create({
             data: {
+              companyUuid,
               branchUuid: payload.branchUuid,
               productUuid: item.productUuid,
               stock: nextStock,

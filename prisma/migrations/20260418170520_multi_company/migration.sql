@@ -11,6 +11,13 @@
   - Added the required column `company_uuid` to the `pos_purchases` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_sales` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_stock_movements` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_product_stocks` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_product_barcodes` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_product_unit_conversions` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_product_branch_prices` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_product_images` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_purchase_items` table without a default value. This is not possible if the table is not empty.
+  - Added the required column `company_uuid` to the `pos_sale_items` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_suppliers` table without a default value. This is not possible if the table is not empty.
 
 */
@@ -49,6 +56,27 @@ ALTER TABLE "app_pos_sales" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
 ALTER TABLE "app_pos_stock_movements" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_product_stocks" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_product_barcodes" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_product_unit_conversions" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_product_branch_prices" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_product_images" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_purchase_items" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
+
+-- AlterTable
+ALTER TABLE "app_pos_sale_items" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
 ALTER TABLE "app_pos_suppliers" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
@@ -125,6 +153,27 @@ CREATE INDEX "app_pos_sales_company_uuid_idx" ON "app_pos_sales"("company_uuid")
 CREATE INDEX "app_pos_stock_movements_company_uuid_idx" ON "app_pos_stock_movements"("company_uuid");
 
 -- CreateIndex
+CREATE INDEX "app_pos_product_stocks_company_uuid_idx" ON "app_pos_product_stocks"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_product_barcodes_company_uuid_idx" ON "app_pos_product_barcodes"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_product_unit_conversions_company_uuid_idx" ON "app_pos_product_unit_conversions"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_product_branch_prices_company_uuid_idx" ON "app_pos_product_branch_prices"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_product_images_company_uuid_idx" ON "app_pos_product_images"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_purchase_items_company_uuid_idx" ON "app_pos_purchase_items"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_sale_items_company_uuid_idx" ON "app_pos_sale_items"("company_uuid");
+
+-- CreateIndex
 CREATE INDEX "app_pos_suppliers_company_uuid_idx" ON "app_pos_suppliers"("company_uuid");
 
 -- AddForeignKey
@@ -150,6 +199,27 @@ ALTER TABLE "app_pos_purchases" ADD CONSTRAINT "app_pos_purchases_company_uuid_f
 
 -- AddForeignKey
 ALTER TABLE "app_pos_stock_movements" ADD CONSTRAINT "app_pos_stock_movements_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_product_stocks" ADD CONSTRAINT "app_pos_product_stocks_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_product_barcodes" ADD CONSTRAINT "app_pos_product_barcodes_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_product_unit_conversions" ADD CONSTRAINT "app_pos_product_unit_conversions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_product_branch_prices" ADD CONSTRAINT "app_pos_product_branch_prices_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_product_images" ADD CONSTRAINT "app_pos_product_images_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_purchase_items" ADD CONSTRAINT "app_pos_purchase_items_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_sale_items" ADD CONSTRAINT "app_pos_sale_items_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_pos_payment_methods" ADD CONSTRAINT "app_pos_payment_methods_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

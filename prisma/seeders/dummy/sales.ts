@@ -137,9 +137,10 @@ async function getCustomers(prisma: PrismaClient, companyUuid: string) {
   });
 }
 
-async function getProductCandidates(prisma: PrismaClient, branchUuid: string) {
+async function getProductCandidates(prisma: PrismaClient, companyUuid: string, branchUuid: string) {
   const stocks = await prisma.appPosProductStock.findMany({
     where: {
+      companyUuid,
       branchUuid,
       stock: { gt: 0 },
       product: {
@@ -210,7 +211,7 @@ export async function seedSales(prisma: PrismaClient) {
   const [paymentMethods, customers, productData] = await Promise.all([
     getPaymentMethods(prisma, companyUuid),
     getCustomers(prisma, companyUuid),
-    getProductCandidates(prisma, branch.uuid),
+    getProductCandidates(prisma, companyUuid, branch.uuid),
   ]);
 
   if (paymentMethods.length === 0) {
@@ -302,6 +303,7 @@ export async function seedSales(prisma: PrismaClient) {
       for (const item of selectedItems) {
         const stock = await tx.appPosProductStock.findFirst({
           where: {
+            companyUuid,
             productUuid: item.product.uuid,
             branchUuid: branch.uuid,
           },
@@ -319,6 +321,7 @@ export async function seedSales(prisma: PrismaClient) {
         await tx.appPosSaleItem.create({
           data: {
             uuid: uuidv7(),
+            companyUuid,
             saleUuid: createdSale.uuid,
             productUuid: item.product.uuid,
             quantity: item.qty,

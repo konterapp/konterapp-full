@@ -217,6 +217,7 @@ export async function seedPurchases(prisma: PrismaClient) {
       await prisma.appPosPurchaseItem.create({
         data: {
           uuid: uuidv7(),
+          companyUuid,
           purchaseUuid: createdPurchase.uuid,
           productUuid: product.uuid,
           quantity: item.qty,
@@ -231,6 +232,7 @@ export async function seedPurchases(prisma: PrismaClient) {
 
       const stock = await prisma.appPosProductStock.findFirst({
         where: {
+          companyUuid,
           productUuid: product.uuid,
           branchUuid: branch.uuid,
         },
@@ -248,6 +250,7 @@ export async function seedPurchases(prisma: PrismaClient) {
         await prisma.appPosProductStock.create({
           data: {
             uuid: uuidv7(),
+            companyUuid,
             productUuid: product.uuid,
             branchUuid: branch.uuid,
             stock: quantityAfter,

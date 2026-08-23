@@ -102,18 +102,19 @@ export const posProductRepository = {
     return prisma.appPosProduct.delete({ where: { uuid } });
   },
 
-  replaceAdditionalBarcodes(productUuid: string, barcodes: string[]) {
+  replaceAdditionalBarcodes(companyUuid: string, productUuid: string, barcodes: string[]) {
     return prisma.$transaction(async (tx) => {
       await tx.appPosProductBarcode.deleteMany({ where: { productUuid } });
       if (barcodes.length > 0) {
         await tx.appPosProductBarcode.createMany({
-          data: barcodes.map((barcode) => ({ productUuid, barcode })),
+          data: barcodes.map((barcode) => ({ companyUuid, productUuid, barcode })),
         });
       }
     });
   },
 
   replaceUnitConversions(
+    companyUuid: string,
     productUuid: string,
     rows: Array<{ unit: string; factor_to_base: number; is_active?: boolean }>
   ) {
@@ -122,6 +123,7 @@ export const posProductRepository = {
       if (rows.length > 0) {
         await tx.appPosProductUnitConversion.createMany({
           data: rows.map((row) => ({
+            companyUuid,
             productUuid,
             unit: row.unit,
             factorToBase: row.factor_to_base,
@@ -133,6 +135,7 @@ export const posProductRepository = {
   },
 
   replaceBranchPrices(
+    companyUuid: string,
     productUuid: string,
     rows: Array<{ branch_uuid: string; selling_price: number; wholesale_price: number }>
   ) {
@@ -141,6 +144,7 @@ export const posProductRepository = {
       if (rows.length > 0) {
         await tx.appPosProductBranchPrice.createMany({
           data: rows.map((row) => ({
+            companyUuid,
             productUuid,
             branchUuid: row.branch_uuid,
             sellingPrice: row.selling_price,
@@ -151,7 +155,7 @@ export const posProductRepository = {
     });
   },
 
-  createImage(data: { productUuid: string; image: string; isPrimary: boolean; sortOrder: number }) {
+  createImage(data: { companyUuid: string; productUuid: string; image: string; isPrimary: boolean; sortOrder: number }) {
     return prisma.appPosProductImage.create({ data });
   },
 

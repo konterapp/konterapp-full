@@ -281,6 +281,7 @@ async function applyStockInForItems(
   for (const item of items) {
     const stock = await tx.appPosProductStock.findFirst({
       where: {
+        companyUuid,
         productUuid: item.productUuid,
         branchUuid,
       },
@@ -297,6 +298,7 @@ async function applyStockInForItems(
     } else {
       await tx.appPosProductStock.create({
         data: {
+          companyUuid,
           productUuid: item.productUuid,
           branchUuid,
           stock: newStock,
@@ -478,6 +480,7 @@ export const posPurchaseService = {
       for (const item of resolvedItems) {
         await tx.appPosPurchaseItem.create({
           data: {
+            companyUuid,
             purchaseUuid: createdPurchase.uuid,
             productUuid: item.productUuid,
             quantity: item.quantity,
@@ -577,6 +580,7 @@ export const posPurchaseService = {
       for (const item of resolvedItems) {
         await tx.appPosPurchaseItem.create({
           data: {
+            companyUuid,
             purchaseUuid: uuid,
             productUuid: item.productUuid,
             quantity: item.quantity,
@@ -639,6 +643,7 @@ export const posPurchaseService = {
         for (const item of purchase.items) {
           const stock = await tx.appPosProductStock.findFirst({
             where: {
+              companyUuid,
               productUuid: item.productUuid,
               branchUuid: purchase.branchUuid,
             },

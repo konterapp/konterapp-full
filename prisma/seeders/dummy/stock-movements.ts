@@ -151,6 +151,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
 
     let stock = await prisma.appPosProductStock.findFirst({
       where: {
+        companyUuid,
         productUuid: product.uuid,
         branchUuid: branch.uuid,
       },
@@ -161,6 +162,7 @@ export async function seedStockMovements(prisma: PrismaClient) {
       stock = await prisma.appPosProductStock.create({
         data: {
           uuid: uuidv7(),
+          companyUuid,
           productUuid: product.uuid,
           branchUuid: branch.uuid,
           stock: baseStock,
