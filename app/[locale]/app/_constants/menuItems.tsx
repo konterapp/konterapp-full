@@ -198,7 +198,8 @@ const coreMenuItems: MenuItem[] = [
         section: 'Pengaturan',
         label: 'Langganan',
         href: '/app/billing',
-        icon: <CircleDollarSign className="w-5 h-5" />
+        icon: <CircleDollarSign className="w-5 h-5" />,
+        permission: 'billing.index'
     },
     {
         section: 'Pengaturan',

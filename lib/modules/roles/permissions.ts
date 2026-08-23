@@ -8,6 +8,8 @@
 export const PERMISSIONS = [
   // Company profile (identitas perusahaan tenant)
   "company.update",
+  // Billing (langganan, invoice, kupon)
+  "billing.index",
   // User management (kelola user tenant)
   "user.index",
   "user.create",

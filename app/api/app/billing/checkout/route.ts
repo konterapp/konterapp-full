@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { successResponse } from "@/lib/response";
-import { withAuth } from "@/lib/api-middleware";
+import { withPermissionNoSubscriptionGate } from "@/lib/api-middleware";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { validateSchema } from "@/lib/validation";
 import { billingTenantService } from "@/lib/modules/billing/tenant.service";
@@ -22,7 +22,8 @@ const checkoutSchema = z.object({
   use_referral_balance: z.boolean().optional().default(false),
 });
 
-export const POST = withAuth(
+export const POST = withPermissionNoSubscriptionGate(
+  "billing.index",
   withApiErrorHandling(async (req, context) => {
     const body = await req.json().catch(() => ({}));
     const result = validateSchema(checkoutSchema, body);

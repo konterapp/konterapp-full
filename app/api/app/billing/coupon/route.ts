@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { successResponse, errorResponse } from "@/lib/response";
-import { withAuth } from "@/lib/api-middleware";
+import { withPermissionNoSubscriptionGate } from "@/lib/api-middleware";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { validateSchema } from "@/lib/validation";
 import { couponCodeSchema } from "@/lib/validations/coupon";
@@ -19,7 +19,8 @@ const applyCouponSchema = couponCodeSchema.extend({
     .default(STARTER_YEARLY_PLAN_CODE),
 });
 
-export const POST = withAuth(
+export const POST = withPermissionNoSubscriptionGate(
+  "billing.index",
   withApiErrorHandling(async (req, context) => {
     const body = await req.json().catch(() => ({}));
     const result = validateSchema(applyCouponSchema, body);

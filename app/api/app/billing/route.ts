@@ -1,9 +1,10 @@
 import { successResponse } from "@/lib/response";
-import { withAuth } from "@/lib/api-middleware";
+import { withPermissionNoSubscriptionGate } from "@/lib/api-middleware";
 import { withApiErrorHandling } from "@/lib/api-error-handler";
 import { billingTenantService } from "@/lib/modules/billing/tenant.service";
 
-export const GET = withAuth(
+export const GET = withPermissionNoSubscriptionGate(
+  "billing.index",
   withApiErrorHandling(async (_req, context) => {
     const result = await billingTenantService.getBillingStatus(
       context.companyUuid,

@@ -83,3 +83,20 @@ export function withPermission(permission: string, handler: RouteHandler) {
     return handler(req, context);
   });
 }
+
+/**
+ * Wrapper auth + cek permission spesifik, TANPA gate subscription aktif.
+ * Khusus rute billing sendiri (cek status, checkout, kupon, cancel invoice)
+ * -- rute inilah yang dipakai company untuk memulihkan/mengelola
+ * subscription-nya saat sedang tidak aktif, jadi tidak boleh ikut diblokir
+ * oleh withTenant.
+ */
+export function withPermissionNoSubscriptionGate(permission: string, handler: RouteHandler) {
+  return withAuth(async (req, context) => {
+    const permissions = await getUserPermissions(context.userId, context.companyUuid);
+    if (!hasPermission(permissions, permission)) {
+      return errorResponse("Forbidden", 403);
+    }
+    return handler(req, context);
+  });
+}

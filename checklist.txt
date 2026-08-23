@@ -23,6 +23,9 @@ DONE:
   - (done) user profile
   - (done) Onboarding wizard post-register
   - (done) semua menu belum multi tenant
+    - (done) isolasi menu-menu tenant
+    - (done) defualt data register
+    - (done) db transaction
 - konterapp-full-2
   - (done) billings
     - (done) midtrans redirect
@@ -34,25 +37,26 @@ DONE:
     - (done) upgrade info
     - (done) list billing
     - (done) webhook midtrans
+    - (done) hapus users dan backup
+    - (done) menu saldo
+    - (done) unit test setup
 - konterapp-full-3
   - (done) verifikasi email (registrasi, create)
   - (done) lupa password
   - (done) referral
-
-DOING:
-- konterapp-full-1
-    - (done) isolasi menu-menu tenant
-    - (done) defualt data register
-    - (done) db transaction
-- konterapp-full-2
-    - (done) hapus users dan backup
-    - (done) menu saldo
-    - saldo shift (lihat plan-shift-saldo-snapshot.txt & plan-saldo-multi-cabang.txt)
-- konterapp-full-3
     - (done) hapus fitur berita
     - (done) walkin customer
     - (done) email sudah terdaftar
 
+DOING:
+- konterapp-full-1
+    - (done) fix vuln push
+    - (done) user by cabang
+- konterapp-full-2
+    - saldo shift (lihat plan-shift-saldo-snapshot.txt & plan-saldo-multi-cabang.txt)
+    - buka/tutup shift saldo
+- konterapp-full-3
+    - (done) menu langganan & referral
 
 
 PENDING:
