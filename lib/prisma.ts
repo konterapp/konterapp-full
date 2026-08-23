@@ -30,6 +30,8 @@ const UUID_MODELS = new Set<string>([
   "AppPosPpobProduct",
   "AppPosPpobTransaction",
   "AppPosSaldoAccount",
+  "AppPosSaldoAccountBalance",
+  "AppPosSaldoAccountBalanceBranch",
   "AppPosSaldoMutation",
 ]);
 

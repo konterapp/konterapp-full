@@ -138,12 +138,19 @@ if (!companyUuid) {
 }
 await assertTransactionLimit(companyUuid);
 
-const saldoAccount = await posSaldoRepository.findByUuid(paymentMethodUuid);
+const saldoAccount = await posSaldoRepository.findByUuid(paymentMethodUuid, false);
 if (!saldoAccount || saldoAccount.companyUuid !== companyUuid) {
   throw new ValidationApiError({ paymentMethodUuid: ['Metode pembayaran tidak ditemukan'] });
 }
 if (!saldoAccount.isPaymentMethod || !saldoAccount.isActive) {
   throw new ValidationApiError({ paymentMethodUuid: ['Akun saldo ini tidak bisa dipakai sebagai metode pembayaran'] });
+}
+
+// Kasir cuma memilih akun induk (misal "Dana"); backend yang resolve ke
+// baris/grup balance yang tepat sesuai cabang tempat sale ini terjadi.
+const saldoBranchLink = await posSaldoRepository.findBranchLink(paymentMethodUuid, branchUuid);
+if (!saldoBranchLink) {
+  throw new ValidationApiError({ paymentMethodUuid: ['Metode pembayaran ini belum dikonfigurasi untuk cabang ini'] });
 }
 
 let subtotal = 0;
@@ -276,7 +283,7 @@ let subtotal = 0;
 
       if (finalPaidAmount > 0) {
         await posSaldoRepository.applyMutationInTx(tx, {
-          saldoAccountUuid: paymentMethodUuid,
+          saldoAccountBalanceUuid: saldoBranchLink.saldoAccountBalanceUuid,
           companyUuid,
           branchUuid,
           direction: 'in',

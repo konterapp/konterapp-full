@@ -1,4 +1,20 @@
+export function mapSaldoBalanceGroup(row: any) {
+  return {
+    uuid: row.uuid,
+    balance: Number(row.balance),
+    branches: (row.branchLinks ?? []).map((link: any) => ({
+      uuid: link.branch?.uuid,
+      code: link.branch?.code,
+      name: link.branch?.name,
+    })),
+    created_at: row.createdAt,
+  };
+}
+
 export function mapSaldoAccount(account: any) {
+  const balanceRows = account.balances ?? [];
+  const totalBalance = balanceRows.reduce((total: number, row: any) => total + Number(row.balance), 0);
+
   return {
     uuid: account.uuid,
     code: account.code,
@@ -7,7 +23,10 @@ export function mapSaldoAccount(account: any) {
     account_number: account.accountNumber,
     account_name: account.accountName,
     description: account.description,
-    balance: Number(account.balance),
+    // Rollup: gabungan semua grup balance. Detail per grup ada di field balances.
+    balance: Number(totalBalance.toFixed(2)),
+    balances_count: balanceRows.length,
+    balances: account.balances ? balanceRows.map(mapSaldoBalanceGroup) : undefined,
     is_payment_method: account.isPaymentMethod,
     is_active: account.isActive,
     created_at: account.createdAt,

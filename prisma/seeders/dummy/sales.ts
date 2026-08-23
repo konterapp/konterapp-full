@@ -124,10 +124,31 @@ async function getSaldoAccounts(prisma: PrismaClient, companyUuid: string) {
       isActive: true,
       isPaymentMethod: true,
     },
-    select: { uuid: true, code: true, name: true, balance: true },
+    select: { uuid: true, code: true, name: true },
   });
 
   return accounts;
+}
+
+/**
+ * Resolve grup balance tiap akun untuk cabang tempat sale di-seed, mirip
+ * yang dilakukan backend createSale saat kasir memilih metode bayar.
+ */
+async function getSaldoLinksForBranch(prisma: PrismaClient, companyUuid: string, branchUuid: string, accountUuids: string[]) {
+  if (accountUuids.length === 0) return [];
+
+  return prisma.appPosSaldoAccountBalanceBranch.findMany({
+    where: {
+      companyUuid,
+      branchUuid,
+      saldoAccountUuid: { in: accountUuids },
+    },
+    select: {
+      saldoAccountUuid: true,
+      saldoAccountBalanceUuid: true,
+      saldoAccountBalance: { select: { balance: true } },
+    },
+  });
 }
 
 async function getCustomers(prisma: PrismaClient, companyUuid: string) {
@@ -226,7 +247,19 @@ export async function seedSales(prisma: PrismaClient) {
   }
 
   const saldoAccountByCode = new Map(saldoAccounts.map((item) => [item.code, item]));
-  const runningBalance = new Map(saldoAccounts.map((item) => [item.uuid, Number(item.balance)]));
+  const saldoLinks = await getSaldoLinksForBranch(
+    prisma,
+    companyUuid,
+    branch.uuid,
+    saldoAccounts.map((item) => item.uuid)
+  );
+  const balanceUuidByAccountUuid = new Map(
+    saldoLinks.map((link) => [link.saldoAccountUuid, link.saldoAccountBalanceUuid])
+  );
+  // Key running balance = uuid BARIS BALANCE (grup), bukan akun induk.
+  const runningBalance = new Map(
+    saldoLinks.map((link) => [link.saldoAccountBalanceUuid, Number(link.saldoAccountBalance.balance)])
+  );
   let createdCount = 0;
 
   for (const saleSeed of SALES_DATA) {
@@ -272,6 +305,13 @@ export async function seedSales(prisma: PrismaClient) {
       saldoAccountByCode.get("CASH") ||
       saldoAccounts[0];
 
+    const saldoBalanceUuid = balanceUuidByAccountUuid.get(saldoAccount.uuid);
+    if (!saldoBalanceUuid) {
+      // Akun ini belum di-link ke cabang tempat sale -> skip (konsisten
+      // dengan validasi createSale).
+      continue;
+    }
+
     const customer =
       saleSeed.customerIndex !== undefined && customers.length > 0
         ? customers[saleSeed.customerIndex % customers.length]
@@ -303,12 +343,12 @@ export async function seedSales(prisma: PrismaClient) {
       });
 
       if (paidAmount > 0) {
-        const balanceBefore = runningBalance.get(saldoAccount.uuid) ?? 0;
+        const balanceBefore = runningBalance.get(saldoBalanceUuid) ?? 0;
         const balanceAfter = balanceBefore + paidAmount;
-        runningBalance.set(saldoAccount.uuid, balanceAfter);
+        runningBalance.set(saldoBalanceUuid, balanceAfter);
 
-        await tx.appPosSaldoAccount.update({
-          where: { uuid: saldoAccount.uuid },
+        await tx.appPosSaldoAccountBalance.update({
+          where: { uuid: saldoBalanceUuid },
           data: { balance: balanceAfter },
         });
 
@@ -316,7 +356,7 @@ export async function seedSales(prisma: PrismaClient) {
           data: {
             uuid: uuidv7(),
             companyUuid,
-            saldoAccountUuid: saldoAccount.uuid,
+            saldoAccountBalanceUuid: saldoBalanceUuid,
             branchUuid: branch.uuid,
             direction: "in",
             amount: paidAmount,

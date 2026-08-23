@@ -16,6 +16,14 @@ export const createSaldoAccountSchema = z.object({
 
 export const updateSaldoAccountSchema = createSaldoAccountSchema.omit({ openingBalance: true });
 
+export const addSaldoBalanceGroupSchema = z.object({
+  branchUuids: z
+    .array(z.string({ error: "Cabang wajib dipilih" }).min(1, "Cabang tidak valid"))
+    .min(1, "Pilih minimal 1 cabang untuk grup balance baru"),
+  openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
+  notes: z.string().max(255, "Catatan maksimal 255 karakter").optional().nullable().or(z.literal("")),
+});
+
 export const adjustSaldoSchema = z.object({
   direction: z.enum(["in", "out"], { error: "Arah mutasi wajib dipilih" }),
   amount: z.coerce.number({ error: "Jumlah wajib diisi" }).positive("Jumlah harus lebih dari 0"),

@@ -8,16 +8,42 @@ ALTER TABLE "app_pos_saldo_accounts" RENAME CONSTRAINT "app_pos_payment_methods_
 ALTER INDEX "app_pos_payment_methods_company_uuid_idx" RENAME TO "app_pos_saldo_accounts_company_uuid_idx";
 ALTER INDEX "app_pos_payment_methods_company_uuid_code_key" RENAME TO "app_pos_saldo_accounts_company_uuid_code_key";
 
--- AlterTable: tambah kolom saldo (balance berjalan) + penanda apakah akun
--- ini boleh dipilih sebagai metode bayar customer.
-ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "balance" DECIMAL(15,2) NOT NULL DEFAULT 0;
+-- AlterTable: penanda apakah akun ini boleh dipilih sebagai metode bayar
+-- customer. Balance TIDAK lagi menempel di akun induk -- pindah ke level
+-- baris AppPosSaldoAccountBalance (per kelompok cabang) di bawah.
 ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "is_payment_method" BOOLEAN NOT NULL DEFAULT true;
+
+-- CreateTable: baris balance per kelompok cabang (1 angka dipakai bareng
+-- oleh sekumpulan cabang; akun induk bisa punya banyak baris di sini).
+CREATE TABLE "app_pos_saldo_account_balances" (
+    "uuid" CHAR(36) NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
+    "saldo_account_uuid" CHAR(36) NOT NULL,
+    "balance" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "app_pos_saldo_account_balances_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateTable: pivot cabang <-> baris balance. Unique (saldo_account, branch)
+-- menjamin 1 cabang cuma masuk 1 kelompok balance untuk akun induk yang sama.
+CREATE TABLE "app_pos_saldo_account_balance_branches" (
+    "uuid" CHAR(36) NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
+    "saldo_account_uuid" CHAR(36) NOT NULL,
+    "saldo_account_balance_uuid" CHAR(36) NOT NULL,
+    "branch_uuid" CHAR(36) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "app_pos_saldo_account_balance_branches_pkey" PRIMARY KEY ("uuid")
+);
 
 -- CreateTable
 CREATE TABLE "app_pos_saldo_mutations" (
     "uuid" CHAR(36) NOT NULL,
     "company_uuid" CHAR(36) NOT NULL,
-    "saldo_account_uuid" CHAR(36) NOT NULL,
+    "saldo_account_balance_uuid" CHAR(36) NOT NULL,
     "branch_uuid" CHAR(36),
     "direction" VARCHAR(10) NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
@@ -33,19 +59,52 @@ CREATE TABLE "app_pos_saldo_mutations" (
 );
 
 -- CreateIndex
+CREATE INDEX "app_pos_saldo_account_balances_company_uuid_idx" ON "app_pos_saldo_account_balances"("company_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_saldo_account_balances_saldo_account_uuid_idx" ON "app_pos_saldo_account_balances"("saldo_account_uuid");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "app_pos_saldo_account_balance_branches_saldo_account_uuid_branch_uuid_key" ON "app_pos_saldo_account_balance_branches"("saldo_account_uuid", "branch_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_saldo_account_balance_branches_branch_uuid_idx" ON "app_pos_saldo_account_balance_branches"("branch_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_saldo_account_balance_branches_company_uuid_idx" ON "app_pos_saldo_account_balance_branches"("company_uuid");
+
+-- CreateIndex
 CREATE INDEX "app_pos_saldo_mutations_company_uuid_idx" ON "app_pos_saldo_mutations"("company_uuid");
 
 -- CreateIndex
-CREATE INDEX "app_pos_saldo_mutations_saldo_account_uuid_idx" ON "app_pos_saldo_mutations"("saldo_account_uuid");
+CREATE INDEX "app_pos_saldo_mutations_saldo_account_balance_uuid_idx" ON "app_pos_saldo_mutations"("saldo_account_balance_uuid");
 
 -- CreateIndex
 CREATE INDEX "app_pos_saldo_mutations_branch_uuid_idx" ON "app_pos_saldo_mutations"("branch_uuid");
 
 -- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balances" ADD CONSTRAINT "app_pos_saldo_account_balances_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balances" ADD CONSTRAINT "app_pos_saldo_account_balances_saldo_account_uuid_fkey" FOREIGN KEY ("saldo_account_uuid") REFERENCES "app_pos_saldo_accounts"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balance_branches" ADD CONSTRAINT "app_pos_saldo_account_balance_branches_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balance_branches" ADD CONSTRAINT "app_pos_saldo_account_balance_branches_saldo_account_uuid_fkey" FOREIGN KEY ("saldo_account_uuid") REFERENCES "app_pos_saldo_accounts"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balance_branches" ADD CONSTRAINT "app_pos_saldo_account_balance_branches_saldo_account_balance_uuid_fkey" FOREIGN KEY ("saldo_account_balance_uuid") REFERENCES "app_pos_saldo_account_balances"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "app_pos_saldo_account_balance_branches" ADD CONSTRAINT "app_pos_saldo_account_balance_branches_branch_uuid_fkey" FOREIGN KEY ("branch_uuid") REFERENCES "app_pos_branches"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "app_pos_saldo_mutations" ADD CONSTRAINT "app_pos_saldo_mutations_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "app_pos_saldo_mutations" ADD CONSTRAINT "app_pos_saldo_mutations_saldo_account_uuid_fkey" FOREIGN KEY ("saldo_account_uuid") REFERENCES "app_pos_saldo_accounts"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "app_pos_saldo_mutations" ADD CONSTRAINT "app_pos_saldo_mutations_saldo_account_balance_uuid_fkey" FOREIGN KEY ("saldo_account_balance_uuid") REFERENCES "app_pos_saldo_account_balances"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_pos_saldo_mutations" ADD CONSTRAINT "app_pos_saldo_mutations_branch_uuid_fkey" FOREIGN KEY ("branch_uuid") REFERENCES "app_pos_branches"("uuid") ON DELETE SET NULL ON UPDATE CASCADE;

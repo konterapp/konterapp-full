@@ -34,6 +34,7 @@ export const POST = withPermission(
       ...rawBody,
       isActive: rawBody.isActive ?? rawBody.is_active,
       isMain: rawBody.isMain ?? rawBody.is_main,
+      copySaldoFromBranchUuid: rawBody.copySaldoFromBranchUuid ?? rawBody.copy_saldo_from_branch_uuid,
     };
 
     const result = validateSchema(createBranchSchema, body);

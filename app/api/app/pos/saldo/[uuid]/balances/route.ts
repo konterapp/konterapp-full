@@ -3,7 +3,7 @@ import { successResponse } from '@/lib/response';
 import { withPermission } from '@/lib/api-middleware';
 import { withApiErrorHandling } from '@/lib/api-error-handler';
 import { validateSchema } from '@/lib/validation';
-import { adjustSaldoSchema } from '@/lib/validations/saldo';
+import { addSaldoBalanceGroupSchema } from '@/lib/validations/saldo';
 import { posSaldoService } from '@/lib/modules/pos/saldo/admin.service';
 
 export const POST = withPermission(
@@ -13,13 +13,14 @@ export const POST = withPermission(
     const rawBody = await req.json();
     const body = {
       ...rawBody,
-      branchUuid: rawBody.branchUuid ?? rawBody.branch_uuid,
+      openingBalance: rawBody.openingBalance ?? rawBody.opening_balance,
+      notes: rawBody.notes ?? null,
     };
 
-    const result = validateSchema(adjustSaldoSchema, body);
+    const result = validateSchema(addSaldoBalanceGroupSchema, body);
     if (!('data' in result)) return result;
 
-    const account = await posSaldoService.adjustBalance(uuid, context.companyUuid, context.userId, result.data);
-    return successResponse('Saldo berhasil dikoreksi', account);
+    const account = await posSaldoService.addBalanceGroup(uuid, context.companyUuid, context.userId, result.data);
+    return successResponse('Grup balance berhasil ditambahkan', account);
   })
 );

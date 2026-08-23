@@ -11,6 +11,7 @@ export const createBranchSchema = z.object({
   ]).optional().nullable(),
   isActive: z.boolean().optional(),
   isMain: z.boolean().optional(),
+  copySaldoFromBranchUuid: z.string().optional().nullable().or(z.literal("")),
 });
 
 export const updateBranchSchema = createBranchSchema;

@@ -128,6 +128,8 @@ model Company {
   ppobProducts           AppPosPpobProduct[]
   ppobTransactions       AppPosPpobTransaction[]
   saldoAccounts          AppPosSaldoAccount[]
+  saldoAccountBalances   AppPosSaldoAccountBalance[]
+  saldoBalanceBranches   AppPosSaldoAccountBalanceBranch[]
   saldoMutations         AppPosSaldoMutation[]
 
   @@map("companies")
@@ -367,7 +369,7 @@ model AppPosBranch {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  company          Company                    @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  company          Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   productStocks    AppPosProductStock[]
   productPrices    AppPosProductBranchPrice[]
   purchases        AppPosPurchase[]
@@ -376,6 +378,7 @@ model AppPosBranch {
   cashierShifts    AppPosCashierShift[]
   ppobTransactions AppPosPpobTransaction[]
   saldoMutations   AppPosSaldoMutation[]
+  saldoBalances    AppPosSaldoAccountBalanceBranch[]
 
   @@unique([companyUuid, code])
   @@index([companyUuid])
@@ -778,14 +781,14 @@ model AppPosSaldoAccount {
   accountNumber   String?  @map("account_number") @db.VarChar(100)
   accountName     String?  @map("account_name") @db.VarChar(100)
   description     String?  @db.Text
-  balance         Decimal  @default(0) @db.Decimal(15, 2)
   isPaymentMethod Boolean  @default(true) @map("is_payment_method")
   isActive        Boolean  @default(true) @map("is_active")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  company          Company                 @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  mutations        AppPosSaldoMutation[]
+  company          Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  balances         AppPosSaldoAccountBalance[]
+  balanceBranches  AppPosSaldoAccountBalanceBranch[]
   sales            AppPosSale[]
   ppobTransactions AppPosPpobTransaction[]
 
@@ -794,28 +797,71 @@ model AppPosSaldoAccount {
   @@map("app_pos_saldo_accounts")
 }
 
-model AppPosSaldoMutation {
+// Balance akun saldo per kelompok cabang: 1 baris = 1 angka yang dipakai
+// bareng oleh sekumpulan cabang tertentu (lihat pivot di bawah). Akun induk
+// tidak lagi menyimpan balance; kolom "Saldo" di master list = rollup SUM
+// dari semua baris di sini.
+model AppPosSaldoAccountBalance {
   uuid             String   @id @default(uuid()) @db.Char(36)
   companyUuid      String   @map("company_uuid") @db.Char(36)
   saldoAccountUuid String   @map("saldo_account_uuid") @db.Char(36)
-  branchUuid       String?  @map("branch_uuid") @db.Char(36)
-  direction        String   @db.VarChar(10) // in, out
-  amount           Decimal  @db.Decimal(15, 2)
-  balanceBefore    Decimal  @map("balance_before") @db.Decimal(15, 2)
-  balanceAfter     Decimal  @map("balance_after") @db.Decimal(15, 2)
-  referenceType    String   @map("reference_type") @db.VarChar(30) // sale, manual_adjustment, opening_balance
-  referenceUuid    String?  @map("reference_uuid") @db.Char(36)
-  notes            String?  @db.Text
-  createdBy        Int      @map("created_by")
+  balance          Decimal  @default(0) @db.Decimal(15, 2)
   createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  company      Company            @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  saldoAccount AppPosSaldoAccount @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
-  branch       AppPosBranch?      @relation(fields: [branchUuid], references: [uuid], onDelete: SetNull)
-  creator      User               @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  company      Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount AppPosSaldoAccount                @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  branchLinks  AppPosSaldoAccountBalanceBranch[]
+  mutations    AppPosSaldoMutation[]
 
   @@index([companyUuid])
   @@index([saldoAccountUuid])
+  @@map("app_pos_saldo_account_balances")
+}
+
+// Pivot cabang <-> baris balance. Constraint: 1 cabang cuma boleh masuk 1
+// baris balance per akun induk yang sama (tidak boleh ambigu).
+model AppPosSaldoAccountBalanceBranch {
+  uuid                    String   @id @default(uuid()) @db.Char(36)
+  companyUuid             String   @map("company_uuid") @db.Char(36)
+  saldoAccountUuid        String   @map("saldo_account_uuid") @db.Char(36)
+  saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  branchUuid              String   @map("branch_uuid") @db.Char(36)
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  company             Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount        AppPosSaldoAccount        @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  saldoAccountBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+  branch              AppPosBranch              @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([saldoAccountUuid, branchUuid])
+  @@index([branchUuid])
+  @@index([companyUuid])
+  @@map("app_pos_saldo_account_balance_branches")
+}
+
+model AppPosSaldoMutation {
+  uuid                    String   @id @default(uuid()) @db.Char(36)
+  companyUuid             String   @map("company_uuid") @db.Char(36)
+  saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  branchUuid              String?  @map("branch_uuid") @db.Char(36)
+  direction               String   @db.VarChar(10) // in, out
+  amount                  Decimal  @db.Decimal(15, 2)
+  balanceBefore           Decimal  @map("balance_before") @db.Decimal(15, 2)
+  balanceAfter            Decimal  @map("balance_after") @db.Decimal(15, 2)
+  referenceType           String   @map("reference_type") @db.VarChar(30) // sale, manual_adjustment, opening_balance
+  referenceUuid           String?  @map("reference_uuid") @db.Char(36)
+  notes                   String?  @db.Text
+  createdBy               Int      @map("created_by")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  company      Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  saldoBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+  branch       AppPosBranch?             @relation(fields: [branchUuid], references: [uuid], onDelete: SetNull)
+  creator      User                      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([companyUuid])
+  @@index([saldoAccountBalanceUuid])
   @@index([branchUuid])
   @@map("app_pos_saldo_mutations")
 }

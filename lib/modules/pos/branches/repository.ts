@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/prisma';
+import type { Prisma, PrismaClient } from '@prisma/client';
 
 export const posBranchRepository = {
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return (prisma as unknown as PrismaClient).$transaction(cb);
+  },
+
   findMany(params: { where: any; skip: number; take: number }) {
     const { where, skip, take } = params;
     return prisma.appPosBranch.findMany({
@@ -32,8 +37,20 @@ export const posBranchRepository = {
     email: string | null;
     isActive: boolean;
     isMain: boolean;
-  }) {
-    return prisma.appPosBranch.create({ data });
+  }, tx?: Prisma.TransactionClient) {
+    const client = tx ?? prisma;
+    return client.appPosBranch.create({ data });
+  },
+
+  unsetOtherMainBranches(uuidToKeep?: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? prisma;
+    return client.appPosBranch.updateMany({
+      where: {
+        isMain: true,
+        ...(uuidToKeep ? { NOT: { uuid: uuidToKeep } } : {}),
+      },
+      data: { isMain: false },
+    });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {
@@ -42,16 +59,6 @@ export const posBranchRepository = {
 
   deleteByUuid(uuid: string) {
     return prisma.appPosBranch.delete({ where: { uuid } });
-  },
-
-  unsetOtherMainBranches(uuidToKeep?: string) {
-    return prisma.appPosBranch.updateMany({
-      where: {
-        isMain: true,
-        ...(uuidToKeep ? { NOT: { uuid: uuidToKeep } } : {}),
-      },
-      data: { isMain: false },
-    });
   },
 
   countDependencies(uuid: string) {

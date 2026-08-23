@@ -30,7 +30,8 @@ export type MenuSection =
     | 'Operasional'
     | 'Produk'
     | 'Master Data'
-    | 'Inventori & Keuangan'
+    | 'Inventori'
+    | 'Keuangan'
     | 'Laporan'
     | 'Pengaturan'
     | 'Segera';
@@ -80,13 +81,6 @@ const coreMenuItems: MenuItem[] = [
         href: '/app/pos/transactions', 
         icon: <Receipt className="w-5 h-5" />,
         permission: 'pos.sale.index'
-    },
-    {
-        section: 'Operasional',
-        label: 'Pembelian',
-        href: '/app/pos/purchases',
-        icon: <ClipboardList className="w-5 h-5" />,
-        permission: 'pos.purchase.index'
     },
     {
         section: 'Operasional',
@@ -140,44 +134,52 @@ const coreMenuItems: MenuItem[] = [
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
     },
-    // Inventori & Keuangan
+    // Inventori
     {
-        section: 'Inventori & Keuangan',
+        section: 'Inventori',
+        label: 'Pembelian',
+        href: '/app/pos/purchases',
+        icon: <ClipboardList className="w-5 h-5" />,
+        permission: 'pos.purchase.index'
+    },
+    {
+        section: 'Inventori',
         label: 'Stok On-Hand',
         href: '/app/pos/stock-on-hand',
         icon: <History className="w-5 h-5" />,
         permission: 'pos.stock-movement.index'
     },
     {
-        section: 'Inventori & Keuangan',
+        section: 'Inventori',
         label: 'Mutasi Stok',
         href: '/app/pos/stock-movements',
         icon: <ArrowLeftRight className="w-5 h-5" />,
         permission: 'pos.stock-movement.index'
     },
     {
-        section: 'Inventori & Keuangan',
+        section: 'Inventori',
         label: 'Stok Opname',
         href: '/app/pos/stock-opname',
         icon: <ClipboardCheck className="w-5 h-5" />,
         permission: 'pos.stock-movement.index'
     },
+    // Keuangan
     {
-        section: 'Inventori & Keuangan',
+        section: 'Keuangan',
         label: 'Saldo',
         href: '/app/pos/saldo',
         icon: <Banknote className="w-5 h-5" />,
         permission: 'pos.saldo.index'
     },
     {
-        section: 'Inventori & Keuangan',
+        section: 'Keuangan',
         label: 'Piutang',
         href: '/app/pos/receivables',
         icon: <Wallet className="w-5 h-5" />,
         permission: 'pos.sale.index'
     },
     {
-        section: 'Inventori & Keuangan',
+        section: 'Keuangan',
         label: 'Hutang',
         href: '/app/pos/payables',
         icon: <Landmark className="w-5 h-5" />,

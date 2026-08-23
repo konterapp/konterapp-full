@@ -1,3 +1,16 @@
+export interface SaldoBalanceBranch {
+  uuid: string;
+  code: string;
+  name: string;
+}
+
+export interface SaldoBalanceGroup {
+  uuid: string;
+  balance: number;
+  branches: SaldoBalanceBranch[];
+  created_at: string;
+}
+
 export interface SaldoAccount {
   uuid: string;
   code: string;
@@ -7,6 +20,8 @@ export interface SaldoAccount {
   account_name?: string | null;
   description?: string | null;
   balance: number;
+  balances_count?: number;
+  balances?: SaldoBalanceGroup[];
   is_payment_method: boolean;
   is_active: boolean;
   created_at: string;
@@ -85,19 +100,41 @@ export async function deleteSaldoAccount(uuid: string): Promise<{ status: string
   return response.json();
 }
 
+export async function addSaldoBalanceGroup(
+  uuid: string,
+  data: { branch_uuids: string[]; opening_balance?: number; notes?: string }
+): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
+  const response = await fetch(`/api/app/pos/saldo/${uuid}/balances`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function deleteSaldoBalanceGroup(balanceUuid: string): Promise<{ status: string; message?: string }> {
+  const response = await fetch(`/api/app/pos/saldo/balances/${balanceUuid}`, {
+    method: 'DELETE',
+  });
+  return response.json();
+}
+
 export async function getSaldoMutations(
   uuid: string,
-  page = 1
+  page = 1,
+  balanceUuid?: string
 ): Promise<{ status: string; data: { data: SaldoMutation[]; pagination: { page: number; perPage: number; total: number; totalPages: number } } }> {
-  const response = await fetch(`/api/app/pos/saldo/${uuid}/mutations?page=${page}`);
+  const params = new URLSearchParams({ page: page.toString() });
+  if (balanceUuid) params.set('balance_uuid', balanceUuid);
+  const response = await fetch(`/api/app/pos/saldo/${uuid}/mutations?${params}`);
   return response.json();
 }
 
 export async function adjustSaldoBalance(
-  uuid: string,
+  balanceUuid: string,
   data: { direction: 'in' | 'out'; amount: number; notes: string; branch_uuid?: string | null }
 ): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
-  const response = await fetch(`/api/app/pos/saldo/${uuid}/adjust`, {
+  const response = await fetch(`/api/app/pos/saldo/balances/${balanceUuid}/adjust`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

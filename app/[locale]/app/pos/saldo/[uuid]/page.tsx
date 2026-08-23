@@ -2,12 +2,22 @@
 
 import { useState, useEffect, useCallback, use } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Wallet, Pencil, PlusCircle, MinusCircle } from 'lucide-react';
+import { ArrowLeft, Wallet, Pencil, PlusCircle, MinusCircle, Plus, Layers, Trash2, MapPin } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { SaldoAccount, SaldoMutation, getSaldoAccount, getSaldoMutations, adjustSaldoBalance } from '@/lib/api/app/saldo';
+import {
+  SaldoAccount,
+  SaldoBalanceGroup,
+  SaldoMutation,
+  getSaldoAccount,
+  getSaldoMutations,
+  adjustSaldoBalance,
+  addSaldoBalanceGroup,
+  deleteSaldoBalanceGroup,
+} from '@/lib/api/app/saldo';
 import SaldoAccountForm from '../_components/SaldoAccountForm';
 
 const formatCurrency = (amount: number) => {
@@ -24,6 +34,13 @@ const REFERENCE_LABELS: Record<string, string> = {
   opening_balance: 'Saldo Awal',
 };
 
+interface BranchOption {
+  uuid: string;
+  code: string;
+  name: string;
+  is_active?: boolean;
+}
+
 export default function SaldoAccountDetailPage({ params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = use(params);
   const toast = useToast();
@@ -34,12 +51,28 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
   const [error, setError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
+  const [balanceGroups, setBalanceGroups] = useState<SaldoBalanceGroup[]>([]);
+
+  const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
+  const [linkedFilter, setLinkedFilter] = useState<Set<string>>(new Set());
+  const [addOpen, setAddOpen] = useState(false);
+  const [addBranchUuids, setAddBranchUuids] = useState<string[]>([]);
+  const [addOpeningBalance, setAddOpeningBalance] = useState('');
+  const [addNotes, setAddNotes] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addFieldErrors, setAddFieldErrors] = useState<Record<string, string[]>>({});
+
+  const [deleteTarget, setDeleteTarget] = useState<SaldoBalanceGroup | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [mutations, setMutations] = useState<SaldoMutation[]>([]);
   const [mutationsLoading, setMutationsLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [filterBalanceUuid, setFilterBalanceUuid] = useState('');
 
-  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [adjustTarget, setAdjustTarget] = useState<SaldoBalanceGroup | null>(null);
   const [adjustDirection, setAdjustDirection] = useState<'in' | 'out'>('in');
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustNotes, setAdjustNotes] = useState('');
@@ -54,6 +87,7 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
       const result = await getSaldoAccount(uuid);
       if (result.status === 'success' && result.data) {
         setAccount(result.data);
+        setBalanceGroups(result.data.balances || []);
       } else {
         setError(result.message || 'Gagal memuat data akun saldo');
       }
@@ -64,53 +98,66 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
     }
   }, [uuid]);
 
-  const fetchMutations = useCallback(async (pageNum: number) => {
-    try {
-      setMutationsLoading(true);
-      const result = await getSaldoMutations(uuid, pageNum);
-      if (result.status === 'success' && result.data) {
-        setMutations(result.data.data || []);
-        setTotalPages(result.data.pagination?.totalPages || 1);
+  const fetchMutations = useCallback(
+    async (pageNum: number) => {
+      try {
+        setMutationsLoading(true);
+        const result = await getSaldoMutations(uuid, pageNum, filterBalanceUuid || undefined);
+        if (result.status === 'success' && result.data) {
+          setMutations(result.data.data || []);
+          setTotalPages(result.data.pagination?.totalPages || 1);
+        }
+      } finally {
+        setMutationsLoading(false);
       }
-    } finally {
-      setMutationsLoading(false);
-    }
-  }, [uuid]);
+    },
+    [uuid, filterBalanceUuid]
+  );
 
   useEffect(() => {
     fetchAccount();
+    fetch('/api/app/pos/branches?per_page=100')
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.status === 'success' && result.data?.data) {
+          setBranchOptions(result.data.data);
+        }
+      })
+      .catch(() => {});
   }, [fetchAccount]);
 
   useEffect(() => {
-    fetchMutations(page);
-  }, [page, fetchMutations]);
+    setPage(1);
+    fetchMutations(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchMutations]);
 
-  const openAdjustModal = (direction: 'in' | 'out') => {
+  const openAdjustModal = (group: SaldoBalanceGroup, direction: 'in' | 'out') => {
+    setAdjustTarget(group);
     setAdjustDirection(direction);
     setAdjustAmount('');
     setAdjustNotes('');
     setAdjustError('');
     setAdjustFieldErrors({});
-    setAdjustOpen(true);
   };
 
   const handleAdjustSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!adjustTarget) return;
     setAdjustLoading(true);
     setAdjustError('');
     setAdjustFieldErrors({});
     try {
-      const result = await adjustSaldoBalance(uuid, {
+      const result = await adjustSaldoBalance(adjustTarget.uuid, {
         direction: adjustDirection,
         amount: Number(adjustAmount),
         notes: adjustNotes,
       });
       if (result.status === 'success') {
         toast.success('Saldo berhasil dikoreksi');
-        setAdjustOpen(false);
+        setAdjustTarget(null);
         fetchAccount();
         fetchMutations(1);
-        setPage(1);
       } else {
         if (result.errors) {
           setAdjustFieldErrors(result.errors);
@@ -121,6 +168,83 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
       setAdjustError('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setAdjustLoading(false);
+    }
+  };
+
+  const toggleAddBranch = (branchUuid: string) => {
+    setAddBranchUuids(prev =>
+      prev.includes(branchUuid) ? prev.filter(item => item !== branchUuid) : [...prev, branchUuid]
+    );
+    if (addFieldErrors.branch_uuids) {
+      setAddFieldErrors(prev => {
+        const next = { ...prev };
+        delete next.branch_uuids;
+        return next;
+      });
+    }
+  };
+
+  const openAddModal = () => {
+    const linkedBranchUuids = new Set(balanceGroups.flatMap(group => group.branches.map(b => b.uuid)));
+    setAddBranchUuids([]);
+    setAddOpeningBalance('');
+    setAddNotes('');
+    setAddError('');
+    setAddFieldErrors({});
+    // Cabang yang sudah masuk grup lain tidak boleh dipilih lagi (unique
+    // per akun induk), jadi sembunyikan dari daftar.
+    setLinkedFilter(linkedBranchUuids);
+    setAddOpen(true);
+  };
+
+  const availableBranchOptions = branchOptions.filter(b => !linkedFilter.has(b.uuid));
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddLoading(true);
+    setAddError('');
+    setAddFieldErrors({});
+    try {
+      const result = await addSaldoBalanceGroup(uuid, {
+        branch_uuids: addBranchUuids,
+        opening_balance: Number(addOpeningBalance) || 0,
+        notes: addNotes || undefined,
+      });
+      if (result.status === 'success') {
+        toast.success('Grup balance berhasil ditambahkan');
+        setAddOpen(false);
+        fetchAccount();
+        fetchMutations(1);
+      } else {
+        if (result.errors) {
+          setAddFieldErrors(result.errors);
+        }
+        setAddError(result.message || 'Gagal menambah grup balance');
+      }
+    } catch {
+      setAddError('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const result = await deleteSaldoBalanceGroup(deleteTarget.uuid);
+      if (result.status === 'success') {
+        toast.success('Grup balance berhasil dihapus');
+        setDeleteTarget(null);
+        fetchAccount();
+        fetchMutations(1);
+      } else {
+        toast.error(result.message || 'Gagal menghapus grup balance');
+        setDeleteLoading(false);
+      }
+    } catch {
+      toast.error('Gagal menghapus grup balance. Silakan coba lagi.');
+      setDeleteLoading(false);
     }
   };
 
@@ -196,24 +320,96 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
           </div>
 
           <div className="text-right">
-            <div className="text-sm text-gray-500">Saldo Saat Ini</div>
+            <div className="text-sm text-gray-500">Total Saldo (semua grup)</div>
             <div className="text-3xl font-bold text-[#142D52]">{formatCurrency(account.balance)}</div>
-            {hasPermission('pos.saldo.update') && (
-              <div className="flex items-center gap-2 mt-3 justify-end">
-                <Button size="sm" variant="success" icon={PlusCircle} onClick={() => openAdjustModal('in')}>
-                  Top-up
-                </Button>
-                <Button size="sm" variant="danger" icon={MinusCircle} onClick={() => openAdjustModal('out')}>
-                  Koreksi Kurang
-                </Button>
-              </div>
-            )}
+            <div className="text-xs text-gray-400 mt-1">{balanceGroups.length} grup balance</div>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Riwayat Mutasi</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            <Layers className="w-5 h-5" />
+            Grup Balance per Kelompok Cabang
+          </h2>
+          {hasPermission('pos.saldo.update') && (
+            <Button size="sm" variant="warning" icon={Plus} onClick={openAddModal}>
+              Tambah Grup Balance
+            </Button>
+          )}
+        </div>
+
+        {balanceGroups.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">Belum ada grup balance</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {balanceGroups.map((group, index) => (
+              <div key={group.uuid} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">Grup {index + 1}</div>
+                    <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
+                      {group.branches.length === 0 ? (
+                        <span className="text-xs text-gray-400 italic">Belum ada cabang ter-link</span>
+                      ) : (
+                        group.branches.map(branch => (
+                          <span key={branch.uuid} className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700">
+                            <MapPin className="w-3 h-3" />
+                            {branch.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-[#142D52]">{formatCurrency(group.balance)}</div>
+                  </div>
+                </div>
+
+                {hasPermission('pos.saldo.update') && (
+                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                    <Button size="sm" variant="success" icon={PlusCircle} onClick={() => openAdjustModal(group, 'in')}>
+                      Top-up
+                    </Button>
+                    <Button size="sm" variant="danger" icon={MinusCircle} onClick={() => openAdjustModal(group, 'out')}>
+                      Koreksi Kurang
+                    </Button>
+                    {hasPermission('pos.saldo.delete') && (
+                      <button
+                        onClick={() => setDeleteTarget(group)}
+                        className="ml-auto inline-flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Hapus Grup
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 className="text-lg font-semibold text-gray-900">Riwayat Mutasi</h2>
+          {balanceGroups.length > 1 && (
+            <select
+              value={filterBalanceUuid}
+              onChange={(e) => setFilterBalanceUuid(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white cursor-pointer"
+            >
+              <option value="">Semua Grup</option>
+              {balanceGroups.map((group, index) => (
+                <option key={group.uuid} value={group.uuid}>
+                  Grup {index + 1} ({group.branches.map(b => b.name).join(', ')})
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         {mutationsLoading ? (
           <div className="text-center py-8 text-gray-500">Memuat mutasi...</div>
         ) : mutations.length === 0 ? (
@@ -268,16 +464,97 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
         )}
       </div>
 
-      {adjustOpen && (
+      {addOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
-          onClick={(e) => { if (e.target === e.currentTarget) setAdjustOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setAddOpen(false); }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[85vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Tambah Grup Balance</h3>
+              <p className="text-sm text-gray-500 mt-1">Pilih cabang yang akan masuk grup ini. Cabang yang sudah ada di grup lain akan dipindahkan ke grup baru.</p>
+            </div>
+            <form onSubmit={handleAddSubmit} className="px-6 py-4 space-y-4">
+              {addError && <Alert variant="error" message={addError} />}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Cabang <span className="text-red-500">*</span></label>
+                {availableBranchOptions.length === 0 ? (
+                  <div className="text-sm text-gray-400 italic py-2">Semua cabang sudah punya grup balance untuk akun ini</div>
+                ) : (
+                  <div className="space-y-2">
+                    {availableBranchOptions.map(branch => (
+                      <label key={branch.uuid} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={addBranchUuids.includes(branch.uuid)}
+                          onChange={() => toggleAddBranch(branch.uuid)}
+                          className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+                        />
+                        <span>{branch.name}</span>
+                        <span className="text-xs text-gray-400 font-mono">{branch.code}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {addFieldErrors.branch_uuids && <div className="mt-1 text-sm text-red-600">{addFieldErrors.branch_uuids[0]}</div>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Saldo Awal Grup</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={addOpeningBalance}
+                  onChange={(e) => setAddOpeningBalance(e.target.value)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                    addFieldErrors.opening_balance ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="0"
+                />
+                {addFieldErrors.opening_balance && <div className="mt-1 text-sm text-red-600">{addFieldErrors.opening_balance[0]}</div>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Catatan</label>
+                <textarea
+                  value={addNotes}
+                  onChange={(e) => setAddNotes(e.target.value)}
+                  rows={2}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white resize-none ${
+                    addFieldErrors.notes ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                  }`}
+                  placeholder="Misal: alasan pemisahan grup"
+                />
+                {addFieldErrors.notes && <div className="mt-1 text-sm text-red-600">{addFieldErrors.notes[0]}</div>}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button type="button" variant="light" onClick={() => setAddOpen(false)} disabled={addLoading}>
+                  Batal
+                </Button>
+                <Button type="submit" variant="warning" isLoading={addLoading}>
+                  Simpan
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {adjustTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
+          onClick={(e) => { if (e.target === e.currentTarget) setAdjustTarget(null); }}
         >
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
                 {adjustDirection === 'in' ? 'Top-up / Tambah Saldo' : 'Koreksi Kurangi Saldo'}
               </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Grup: {adjustTarget.branches.map(b => b.name).join(', ') || '-'}
+              </p>
             </div>
             <form onSubmit={handleAdjustSubmit} className="px-6 py-4 space-y-4">
               {adjustError && <Alert variant="error" message={adjustError} />}
@@ -312,7 +589,7 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <Button type="button" variant="light" onClick={() => setAdjustOpen(false)} disabled={adjustLoading}>
+                <Button type="button" variant="light" onClick={() => setAdjustTarget(null)} disabled={adjustLoading}>
                   Batal
                 </Button>
                 <Button type="submit" variant={adjustDirection === 'in' ? 'success' : 'danger'} isLoading={adjustLoading}>
@@ -323,6 +600,18 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteGroup}
+        title="Hapus Grup Balance"
+        message={`Hapus grup balance (${deleteTarget?.branches.map(b => b.name).join(', ')})? Cabang di dalamnya akan kehilangan akses ke akun saldo ini sampai dimasukkan ke grup lain. Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        type="danger"
+        isLoading={deleteLoading}
+      />
     </div>
   );
 }

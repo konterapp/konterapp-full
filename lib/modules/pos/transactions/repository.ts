@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import type { Prisma, PrismaClient } from '@prisma/client';
 
 export const posTransactionRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy?: any }) {
@@ -79,7 +80,7 @@ export const posTransactionRepository = {
     });
   },
 
-  runInTransaction<T>(cb: (tx: Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<T>) {
-    return prisma.$transaction(cb as any);
+  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return (prisma as unknown as PrismaClient).$transaction(cb);
   },
 };

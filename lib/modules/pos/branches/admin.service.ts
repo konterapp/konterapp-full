@@ -2,6 +2,7 @@ import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posBranchRepository } from './repository';
 import { mapBranch, mapBranchListSimple } from './branch.mapper';
 import { assertBranchLimit } from '@/lib/modules/billing/plan-limits';
+import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
 
 export const posBranchService = {
   async listBranches(params: {
@@ -66,6 +67,7 @@ export const posBranchService = {
       email?: string | null;
       isActive?: boolean;
       isMain?: boolean;
+      copySaldoFromBranchUuid?: string | null;
     }
   ) {
     const existing = await posBranchRepository.findByCode(companyUuid, payload.code);
@@ -76,21 +78,53 @@ export const posBranchService = {
     const branchCount = await posBranchRepository.count({ companyUuid });
     await assertBranchLimit(companyUuid, branchCount);
 
-    if (payload.isMain) {
-      await posBranchRepository.unsetOtherMainBranches();
+    // Opsi "copy pengaturan saldo dari cabang lain": cabang baru otomatis
+    // masuk ke grup-grup balance yang sama dengan cabang sumber. Kalau tidak
+    // dipilih, cabang baru belum punya akun saldo apa pun sampai di-assign
+    // manual lewat halaman detail akun saldo.
+    let sourceBranch: { uuid: string } | null = null;
+    if (payload.copySaldoFromBranchUuid) {
+      sourceBranch = await posBranchRepository.findByUuid(payload.copySaldoFromBranchUuid);
+      if (!sourceBranch) {
+        throw new ValidationApiError({ copy_saldo_from_branch_uuid: ['Cabang sumber tidak ditemukan'] });
+      }
     }
 
-    const branch = await posBranchRepository.create({
-      companyUuid,
-      code: payload.code,
-      name: payload.name,
-      address: payload.address || null,
-      phone: payload.phone || null,
-      email: payload.email || null,
-      isActive: payload.isActive ?? true,
-      isMain: payload.isMain ?? false,
+    return posBranchRepository.runInTransaction(async (tx) => {
+      if (payload.isMain) {
+        await posBranchRepository.unsetOtherMainBranches(undefined, tx);
+      }
+
+      const branch = await posBranchRepository.create(
+        {
+          companyUuid,
+          code: payload.code,
+          name: payload.name,
+          address: payload.address || null,
+          phone: payload.phone || null,
+          email: payload.email || null,
+          isActive: payload.isActive ?? true,
+          isMain: payload.isMain ?? false,
+        },
+        tx
+      );
+
+      if (sourceBranch) {
+        const sourceLinks = await posSaldoRepository.findLinksOfBranch(sourceBranch.uuid, tx);
+        if (sourceLinks.length > 0) {
+          await tx.appPosSaldoAccountBalanceBranch.createMany({
+            data: sourceLinks.map((link) => ({
+              companyUuid,
+              saldoAccountUuid: link.saldoAccountUuid,
+              saldoAccountBalanceUuid: link.saldoAccountBalanceUuid,
+              branchUuid: branch.uuid,
+            })),
+          });
+        }
+      }
+
+      return mapBranch(branch);
     });
-    return mapBranch(branch);
   },
 
   async updateBranch(

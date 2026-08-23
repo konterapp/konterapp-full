@@ -1,6 +1,12 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posSaldoRepository } from './repository';
+import { posBranchRepository } from '@/lib/modules/pos/branches/repository';
 import { mapSaldoAccount, mapSaldoMutation } from './saldo.mapper';
+
+function sumBalances(account: any): number {
+  if (!account?.balances?.length) return 0;
+  return account.balances.reduce((total: number, row: any) => total + Number(row.balance), 0);
+}
 
 export const posSaldoService = {
   async listAccounts(params: {
@@ -35,11 +41,32 @@ export const posSaldoService = {
       code: 'code',
       name: 'name',
       type: 'type',
-      balance: 'balance',
+      balance: 'createdAt',
       is_active: 'isActive',
     };
     const sortField = allowedSorts.includes(sortBy) ? sortBy : 'created_at';
     const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
+
+    // Sort by "balance" = rollup SUM semua grup balance -- tidak bisa
+    // di-order oleh database lewat ORM, jadi urutkan di JS (skala data
+    // akun saldo per company kecil).
+    if (sortField === 'balance') {
+      const accounts = await posSaldoRepository.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        withBalances: true,
+      });
+      accounts.sort((a: any, b: any) => {
+        const diff = sumBalances(a) - sumBalances(b);
+        return sortOrder === 'asc' ? diff : -diff;
+      });
+      const total = accounts.length;
+      const paged = accounts.slice(skip, skip + perPage);
+      return {
+        data: paged.map(mapSaldoAccount),
+        pagination: { page, perPage, total, totalPages: Math.ceil(total / perPage) },
+      };
+    }
 
     const [accounts, total] = await Promise.all([
       posSaldoRepository.findMany({
@@ -47,6 +74,7 @@ export const posSaldoService = {
         skip,
         take: perPage,
         orderBy: { [sortFieldMap[sortField]]: sortDir },
+        withBalances: true,
       }),
       posSaldoRepository.count(where),
     ]);
@@ -90,36 +118,68 @@ export const posSaldoService = {
       throw new ValidationApiError({ code: ['Kode akun saldo sudah digunakan'] });
     }
 
-    const account = await posSaldoRepository.create({
-      companyUuid,
-      code: payload.code,
-      name: payload.name,
-      type: payload.type || 'cash',
-      accountNumber: payload.accountNumber || null,
-      accountName: payload.accountName || null,
-      description: payload.description || null,
-      isPaymentMethod: payload.isPaymentMethod ?? true,
-      isActive: payload.isActive ?? true,
-      balance: 0,
-    });
+    // Grup balance pertama otomatis mencakup semua cabang aktif company
+    // (split per-cabang dilakukan belakangan lewat "Tambah Grup Balance"
+    // di halaman detail akun).
+    const branches = await posBranchRepository.listSimple();
+    const activeBranchUuids = branches.filter((b) => b.isActive).map((b) => b.uuid);
 
-    const openingBalance = payload.openingBalance || 0;
-    if (openingBalance > 0) {
-      const { account: updated } = await posSaldoRepository.applyMutation({
-        saldoAccountUuid: account.uuid,
+    return posSaldoRepository.runInTransaction(async (tx) => {
+      const account = await posSaldoRepository.create(
+        {
+          companyUuid,
+          code: payload.code,
+          name: payload.name,
+          type: payload.type || 'cash',
+          accountNumber: payload.accountNumber || null,
+          accountName: payload.accountName || null,
+          description: payload.description || null,
+          isPaymentMethod: payload.isPaymentMethod ?? true,
+          isActive: payload.isActive ?? true,
+        },
+        tx
+      );
+
+      const openingBalance = payload.openingBalance || 0;
+
+      const balanceRow = await posSaldoRepository.createBalanceGroupInTx(tx, {
         companyUuid,
-        branchUuid: null,
-        direction: 'in',
-        amount: openingBalance,
-        referenceType: 'opening_balance',
-        referenceUuid: null,
-        notes: 'Saldo awal',
-        createdBy: userId,
+        saldoAccountUuid: account.uuid,
+        balance: 0,
+        branchUuids: activeBranchUuids,
       });
-      return mapSaldoAccount(updated);
-    }
 
-    return mapSaldoAccount(account);
+      if (openingBalance > 0) {
+        await posSaldoRepository.applyMutationInTx(tx, {
+          saldoAccountBalanceUuid: balanceRow.uuid,
+          companyUuid,
+          branchUuid: null,
+          direction: 'in',
+          amount: openingBalance,
+          referenceType: 'opening_balance',
+          referenceUuid: null,
+          notes: 'Saldo awal',
+          createdBy: userId,
+        });
+      }
+
+      const full = await tx.appPosSaldoAccount.findFirst({
+        where: { uuid: account.uuid },
+        include: {
+          balances: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              branchLinks: {
+                orderBy: { createdAt: 'asc' },
+                include: { branch: { select: { uuid: true, code: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      return mapSaldoAccount(full ?? account);
+    });
   },
 
   async updateAccount(
@@ -158,7 +218,7 @@ export const posSaldoService = {
       isPaymentMethod: payload.isPaymentMethod ?? existing.isPaymentMethod,
       isActive: payload.isActive ?? existing.isActive,
     });
-    return mapSaldoAccount(account);
+    return mapSaldoAccount({ ...account, balances: existing.balances });
   },
 
   async deleteAccount(uuid: string) {
@@ -171,22 +231,122 @@ export const posSaldoService = {
     if (salesCount > 0 || ppobCount > 0) {
       throw new ApiError('Akun saldo tidak bisa dihapus karena sudah dipakai di transaksi', 400);
     }
-    if (Number(account.balance) !== 0) {
-      throw new ApiError('Akun saldo tidak bisa dihapus karena saldonya belum 0. Koreksi saldo ke 0 dulu.', 400);
+
+    const nonZero = (account.balances ?? []).some((row: any) => Number(row.balance) !== 0);
+    if (nonZero) {
+      throw new ApiError('Akun saldo tidak bisa dihapus karena masih ada grup dengan saldo belum 0. Koreksi ke 0 dulu.', 400);
     }
 
     await posSaldoRepository.deleteByUuid(uuid);
   },
 
-  async listMutations(uuid: string, params: { page: number; perPage: number }) {
+  /**
+   * Tambah grup balance baru untuk akun induk (skenario split per-cabang).
+   * Cabang yang dipilih dan ternyata masih ter-link ke grup lama akan
+   * DIPINDAHKAN ke grup baru ini -- semuanya dalam 1 transaction.
+   */
+  async addBalanceGroup(
+    uuid: string,
+    companyUuid: string,
+    userId: number,
+    payload: { branchUuids: string[]; openingBalance?: number; notes?: string | null }
+  ) {
     const account = await posSaldoRepository.findByUuid(uuid);
     if (!account) {
       throw new ApiError('Akun saldo tidak ditemukan', 404);
     }
 
-    const { page, perPage } = params;
+    const branchCount = await posBranchRepository.count({ companyUuid, uuid: { in: payload.branchUuids } });
+    if (branchCount !== payload.branchUuids.length) {
+      throw new ValidationApiError({ branch_uuids: ['Ada cabang yang tidak ditemukan'] });
+    }
+
+    const openingBalance = payload.openingBalance || 0;
+
+    return posSaldoRepository.runInTransaction(async (tx) => {
+      const balanceRow = await posSaldoRepository.createBalanceGroupInTx(tx, {
+        companyUuid,
+        saldoAccountUuid: uuid,
+        balance: 0,
+        branchUuids: [],
+      });
+
+      await posSaldoRepository.reassignBranchesInTx(tx, {
+        saldoAccountUuid: uuid,
+        branchUuids: payload.branchUuids,
+        targetBalanceUuid: balanceRow.uuid,
+      });
+
+      let finalBalance = 0;
+      if (openingBalance > 0) {
+        const { balanceRow: updated } = await posSaldoRepository.applyMutationInTx(tx, {
+          saldoAccountBalanceUuid: balanceRow.uuid,
+          companyUuid,
+          branchUuid: null,
+          direction: 'in',
+          amount: openingBalance,
+          referenceType: 'opening_balance',
+          referenceUuid: null,
+          notes: payload.notes || 'Saldo awal grup baru',
+          createdBy: userId,
+        });
+        finalBalance = Number(updated.balance);
+      }
+
+      const full = await tx.appPosSaldoAccount.findFirst({
+        where: { uuid },
+        include: {
+          balances: {
+            orderBy: { createdAt: 'asc' },
+            include: {
+              branchLinks: {
+                orderBy: { createdAt: 'asc' },
+                include: { branch: { select: { uuid: true, code: true, name: true } } },
+              },
+            },
+          },
+        },
+      });
+
+      if (!full) {
+        throw new ApiError('Akun saldo tidak ditemukan', 404);
+      }
+      if (finalBalance > 0) {
+        const newRow = full.balances.findIndex((row) => row.uuid === balanceRow.uuid);
+        if (newRow >= 0) {
+          full.balances[newRow] = { ...full.balances[newRow], balance: finalBalance as any };
+        }
+      }
+
+      return mapSaldoAccount(full);
+    });
+  },
+
+  async deleteBalanceGroup(balanceUuid: string) {
+    const balanceRow = await posSaldoRepository.findBalanceWithAccount(balanceUuid);
+    if (!balanceRow) {
+      throw new ApiError('Grup balance tidak ditemukan', 404);
+    }
+
+    if (Number(balanceRow.balance) !== 0) {
+      throw new ApiError('Grup balance tidak bisa dihapus karena saldonya belum 0. Koreksi ke 0 dulu.', 400);
+    }
+
+    await posSaldoRepository.deleteBalanceByUuid(balanceUuid);
+  },
+
+  async listMutations(uuid: string, params: { page: number; perPage: number; balanceUuid?: string | null }) {
+    const account = await posSaldoRepository.findByUuid(uuid, false);
+    if (!account) {
+      throw new ApiError('Akun saldo tidak ditemukan', 404);
+    }
+
+    const { page, perPage, balanceUuid } = params;
     const skip = (page - 1) * perPage;
-    const where = { saldoAccountUuid: uuid };
+    const where: any = { saldoAccountBalance: { saldoAccountUuid: uuid } };
+    if (balanceUuid) {
+      where.saldoAccountBalanceUuid = balanceUuid;
+    }
 
     const [mutations, total] = await Promise.all([
       posSaldoRepository.findMutations({ where, skip, take: perPage }),
@@ -205,22 +365,22 @@ export const posSaldoService = {
   },
 
   async adjustBalance(
-    uuid: string,
+    balanceUuid: string,
     companyUuid: string,
     userId: number,
     payload: { direction: 'in' | 'out'; amount: number; notes: string; branchUuid?: string | null }
   ) {
-    const account = await posSaldoRepository.findByUuid(uuid);
-    if (!account) {
-      throw new ApiError('Akun saldo tidak ditemukan', 404);
+    const balanceRow = await posSaldoRepository.findBalanceByUuid(balanceUuid);
+    if (!balanceRow) {
+      throw new ApiError('Grup balance tidak ditemukan', 404);
     }
 
-    if (payload.direction === 'out' && Number(account.balance) < payload.amount) {
+    if (payload.direction === 'out' && Number(balanceRow.balance) < payload.amount) {
       throw new ValidationApiError({ amount: ['Saldo tidak cukup untuk pengurangan sebesar ini'] });
     }
 
-    const { account: updated } = await posSaldoRepository.applyMutation({
-      saldoAccountUuid: uuid,
+    await posSaldoRepository.applyMutation({
+      saldoAccountBalanceUuid: balanceUuid,
       companyUuid,
       branchUuid: payload.branchUuid || null,
       direction: payload.direction,
@@ -231,6 +391,7 @@ export const posSaldoService = {
       createdBy: userId,
     });
 
-    return mapSaldoAccount(updated);
+    const account = await posSaldoRepository.findByUuid(balanceRow.saldoAccountUuid);
+    return mapSaldoAccount(account);
   },
 };

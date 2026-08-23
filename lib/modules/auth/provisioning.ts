@@ -84,16 +84,36 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
   });
 
   for (const saldo of TENANT_DEFAULT_SALDO_ACCOUNTS) {
-    await tx.appPosSaldoAccount.create({
+    const account = await tx.appPosSaldoAccount.create({
       data: {
         uuid: uuidv7(),
         companyUuid,
         code: saldo.code,
         name: saldo.name,
         type: saldo.type,
-        balance: 0,
         isPaymentMethod: true,
         isActive: true,
+      },
+    });
+
+    // Tenant baru cuma punya 1 cabang -> semua akun default cukup 1 grup
+    // balance yang di-link ke mainBranch itu.
+    const balanceRow = await tx.appPosSaldoAccountBalance.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        saldoAccountUuid: account.uuid,
+        balance: 0,
+      },
+    });
+
+    await tx.appPosSaldoAccountBalanceBranch.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        saldoAccountUuid: account.uuid,
+        saldoAccountBalanceUuid: balanceRow.uuid,
+        branchUuid: mainBranch.uuid,
       },
     });
   }

@@ -21,7 +21,8 @@ import { filterMenuByAccess } from '@/lib/utils/menuFilter';
 const menuTranslations: Record<string, string> = {
   "Operasional": "Operasional",
   "Master Data": "Master Data",
-  "Inventori & Keuangan": "Inventori & Keuangan",
+  "Inventori": "Inventori",
+  "Keuangan": "Keuangan",
   "Laporan": "Laporan",
   "Dashboard": "Dashboard",
   "Penjualan": "Penjualan",
@@ -147,7 +148,7 @@ export default function Sidebar() {
     permissions,
     roles
   });
-  const sectionOrder: MenuSection[] = ['Operasional', 'Produk', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'Pengaturan', 'Segera'];
+  const sectionOrder: MenuSection[] = ['Operasional', 'Produk', 'Master Data', 'Inventori', 'Keuangan', 'Laporan', 'Pengaturan', 'Segera'];
   const groupedMenuItems = sectionOrder
     .map(section => ({
       section,

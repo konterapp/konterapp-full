@@ -34,6 +34,8 @@ export const TENANT_MODELS = new Set<string>([
   "AppPosPpobProduct",
   "AppPosPpobTransaction",
   "AppPosSaldoAccount",
+  "AppPosSaldoAccountBalance",
+  "AppPosSaldoAccountBalanceBranch",
   "AppPosSaldoMutation",
 ]);
 
