@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { mapReceivableSale } from './receivable.mapper';
 import { posReceivableRepository } from './repository';
+import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 type ReceivableStatus = 'pending' | 'partial';
 
@@ -37,6 +38,8 @@ export const posReceivableService = {
     endDate: string | null;
     sortBy: string | null;
     sortOrder: 'asc' | 'desc' | null;
+    companyUuid: string;
+    userId: number;
   }) {
     const {
       page,
@@ -49,6 +52,8 @@ export const posReceivableService = {
       endDate,
       sortBy,
       sortOrder,
+      companyUuid,
+      userId,
     } = params;
 
     const skip = (page - 1) * perPage;
@@ -96,7 +101,7 @@ export const posReceivableService = {
       posReceivableRepository.count(where),
       posReceivableRepository.aggregateAmounts(where),
       posReceivableRepository.countDistinctCustomers(where),
-      posReceivableRepository.listBranches(),
+      posBranchService.listBranchOptions(companyUuid, userId),
       posReceivableRepository.listCustomers(),
     ]);
 

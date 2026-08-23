@@ -6,6 +6,12 @@ import { mapAppUser } from "./app.user.mapper";
 import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "@/lib/modules/roles/templates";
 import { companyInvitationService } from "@/lib/modules/auth/company-invitation";
 
+const BRANCH_ACCESS_PERMISSION = "pos.branch.index";
+
+function roleHasBranchAccess(role: { isFullAccess: boolean; roleHasPermissions: { permissionName: string }[] }) {
+  return role.isFullAccess || role.roleHasPermissions.some((p) => p.permissionName === BRANCH_ACCESS_PERMISSION);
+}
+
 export interface AppUserListParams {
   page: number;
   perPage: number;
@@ -50,7 +56,16 @@ export const appUserService = {
   },
 
   async getRoles(companyUuid: string) {
-    return appUserRepository.listCompanyRoles(companyUuid);
+    const roles = await appUserRepository.listCompanyRoles(companyUuid);
+    return roles.map((role) => ({
+      uuid: role.uuid,
+      name: role.name,
+      has_branch_access: roleHasBranchAccess(role),
+    }));
+  },
+
+  async getBranches(companyUuid: string) {
+    return appUserRepository.listActiveBranches(companyUuid);
   },
 
   async getUserDetail(companyUuid: string, uuid: string) {
@@ -63,11 +78,12 @@ export const appUserService = {
 
   async createUser(
     companyUuid: string,
-    payload: { name: string; email: string; password: string; role_uuid: string }
+    payload: { name: string; email: string; password: string; role_uuid: string; branch_uuids?: string[] }
   ) {
     const normalizedEmail = payload.email.trim().toLowerCase();
 
     const role = await this.resolveRole(companyUuid, payload.role_uuid);
+    const branchUuids = await this.resolveBranchSelection(companyUuid, role, payload.branch_uuids);
 
     const existing = await appUserRepository.findByEmail(normalizedEmail);
     if (existing) {
@@ -83,6 +99,7 @@ export const appUserService = {
         companyUuid,
         userId: existing.id,
         roleId: role.id,
+        branchUuids,
       });
 
       try {
@@ -108,6 +125,7 @@ export const appUserService = {
         emailVerifiedAt: null,
       },
       roleId: role.id,
+      branchUuids,
     });
 
     // Kirim email undangan; gagal kirim tidak membatalkan pembuatan user.
@@ -128,6 +146,7 @@ export const appUserService = {
       email?: string;
       password?: string;
       role_uuid?: string;
+      branch_uuids?: string[];
       is_active?: boolean;
     },
     currentUserId: number
@@ -162,10 +181,26 @@ export const appUserService = {
 
     let roleId: number | null = null;
     let losesAdmin = false;
-    if (payload.role_uuid !== undefined) {
-      const role = await this.resolveRole(companyUuid, payload.role_uuid);
-      roleId = role.id;
-      losesAdmin = hasCurrentAdminRole && role.name !== TENANT_DEFAULT_ROLE_ADMINISTRATOR;
+    let branchUuids: string[] | undefined;
+
+    if (payload.role_uuid !== undefined || payload.branch_uuids !== undefined) {
+      let role;
+      if (payload.role_uuid !== undefined) {
+        role = await this.resolveRole(companyUuid, payload.role_uuid);
+      } else {
+        const currentRoleAssignment = user.modelHasRoles.find((a: any) => a.companyUuid === companyUuid);
+        if (!currentRoleAssignment) {
+          throw new ApiError("User ini belum punya role di perusahaan ini", 400);
+        }
+        role = await this.resolveRole(companyUuid, currentRoleAssignment.role.uuid);
+      }
+
+      if (payload.role_uuid !== undefined) {
+        roleId = role.id;
+        losesAdmin = hasCurrentAdminRole && role.name !== TENANT_DEFAULT_ROLE_ADMINISTRATOR;
+      }
+
+      branchUuids = await this.resolveBranchSelection(companyUuid, role, payload.branch_uuids);
     }
 
     const deactivating = payload.is_active === false && user.isActive;
@@ -180,7 +215,7 @@ export const appUserService = {
       }
     }
 
-    if (Object.keys(userData).length > 0 || roleId !== null) {
+    if (Object.keys(userData).length > 0 || roleId !== null || branchUuids !== undefined) {
       await appUserRepository.runInTransaction(async (tx) => {
         if (Object.keys(userData).length > 0) {
           await appUserRepository.updateUserData(tx, user.id, userData);
@@ -188,6 +223,11 @@ export const appUserService = {
 
         if (roleId !== null) {
           await appUserRepository.replaceCompanyRole(tx, companyUuid, user.id, roleId);
+        }
+
+        if (branchUuids !== undefined) {
+          const companyUserUuid = (user as any).companyMemberships[0]?.uuid;
+          await appUserRepository.replaceMemberBranches(tx, companyUuid, companyUserUuid, branchUuids);
         }
       });
     }
@@ -217,6 +257,32 @@ export const appUserService = {
     await appUserRepository.runInTransaction(async (tx) => {
       await appUserRepository.removeFromCompany(tx, companyUuid, user.id);
     });
+  },
+
+  async resolveBranchSelection(
+    companyUuid: string,
+    role: { isFullAccess: boolean; roleHasPermissions: { permissionName: string }[] },
+    branchUuids: string[] | undefined
+  ): Promise<string[]> {
+    if (roleHasBranchAccess(role)) {
+      return [];
+    }
+
+    const selected = [...new Set(branchUuids ?? [])];
+    if (selected.length === 0) {
+      throw new ValidationApiError({
+        branch_uuids: ["Role ini tidak punya akses ke semua cabang -- pilih minimal 1 cabang"],
+      });
+    }
+
+    const branches = await appUserRepository.listActiveBranches(companyUuid);
+    const validUuids = new Set(branches.map((b) => b.uuid));
+    const invalid = selected.filter((uuid) => !validUuids.has(uuid));
+    if (invalid.length > 0) {
+      throw new ValidationApiError({ branch_uuids: ["Ada cabang yang tidak valid atau tidak aktif"] });
+    }
+
+    return selected;
   },
 
   async resolveRole(companyUuid: string, roleUuid: string) {

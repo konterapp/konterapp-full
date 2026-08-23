@@ -2,6 +2,8 @@ import { ApiError } from '@/lib/api-errors';
 import { Prisma } from '@prisma/client';
 import { posShiftRepository } from './repository';
 import { mapActiveShiftWithLiveTotals, mapShift } from './shift.mapper';
+import { appUserRepository } from '@/lib/modules/users/app.repository';
+import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -19,8 +21,9 @@ export const posShiftService = {
     sortBy: string;
     sortOrder: 'asc' | 'desc';
     userId: number;
+    companyUuid: string;
   }) {
-    const { page, perPage, search, branchUuid, status, sortBy, sortOrder, userId } = params;
+    const { page, perPage, search, branchUuid, status, sortBy, sortOrder, userId, companyUuid } = params;
     const skip = (page - 1) * perPage;
 
     const where: Prisma.AppPosCashierShiftWhereInput = {};
@@ -50,7 +53,7 @@ export const posShiftService = {
     const [rows, total, branches, activeShift] = await Promise.all([
       posShiftRepository.findMany({ where, skip, take: perPage, orderBy }),
       posShiftRepository.count(where),
-      posShiftRepository.listBranches(),
+      posBranchService.listBranchOptions(companyUuid, userId),
       posShiftRepository.findOpenByUser(userId),
     ]);
 
@@ -102,6 +105,11 @@ export const posShiftService = {
     const branch = await posShiftRepository.findBranchByUuid(payload.branchUuid);
     if (!branch) {
       throw new ApiError('Cabang tidak ditemukan atau tidak aktif', 404);
+    }
+
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(branch.companyUuid, userId);
+    if (assignedBranchUuids.length > 0 && !assignedBranchUuids.includes(payload.branchUuid)) {
+      throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
     const shift = await posShiftRepository.create({

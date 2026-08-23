@@ -4,14 +4,6 @@ import { Prisma } from '@prisma/client';
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export const posStockOpnameRepository = {
-  listBranches() {
-    return prisma.appPosBranch.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { uuid: true, name: true },
-    });
-  },
-
   listProducts() {
     return prisma.appPosProduct.findMany({
       where: { isActive: true },

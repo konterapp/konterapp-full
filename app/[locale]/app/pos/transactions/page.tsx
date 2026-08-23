@@ -63,7 +63,7 @@ export default function TransactionsPage() {
   const loadFilterOptions = async () => {
     try {
       const [branchRes, pmRes] = await Promise.all([
-        fetch('/api/app/pos/branches/list').then((res) => res.json()),
+        fetch('/api/app/pos/branches/options').then((res) => res.json()),
         fetch('/api/app/pos/saldo?per_page=1000').then((res) => res.json()),
       ]);
 

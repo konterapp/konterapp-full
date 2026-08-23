@@ -27,6 +27,7 @@ export const GET = withPermission(
       sortBy,
       sortOrder,
       userId: context.userId,
+      companyUuid: context.companyUuid,
     });
 
     return successResponse('Cashier shifts retrieved successfully', result);

@@ -4,6 +4,7 @@ import { mapBranch, mapBranchListSimple } from './branch.mapper';
 import { assertBranchLimit } from '@/lib/modules/billing/plan-limits';
 import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
 import { mapBranchSaldoLink } from '@/lib/modules/pos/saldo/saldo.mapper';
+import { appUserRepository } from '@/lib/modules/users/app.repository';
 
 export const posBranchService = {
   async listBranches(params: {
@@ -47,6 +48,29 @@ export const posBranchService = {
   async listBranchesSimple() {
     const branches = await posBranchRepository.listSimple();
     return branches.map(mapBranchListSimple);
+  },
+
+  /**
+   * Untuk dropdown filter cabang di halaman-halaman yang tidak khusus
+   * mengelola cabang (transaksi, laporan, stock movement, produk, ppob) --
+   * boleh diakses role apa pun (tidak perlu permission pos.branch.index),
+   * tapi hasilnya difilter ke cabang yang di-assign ke user kalau role-nya
+   * dibatasi (lihat CompanyUserBranch). User tanpa pembatasan (assignment
+   * kosong) tetap lihat semua cabang aktif seperti biasa.
+   */
+  async listBranchOptions(companyUuid: string, userId: number) {
+    const [branches, assignedBranchUuids] = await Promise.all([
+      posBranchRepository.listSimple(),
+      appUserRepository.getAssignedBranchUuids(companyUuid, userId),
+    ]);
+
+    const active = branches.filter((b) => b.isActive);
+    const scoped =
+      assignedBranchUuids.length > 0
+        ? active.filter((b) => assignedBranchUuids.includes(b.uuid))
+        : active;
+
+    return scoped.map(mapBranchListSimple);
   },
 
   async getBranchDetail(uuid: string) {

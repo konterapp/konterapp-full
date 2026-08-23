@@ -8,13 +8,13 @@ import { posStockOpnameService } from '@/lib/modules/pos/stock-opname/admin.serv
 
 export const GET = withPermission(
   'pos.stock-movement.index',
-  withApiErrorHandling(async (req: NextRequest) => {
+  withApiErrorHandling(async (req: NextRequest, context) => {
     const { searchParams } = new URL(req.url);
     const scope = searchParams.get('scope') || 'history';
 
     if (scope === 'form') {
       const branchUuid = searchParams.get('branch_uuid');
-      const result = await posStockOpnameService.getCreateOptions(branchUuid);
+      const result = await posStockOpnameService.getCreateOptions(context.companyUuid, context.userId, branchUuid);
       return successResponse('Stock opname form options retrieved successfully', result);
     }
 
@@ -38,6 +38,8 @@ export const GET = withPermission(
       dateTo,
       sortBy,
       sortOrder,
+      companyUuid: context.companyUuid,
+      userId: context.userId,
     });
     return successResponse('Stock opname history retrieved successfully', result);
   })

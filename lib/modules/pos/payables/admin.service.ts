@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { mapPayablePurchase } from './payable.mapper';
 import { posPayableRepository } from './repository';
+import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 type PayableStatus = 'pending' | 'partial';
 
@@ -38,6 +39,8 @@ export const posPayableService = {
     endDate: string | null;
     sortBy: string | null;
     sortOrder: 'asc' | 'desc' | null;
+    companyUuid: string;
+    userId: number;
   }) {
     const {
       page,
@@ -50,6 +53,8 @@ export const posPayableService = {
       endDate,
       sortBy,
       sortOrder,
+      companyUuid,
+      userId,
     } = params;
 
     const skip = (page - 1) * perPage;
@@ -98,7 +103,7 @@ export const posPayableService = {
       posPayableRepository.count(where),
       posPayableRepository.aggregateAmounts(where),
       posPayableRepository.countDistinctSuppliers(where),
-      posPayableRepository.listBranches(),
+      posBranchService.listBranchOptions(companyUuid, userId),
       posPayableRepository.listSuppliers(),
     ]);
 

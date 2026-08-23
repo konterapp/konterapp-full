@@ -58,14 +58,6 @@ export const posPayableRepository = {
     return rows.length;
   },
 
-  listBranches() {
-    return prisma.appPosBranch.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { uuid: true, name: true },
-    });
-  },
-
   listSuppliers() {
     return prisma.appPosSupplier.findMany({
       where: { isActive: true },

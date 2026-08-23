@@ -6,7 +6,7 @@ import { posPayableService } from '@/lib/modules/pos/payables/admin.service';
 
 export const GET = withPermission(
   'pos.purchase.index',
-  withApiErrorHandling(async (req: NextRequest) => {
+  withApiErrorHandling(async (req: NextRequest, context) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
@@ -30,6 +30,8 @@ export const GET = withPermission(
       endDate,
       sortBy,
       sortOrder,
+      companyUuid: context.companyUuid,
+      userId: context.userId,
     });
 
     return successResponse('Payables retrieved successfully', result);

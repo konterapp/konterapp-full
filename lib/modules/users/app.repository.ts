@@ -9,7 +9,10 @@ type Client = Prisma.TransactionClient | typeof prisma;
 function memberInclude(companyUuid: string) {
   return {
     modelHasRoles: { include: { role: true } },
-    companyMemberships: { where: { companyUuid } },
+    companyMemberships: {
+      where: { companyUuid },
+      include: { branches: { include: { branch: { select: { uuid: true, name: true } } } } },
+    },
   } as const;
 }
 
@@ -71,15 +74,37 @@ export const appUserRepository = {
   async findRoleByUuid(companyUuid: string, uuid: string) {
     return prisma.role.findFirst({
       where: { companyUuid, uuid },
+      include: { roleHasPermissions: { select: { permissionName: true } } },
     });
   },
 
   async listCompanyRoles(companyUuid: string) {
     return prisma.role.findMany({
       where: { companyUuid },
-      select: { uuid: true, name: true },
+      select: {
+        uuid: true,
+        name: true,
+        isFullAccess: true,
+        roleHasPermissions: { select: { permissionName: true } },
+      },
       orderBy: { name: "asc" },
     });
+  },
+
+  async listActiveBranches(companyUuid: string) {
+    return prisma.appPosBranch.findMany({
+      where: { companyUuid, isActive: true },
+      select: { uuid: true, name: true, code: true },
+      orderBy: { name: "asc" },
+    });
+  },
+
+  async getAssignedBranchUuids(companyUuid: string, userId: number) {
+    const companyUser = await prisma.companyUser.findFirst({
+      where: { companyUuid, userId },
+      select: { branches: { select: { branchUuid: true } } },
+    });
+    return companyUser?.branches.map((b) => b.branchUuid) ?? [];
   },
 
   async countAdmins(companyUuid: string, excludeUserId?: number) {
@@ -97,8 +122,9 @@ export const appUserRepository = {
     companyUuid: string;
     userData: { uuid: string; name: string; email: string; password: string; isActive: boolean; emailVerifiedAt: Date | null };
     roleId: number;
+    branchUuids: string[];
   }) {
-    const { companyUuid, userData, roleId } = payload;
+    const { companyUuid, userData, roleId, branchUuids } = payload;
 
     return prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({ data: userData });
@@ -119,12 +145,18 @@ export const appUserRepository = {
         data: { roleId, modelType: MODEL_TYPE_USER, modelId: newUser.id, companyUuid },
       });
 
+      if (branchUuids.length > 0) {
+        await tx.companyUserBranch.createMany({
+          data: branchUuids.map((branchUuid) => ({ companyUuid, companyUserUuid: companyUser.uuid, branchUuid })),
+        });
+      }
+
       return { user: newUser, companyUserUuid: companyUser.uuid };
     });
   },
 
-  async attachExistingMember(payload: { companyUuid: string; userId: number; roleId: number }) {
-    const { companyUuid, userId, roleId } = payload;
+  async attachExistingMember(payload: { companyUuid: string; userId: number; roleId: number; branchUuids: string[] }) {
+    const { companyUuid, userId, roleId, branchUuids } = payload;
 
     return prisma.$transaction(async (tx) => {
       const existingMemberships = await tx.companyUser.count({ where: { userId } });
@@ -143,6 +175,12 @@ export const appUserRepository = {
         data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
       });
 
+      if (branchUuids.length > 0) {
+        await tx.companyUserBranch.createMany({
+          data: branchUuids.map((branchUuid) => ({ companyUuid, companyUserUuid: companyUser.uuid, branchUuid })),
+        });
+      }
+
       return { companyUserUuid: companyUser.uuid };
     });
   },
@@ -159,6 +197,15 @@ export const appUserRepository = {
     await tx.modelHasRole.create({
       data: { roleId, modelType: MODEL_TYPE_USER, modelId: userId, companyUuid },
     });
+  },
+
+  async replaceMemberBranches(tx: Client, companyUuid: string, companyUserUuid: string, branchUuids: string[]) {
+    await tx.companyUserBranch.deleteMany({ where: { companyUuid, companyUserUuid } });
+    if (branchUuids.length > 0) {
+      await tx.companyUserBranch.createMany({
+        data: branchUuids.map((branchUuid) => ({ companyUuid, companyUserUuid, branchUuid })),
+      });
+    }
   },
 
   async removeFromCompany(tx: Client, companyUuid: string, userId: number) {

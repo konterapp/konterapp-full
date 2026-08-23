@@ -104,6 +104,7 @@ model Company {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   memberships            CompanyUser[]
+  memberBranches         CompanyUserBranch[]
   roles                  Role[]
   modelHasRoles          ModelHasRole[]
   subscription           CompanySubscription?
@@ -149,10 +150,34 @@ model CompanyUser {
   company          Company                  @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   invitationTokens CompanyInvitationToken[]
+  branches         CompanyUserBranch[]
 
   @@unique([companyUuid, userId], name: "company_user_unique")
   @@index([userId])
   @@map("company_users")
+}
+
+/**
+ * Pembatasan cabang untuk user dengan role yang tidak punya akses penuh ke
+ * cabang (tidak punya permission pos.branch.index). Kalau user tidak punya
+ * baris di sini sama sekali, dia dianggap tidak dibatasi (bebas pilih cabang
+ * mana pun) -- baris di sini baru dibuat kalau role-nya memang dibatasi.
+ */
+model CompanyUserBranch {
+  uuid            String   @id @default(uuid()) @db.Char(36)
+  companyUuid     String   @map("company_uuid") @db.Char(36)
+  companyUserUuid String   @map("company_user_uuid") @db.Char(36)
+  branchUuid      String   @map("branch_uuid") @db.Char(36)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  company     Company      @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  companyUser CompanyUser  @relation(fields: [companyUserUuid], references: [uuid], onDelete: Cascade)
+  branch      AppPosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([companyUserUuid, branchUuid], name: "company_user_branch_unique")
+  @@index([companyUuid])
+  @@index([branchUuid])
+  @@map("company_user_branches")
 }
 
 model PlanTier {
@@ -379,6 +404,7 @@ model AppPosBranch {
   ppobTransactions AppPosPpobTransaction[]
   saldoMutations   AppPosSaldoMutation[]
   saldoBalances    AppPosSaldoAccountBalanceBranch[]
+  memberAccess     CompanyUserBranch[]
 
   @@unique([companyUuid, code])
   @@index([companyUuid])

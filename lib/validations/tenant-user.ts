@@ -5,6 +5,7 @@ export const createAppUserSchema = z.object({
   email: z.string({ error: "Email wajib diisi" }).min(1, "Email wajib diisi").includes("@", { message: "Email tidak valid" }),
   password: z.string({ error: "Password wajib diisi" }).min(8, "Password minimal 8 karakter"),
   role_uuid: z.string({ error: "Role wajib dipilih" }).min(1, "Role wajib dipilih"),
+  branch_uuids: z.array(z.string().min(1)).optional(),
 });
 
 export const updateAppUserSchema = z.object({
@@ -12,5 +13,6 @@ export const updateAppUserSchema = z.object({
   email: z.string({ error: "Email wajib diisi" }).min(1, "Email wajib diisi").includes("@", { message: "Email tidak valid" }).optional(),
   password: z.string().min(8, "Password minimal 8 karakter").optional().or(z.literal("")),
   role_uuid: z.string({ error: "Role wajib dipilih" }).min(1, "Role wajib dipilih").optional(),
+  branch_uuids: z.array(z.string().min(1)).optional(),
   is_active: z.boolean().optional(),
 });

@@ -7,6 +7,11 @@ export function mapAppUser(user: any, companyUuid: string) {
     (m: any) => m.companyUuid === companyUuid
   );
 
+  const branches = (membership?.branches ?? []).map((b: any) => ({
+    uuid: b.branch.uuid,
+    name: b.branch.name,
+  }));
+
   return {
     id: user.id,
     uuid: user.uuid,
@@ -16,6 +21,7 @@ export function mapAppUser(user: any, companyUuid: string) {
     email_verified_at: user.emailVerifiedAt ?? null,
     invitation_accepted_at: membership?.invitationAcceptedAt ?? null,
     roles,
+    branches,
     created_at: user.createdAt,
     updated_at: user.updatedAt,
   };

@@ -4,6 +4,8 @@ import { v7 as uuidv7 } from 'uuid';
 import { posStockOpnameRepository } from './repository';
 import { mapStockOpnameHistoryDocument, mapStockOpnameHistoryItem } from './stock-opname.mapper';
 import { getTenantCompanyUuid } from '@/lib/tenant-context';
+import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
+import { appUserRepository } from '@/lib/modules/users/app.repository';
 
 function roundDateEnd(date: Date) {
   const next = new Date(date);
@@ -12,8 +14,8 @@ function roundDateEnd(date: Date) {
 }
 
 export const posStockOpnameService = {
-  async getCreateOptions(branchUuid: string | null) {
-    const branches = await posStockOpnameRepository.listBranches();
+  async getCreateOptions(companyUuid: string, userId: number, branchUuid: string | null) {
+    const branches = await posBranchService.listBranchOptions(companyUuid, userId);
 
     if (branchUuid) {
       const productsWithStock = await posStockOpnameRepository.listProductsWithStock(branchUuid);
@@ -52,8 +54,10 @@ export const posStockOpnameService = {
     dateTo: string | null;
     sortBy: string;
     sortOrder: 'asc' | 'desc';
+    companyUuid: string;
+    userId: number;
   }) {
-    const { page, perPage, search, branchUuid, productUuid, dateFrom, dateTo, sortBy, sortOrder } = params;
+    const { page, perPage, search, branchUuid, productUuid, dateFrom, dateTo, sortBy, sortOrder, companyUuid, userId } = params;
 
     const where: Prisma.AppPosStockMovementWhereInput = {
       movementType: 'adjustment',
@@ -143,7 +147,7 @@ export const posStockOpnameService = {
     const data = sortedDocuments.slice(skip, skip + perPage);
 
     const [branches, products] = await Promise.all([
-      posStockOpnameRepository.listBranches(),
+      posBranchService.listBranchOptions(companyUuid, userId),
       posStockOpnameRepository.listProducts(),
     ]);
 
@@ -186,6 +190,11 @@ export const posStockOpnameService = {
     const companyUuid = getTenantCompanyUuid();
     if (!companyUuid) {
       throw new ApiError('Konteks perusahaan tidak ditemukan', 500);
+    }
+
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(companyUuid, userId);
+    if (assignedBranchUuids.length > 0 && !assignedBranchUuids.includes(payload.branchUuid)) {
+      throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
     await posStockOpnameRepository.runInTransaction(async (tx) => {

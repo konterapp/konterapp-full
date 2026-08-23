@@ -237,7 +237,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
 
   const fetchBranches = useCallback(async () => {
     try {
-      const response = await fetch('/api/app/pos/branches/list');
+      const response = await fetch('/api/app/pos/branches/options');
       const result = await response.json();
       if (result.status === 'success' && Array.isArray(result.data)) {
         const activeBranches: BranchSimple[] = result.data.filter((b: BranchSimple) => b.is_active);

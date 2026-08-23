@@ -56,17 +56,26 @@ export function withAuth(handler: RouteHandler) {
   };
 }
 
-export function withPermission(permission: string, handler: RouteHandler) {
+/**
+ * Wrapper auth + gate subscription aktif, TANPA cek permission spesifik --
+ * untuk rute operasional yang boleh diakses semua role tenant (apa pun
+ * permission-nya) selama subscription company aktif. Dipakai untuk data
+ * ringan & tidak sensitif yang dibutuhkan lintas halaman (mis. daftar nama
+ * cabang buat dropdown filter), bukan untuk rute yang benar-benar perlu
+ * dibatasi per permission -- itu tetap pakai withPermission.
+ */
+export function withTenant(handler: RouteHandler) {
   return withAuth(async (req, context) => {
-    // Gate akses tenant: semua rute operasional /api/app/* (pos, dll) lewat
-    // wrapper ini, jadi subscription yang expired/nonaktif diblokir di sini.
-    // Rute billing & impersonate pakai withAuth langsung dan tetap terbuka
-    // supaya user masih bisa perpanjang langganan dan admin bisa impersonate.
     const subscription = await billingRepository.findSubscriptionByCompanyUuid(context.companyUuid);
     if (!isSubscriptionActive(subscription)) {
       return errorResponse("Langganan perusahaan tidak aktif", 403);
     }
+    return handler(req, context);
+  });
+}
 
+export function withPermission(permission: string, handler: RouteHandler) {
+  return withTenant(async (req, context) => {
     const permissions = await getUserPermissions(context.userId, context.companyUuid);
     if (!hasPermission(permissions, permission)) {
       return errorResponse("Forbidden", 403);

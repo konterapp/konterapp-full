@@ -64,14 +64,6 @@ export const posReceivableRepository = {
     return rows.length;
   },
 
-  listBranches() {
-    return prisma.appPosBranch.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { uuid: true, name: true },
-    });
-  },
-
   listCustomers() {
     return prisma.appPosCustomer.findMany({
       orderBy: { name: 'asc' },

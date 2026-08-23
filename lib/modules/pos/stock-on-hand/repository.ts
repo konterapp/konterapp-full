@@ -47,14 +47,6 @@ export const posStockOnHandRepository = {
     return prisma.appPosProductStock.count({ where });
   },
 
-  listBranches() {
-    return prisma.appPosBranch.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { uuid: true, name: true },
-    });
-  },
-
   listCategories() {
     return prisma.appPosProductCategory.findMany({
       orderBy: { name: 'asc' },

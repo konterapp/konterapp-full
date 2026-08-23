@@ -77,7 +77,7 @@ export default function StockMovementsPage() {
 
   const loadBranches = async () => {
     try {
-      const response = await fetch('/api/app/pos/branches/list');
+      const response = await fetch('/api/app/pos/branches/options');
       const result = await response.json();
       if (result.status === 'success' && result.data) {
         setBranches(result.data);

@@ -6,7 +6,7 @@ import { posStockOnHandService } from '@/lib/modules/pos/stock-on-hand/admin.ser
 
 export const GET = withPermission(
   'pos.stock-movement.index',
-  withApiErrorHandling(async (req: NextRequest) => {
+  withApiErrorHandling(async (req: NextRequest, context) => {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('per_page') || '10');
@@ -26,6 +26,8 @@ export const GET = withPermission(
       stockStatus,
       sortBy,
       sortOrder,
+      companyUuid: context.companyUuid,
+      userId: context.userId,
     });
 
     return successResponse('Stock on-hand retrieved successfully', result);

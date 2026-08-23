@@ -69,14 +69,6 @@ export const posShiftRepository = {
     });
   },
 
-  listBranches() {
-    return prisma.appPosBranch.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { uuid: true, name: true },
-    });
-  },
-
   create(data: Prisma.AppPosCashierShiftUncheckedCreateInput) {
     return prisma.appPosCashierShift.create({
       data,

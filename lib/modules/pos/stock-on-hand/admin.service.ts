@@ -1,6 +1,7 @@
 import { posStockOnHandRepository } from './repository';
 import { mapStockOnHandListItem } from './stock-on-hand.mapper';
 import { Prisma } from '@prisma/client';
+import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
 
 export const posStockOnHandService = {
   async listStockOnHand(params: {
@@ -12,8 +13,10 @@ export const posStockOnHandService = {
     stockStatus: string;
     sortBy: string;
     sortOrder: 'asc' | 'desc';
+    companyUuid: string;
+    userId: number;
   }) {
-    const { page, perPage, search, branchUuid, categoryUuid, stockStatus, sortBy, sortOrder } = params;
+    const { page, perPage, search, branchUuid, categoryUuid, stockStatus, sortBy, sortOrder, companyUuid, userId } = params;
     const skip = (page - 1) * perPage;
     const where: Prisma.AppPosProductStockWhereInput = {
       product: {
@@ -56,7 +59,7 @@ export const posStockOnHandService = {
     const [rows, total, branches, categories] = await Promise.all([
       posStockOnHandRepository.findMany({ where, skip, take: perPage, orderBy }),
       posStockOnHandRepository.count(where),
-      posStockOnHandRepository.listBranches(),
+      posBranchService.listBranchOptions(companyUuid, userId),
       posStockOnHandRepository.listCategories(),
     ]);
 
