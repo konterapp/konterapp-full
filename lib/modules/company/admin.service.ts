@@ -96,19 +96,13 @@ export const companyService = {
     return formatCompany(companyWithSubscription);
   },
 
-  async updateCompany(uuid: string, payload: { code: string; name: string; is_active?: boolean }) {
+  async updateCompany(uuid: string, payload: { name: string; is_active?: boolean }) {
     const existingCompany = await companyRepository.findByUuid(uuid);
     if (!existingCompany) {
       throw new ApiError("Perusahaan tidak ditemukan", 404);
     }
 
-    const existingCode = await companyRepository.findByCode(payload.code, uuid);
-    if (existingCode) {
-      throw new ValidationApiError({ code: ["Kode perusahaan sudah digunakan"] });
-    }
-
     const updated = await companyRepository.update(uuid, {
-      code: payload.code,
       name: payload.name,
       isActive: payload.is_active,
     });

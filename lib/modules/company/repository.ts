@@ -44,7 +44,7 @@ export const companyRepository = {
     });
   },
 
-  async update(uuid: string, data: { code: string; name: string; isActive?: boolean }) {
+  async update(uuid: string, data: { name: string; isActive?: boolean }) {
     return prisma.company.update({
       where: { uuid },
       data,

@@ -133,13 +133,21 @@ export default function CompanyForm({ companyUuid, mode }: CompanyFormProps) {
                      name="code"
                      value={formData.code}
                      onChange={handleChange}
-                     className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.code
-                        ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                        : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                     disabled={mode === 'edit'}
+                     className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${mode === 'edit'
+                        ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                        : `bg-white ${fieldErrors.code
+                           ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                           : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                           }`
                         }`}
                      placeholder="Ex. KTR-7F3QX2"
                   />
-                  {fieldErrors.code && (
+                  {mode === 'edit' ? (
+                     <div className="mt-1 text-sm text-gray-500">
+                        Kode perusahaan tidak dapat diubah setelah dibuat.
+                     </div>
+                  ) : fieldErrors.code && (
                      <div className="mt-1 text-sm text-red-600">
                         {fieldErrors.code[0]}
                      </div>

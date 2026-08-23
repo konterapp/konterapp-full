@@ -6,7 +6,9 @@ export const createCompanySchema = z.object({
   is_active: z.boolean().optional(),
 });
 
-export const updateCompanySchema = createCompanySchema;
+// Kode perusahaan tidak dapat diubah setelah dibuat (dipakai sebagai
+// referensi lintas modul), jadi schema update sengaja tidak menerima `code`.
+export const updateCompanySchema = createCompanySchema.omit({ code: true });
 
 // Ubah profil perusahaan dari sisi tenant (/app): hanya nama yang boleh
 // diubah. Kode & status aktif dikelola administrator SaaS.
