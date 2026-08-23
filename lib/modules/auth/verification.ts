@@ -40,20 +40,29 @@ function buildVerificationEmail(params: { name: string; token: string }) {
   return { html, text, url };
 }
 
-async function deliverVerificationEmail(user: { id: number; name: string; email: string }) {
+async function issueVerificationToken(userId: number) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + TOKEN_TTL_HOURS * 60 * 60 * 1000);
 
   // Token di database disimpan sebagai hash -- kebocoran DB tidak langsung
   // membuka akses verifikasi.
-  await prisma.emailVerificationToken.create({
-    data: {
-      uuid: uuidv7(),
-      userId: user.id,
-      tokenHash: hashToken(token),
-      expiresAt,
-    },
-  });
+  await prisma.$transaction([
+    prisma.emailVerificationToken.deleteMany({ where: { userId } }),
+    prisma.emailVerificationToken.create({
+      data: {
+        uuid: uuidv7(),
+        userId,
+        tokenHash: hashToken(token),
+        expiresAt,
+      },
+    }),
+  ]);
+
+  return token;
+}
+
+async function deliverVerificationEmail(user: { id: number; name: string; email: string }) {
+  const token = await issueVerificationToken(user.id);
 
   const { html, text } = buildVerificationEmail({ name: user.name, token });
   await sendMail({
@@ -96,7 +105,6 @@ export const emailVerificationService = {
       );
     }
 
-    await prisma.emailVerificationToken.deleteMany({ where: { userId } });
     await deliverVerificationEmail(user);
   },
 

@@ -30,12 +30,21 @@ const JS_KEYWORDS = new Set([
 ]);
 const METHOD_START_RE = /(?:^|\n)(?:\s*)(?:async\s+)?([A-Za-z_$][\w$]*)\s*\(([^)]*)\)\s*\{/g;
 
+// Awalnya cuma *.service.ts/*.repository.ts, tapi itu kelewat file logic
+// lain di lib/modules yang juga nulis ke DB langsung (mis. auth/provisioning.ts,
+// auth/password-reset.ts, auth/verification.ts -- dua terakhir sempat ada
+// bug nyata: deleteMany+create tanpa transaction, ketemu pas audit manual
+// karena checker versi lama tidak menjangkau file-file ini). Sekarang scan
+// semua .ts di lib/modules kecuali mapper/template/constants yang murni
+// data/formatting dan tidak menulis ke DB.
+const SKIP_FILE_RE = /\.(mapper|templates|constants)\.ts$/;
+
 function walk(dir, files = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walk(full, files);
-    } else if (entry.isFile() && /(^|\.)(service|repository)\.ts$/.test(entry.name)) {
+    } else if (entry.isFile() && entry.name.endsWith(".ts") && !SKIP_FILE_RE.test(entry.name)) {
       files.push(full);
     }
   }

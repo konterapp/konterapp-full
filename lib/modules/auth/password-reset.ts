@@ -74,17 +74,18 @@ export const passwordResetService = {
       );
     }
 
-    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
-
     const token = randomBytes(32).toString("hex");
-    await prisma.passwordResetToken.create({
-      data: {
-        uuid: uuidv7(),
-        userId: user.id,
-        tokenHash: hashToken(token),
-        expiresAt: new Date(Date.now() + TOKEN_TTL_HOURS * 60 * 60 * 1000),
-      },
-    });
+    await prisma.$transaction([
+      prisma.passwordResetToken.deleteMany({ where: { userId: user.id } }),
+      prisma.passwordResetToken.create({
+        data: {
+          uuid: uuidv7(),
+          userId: user.id,
+          tokenHash: hashToken(token),
+          expiresAt: new Date(Date.now() + TOKEN_TTL_HOURS * 60 * 60 * 1000),
+        },
+      }),
+    ]);
 
     const { html, text } = buildResetEmail({ name: user.name, token });
     await sendMail({
