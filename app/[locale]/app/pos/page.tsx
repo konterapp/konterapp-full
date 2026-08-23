@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/app/product';
 import { getAllSaldoAccounts, SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
+import { getBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
 import { Customer } from '@/lib/api/app/customer';
 import { createSale, Sale, SaleItemCreateData } from '@/lib/api/app/sale';
 import CustomerSelect from './_components/CustomerSelect';
@@ -75,6 +76,18 @@ export default function KasirPage() {
   const [closeShiftForm, setCloseShiftForm] = useState({
     notes_close: '',
   });
+  const [openShiftSaldo, setOpenShiftSaldo] = useState<{
+    isLoading: boolean;
+    error: string;
+    items: BranchSaldoItem[];
+    totalBalance: number;
+  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
+  const [closeShiftSaldo, setCloseShiftSaldo] = useState<{
+    isLoading: boolean;
+    error: string;
+    items: BranchSaldoItem[];
+    totalBalance: number;
+  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
   const [cart, setCart] = useState<CartItem[]>([]);
   const [nextCartId, setNextCartId] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -149,6 +162,62 @@ export default function KasirPage() {
     };
     loadData();
   }, [loadShiftState]);
+
+  useEffect(() => {
+    if (activeShift || !openShiftForm.branch_uuid) {
+      setOpenShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
+      return;
+    }
+    let cancelled = false;
+    setOpenShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
+    getBranchSaldo(openShiftForm.branch_uuid)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 'success' && res.data) {
+          setOpenShiftSaldo({
+            isLoading: false,
+            error: '',
+            items: res.data.data || [],
+            totalBalance: res.data.total_balance || 0,
+          });
+        } else {
+          setOpenShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOpenShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+      });
+    return () => { cancelled = true; };
+  }, [openShiftForm.branch_uuid, activeShift]);
+
+  useEffect(() => {
+    if (!showCloseShiftModal || !activeShift?.branch?.uuid) {
+      setCloseShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
+      return;
+    }
+    let cancelled = false;
+    setCloseShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
+    getBranchSaldo(activeShift.branch.uuid)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 'success' && res.data) {
+          setCloseShiftSaldo({
+            isLoading: false,
+            error: '',
+            items: res.data.data || [],
+            totalBalance: res.data.total_balance || 0,
+          });
+        } else {
+          setCloseShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCloseShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+      });
+    return () => { cancelled = true; };
+  }, [showCloseShiftModal, activeShift?.branch?.uuid]);
 
   const searchProducts = useCallback(async (query: string) => {
     if (!selectedBranch || !activeShift) return;
@@ -545,6 +614,35 @@ export default function KasirPage() {
                 </select>
               </div>
 
+              {openShiftForm.branch_uuid && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
+                  {openShiftSaldo.isLoading ? (
+                    <p className="text-xs text-gray-400">Memuat saldo...</p>
+                  ) : openShiftSaldo.error ? (
+                    <p className="text-xs text-red-500">{openShiftSaldo.error}</p>
+                  ) : openShiftSaldo.items.length === 0 ? (
+                    <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {openShiftSaldo.items.map((item) => (
+                        <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-700">
+                            {item.account.name}
+                            {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
+                          </span>
+                          <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+                        </div>
+                      ))}
+                      <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+                        <span className="font-semibold text-gray-700">Total</span>
+                        <span className="font-bold text-[#142D52]">{formatCurrency(openShiftSaldo.totalBalance)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Catatan (Opsional)</label>
                 <input
@@ -917,6 +1015,33 @@ export default function KasirPage() {
                 <p className="font-semibold text-[#142D52]">{activeShift.branch?.name || '-'}</p>
                 <p className="text-gray-600 mt-2">Total Penjualan Berjalan</p>
                 <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
+                {closeShiftSaldo.isLoading ? (
+                  <p className="text-xs text-gray-400">Memuat saldo...</p>
+                ) : closeShiftSaldo.error ? (
+                  <p className="text-xs text-red-500">{closeShiftSaldo.error}</p>
+                ) : closeShiftSaldo.items.length === 0 ? (
+                  <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {closeShiftSaldo.items.map((item) => (
+                      <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">
+                          {item.account.name}
+                          {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
+                        </span>
+                        <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+                      <span className="font-semibold text-gray-700">Total</span>
+                      <span className="font-bold text-[#142D52]">{formatCurrency(closeShiftSaldo.totalBalance)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
