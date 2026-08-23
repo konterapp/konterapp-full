@@ -1,6 +1,6 @@
 {
   "name": "konterapp-full",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3002",
@@ -28,13 +28,12 @@
     "html5-qrcode": "^2.3.8",
     "jose": "^6.2.9",
     "lucide-react": "^0.577.0",
-    "next": "16.1.6",
+    "next": "16.3.2",
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^4.8.3",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^9.0.5",
     "pdf-lib": "^1.17.1",
     "prisma": "^6.19.2",
-    "quill": "^2.0.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.8.1",
@@ -50,10 +49,13 @@
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.3.2",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
     "typescript": "^5",
     "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2"
   }
 }
