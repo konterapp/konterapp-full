@@ -24,7 +24,6 @@ const menuTranslations: Record<string, string> = {
   "Inventori & Keuangan": "Inventori & Keuangan",
   "Laporan": "Laporan",
   "Dashboard": "Dashboard",
-  "Point of Sales": "Point of Sales",
   "Penjualan": "Penjualan",
   "PPOB": "PPOB",
   "Riwayat PPOB": "Riwayat PPOB",
@@ -148,7 +147,7 @@ export default function Sidebar() {
     permissions,
     roles
   });
-  const sectionOrder: MenuSection[] = ['Operasional', 'Produk', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'PPOB', 'Pengaturan'];
+  const sectionOrder: MenuSection[] = ['Operasional', 'Produk', 'Master Data', 'Inventori & Keuangan', 'Laporan', 'Pengaturan', 'Segera'];
   const groupedMenuItems = sectionOrder
     .map(section => ({
       section,

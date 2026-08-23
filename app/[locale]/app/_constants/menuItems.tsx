@@ -32,8 +32,8 @@ export type MenuSection =
     | 'Master Data'
     | 'Inventori & Keuangan'
     | 'Laporan'
-    | 'PPOB'
-    | 'Pengaturan';
+    | 'Pengaturan'
+    | 'Segera';
 
 export interface SubMenuItem {
     key?: string;
@@ -59,7 +59,7 @@ export interface MenuItem {
     submenu?: SubMenuItem[];
 }
 
-export const allMenuItems: MenuItem[] = [
+const coreMenuItems: MenuItem[] = [
     // Operasional
     {
         section: 'Operasional',
@@ -69,13 +69,7 @@ export const allMenuItems: MenuItem[] = [
     },
     {
         section: 'Operasional',
-        label: 'Langganan',
-        href: '/app/billing',
-        icon: <CircleDollarSign className="w-5 h-5" />
-    },
-    {
-        section: 'Operasional',
-        label: 'Point of Sales',
+        label: 'Kasir',
         href: '/app/pos', 
         icon: <ShoppingCart className="w-5 h-5" />,
         permission: 'pos.sale.create'
@@ -101,14 +95,6 @@ export const allMenuItems: MenuItem[] = [
         icon: <CircleDot className="w-5 h-5" />,
         permission: 'pos.sale.create'
     },
-    {
-        section: 'Operasional',
-        label: 'Cek Harga',
-        href: '/app/pos/price-check',
-        icon: <ScanLine className="w-5 h-5" />,
-        permission: 'pos.sale.create'
-    },
-
     // Produk
     {
         section: 'Produk',
@@ -161,13 +147,6 @@ export const allMenuItems: MenuItem[] = [
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
     },
-    {
-        section: 'Master Data',
-        label: 'Printer',
-        icon: <Printer className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-
     // Inventori & Keuangan
     {
         section: 'Inventori & Keuangan',
@@ -212,37 +191,13 @@ export const allMenuItems: MenuItem[] = [
         icon: <TrendingUp className="w-5 h-5" />,
         permission: 'pos.report.index'
     },
-    {
-        section: 'Laporan',
-        label: 'Audit Log',
-        icon: <FileSearch className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-
-    // PPOB
-    {
-        section: 'PPOB',
-        label: 'PPOB',
-        href: '/app/pos/ppob',
-        icon: <Zap className="w-5 h-5" />,
-        permission: 'pos.ppob.index'
-    },
-    {
-        section: 'PPOB',
-        label: 'Riwayat PPOB',
-        href: '/app/pos/ppob/transactions',
-        icon: <History className="w-5 h-5" />,
-        permission: 'pos.ppob.index'
-    },
-    {
-        section: 'PPOB',
-        label: 'Produk PPOB',
-        href: '/app/pos/ppob/products',
-        icon: <Package className="w-5 h-5" />,
-        permission: 'pos.ppob.index'
-    },
-
     // Pengaturan
+    {
+        section: 'Pengaturan',
+        label: 'Langganan',
+        href: '/app/billing',
+        icon: <CircleDollarSign className="w-5 h-5" />
+    },
     {
         section: 'Pengaturan',
         label: 'Perusahaan',
@@ -271,3 +226,48 @@ export const allMenuItems: MenuItem[] = [
         icon: <Gift className="w-5 h-5" />
     },
 ];
+
+// Segera - fitur yang belum dilanjutkan. Cuma ditampilkan di development
+// (lihat penggabungan di bawah) supaya tidak membingungkan user di production.
+const comingSoonMenuItems: MenuItem[] = [
+    {
+        section: 'Segera',
+        label: 'Cek Harga',
+        icon: <ScanLine className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+    {
+        section: 'Segera',
+        label: 'Printer',
+        icon: <Printer className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+    {
+        section: 'Segera',
+        label: 'Audit Log',
+        icon: <FileSearch className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+    {
+        section: 'Segera',
+        label: 'PPOB',
+        icon: <Zap className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+    {
+        section: 'Segera',
+        label: 'Riwayat PPOB',
+        icon: <History className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+    {
+        section: 'Segera',
+        label: 'Produk PPOB',
+        icon: <Package className="w-5 h-5" />,
+        isPlaceholder: true
+    },
+];
+
+export const allMenuItems: MenuItem[] = process.env.NODE_ENV === 'production'
+    ? coreMenuItems
+    : [...coreMenuItems, ...comingSoonMenuItems];

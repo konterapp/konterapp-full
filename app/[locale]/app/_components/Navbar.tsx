@@ -15,7 +15,6 @@ import ImpersonateButton from './ImpersonateButton';
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
   "Dashboard": "Dashboard",
-  "Point of Sales": "Point of Sales",
   "Penjualan": "Penjualan",
   "Produk": "Produk",
   "Kategori": "Kategori",
@@ -149,15 +148,15 @@ const Navbar = () => {
 
   return (
     <nav
-      className="sticky top-0 z-30 h-16 flex items-center justify-between px-3 lg:px-6 shadow-sm border-b border-gray-100"
+      className="sticky top-0 z-30 h-14 flex items-center justify-between px-3 lg:px-5 shadow-sm border-b border-gray-100"
       style={{ backgroundColor: '#ffffff' }}
     >
       {/* Mobile hamburger */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2 cursor-pointer"
+        className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-2 cursor-pointer"
       >
-        {isMobileOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+        {isMobileOpen ? <X className="w-[18px] h-[18px] text-gray-700" /> : <Menu className="w-[18px] h-[18px] text-gray-700" />}
       </button>
 
       {/* Search Bar - Desktop */}
@@ -166,18 +165,18 @@ const Navbar = () => {
           <button
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-2 rounded-lg hover:bg-gray-100 transition-colors mr-2 cursor-pointer"
+            className="hidden lg:flex p-1.5 rounded-lg hover:bg-gray-100 transition-colors mr-2 cursor-pointer"
             title="Buka sidebar"
           >
-            <Menu className="w-5 h-5 text-gray-700" />
+            <Menu className="w-[18px] h-[18px] text-gray-700" />
           </button>
         )}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             placeholder="Cari menu..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent"
+            className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-transparent"
             onFocus={() => setIsSearchOpen(true)}
             onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)}
             value={searchQuery}
@@ -227,7 +226,7 @@ const Navbar = () => {
       {/* Mobile Search Overlay */}
       {isMobileSearchOpen && (
         <div className="sm:hidden fixed inset-0 z-50 bg-white">
-          <div className="flex items-center gap-2 px-3 h-16 border-b border-gray-200">
+          <div className="flex items-center gap-2 px-3 h-14 border-b border-gray-200">
             <Search className="w-5 h-5 text-gray-400 shrink-0" />
             <input
               ref={mobileSearchRef}
@@ -279,13 +278,13 @@ const Navbar = () => {
       )}
 
       {/* Right Section */}
-      <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
+      <div className="flex items-center gap-1 sm:gap-1.5 lg:gap-3">
         {/* Search Icon - Mobile only */}
         <button
           onClick={() => setIsMobileSearchOpen(true)}
           className="sm:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
         >
-          <Search className="w-[18px] h-[18px] text-gray-600" />
+          <Search className="w-4 h-4 text-gray-600" />
         </button>
 
         {/* Perusahaan Aktif + Company Switcher */}
@@ -293,14 +292,14 @@ const Navbar = () => {
           <button
             onClick={() => setIsCompanyDropdownOpen(!isCompanyDropdownOpen)}
             disabled={isSwitchingCompany}
-            className={`flex items-center gap-2 pl-2.5 pr-3 py-1.5 rounded-xl border border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] max-w-[16rem] transition-colors cursor-pointer ${isSwitchingCompany ? 'opacity-60' : 'hover:border-gray-300'}`}
+            className={`flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-lg border border-gray-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] max-w-[16rem] transition-colors cursor-pointer ${isSwitchingCompany ? 'opacity-60' : 'hover:border-gray-300'}`}
             title={activeCompany ? `${activeCompany.name} (${activeCompany.code})` : 'Perusahaan aktif belum tersedia'}
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142D52]/10 text-[#142D52] shrink-0">
-              <Building2 className="h-4 w-4" />
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#142D52]/10 text-[#142D52] shrink-0">
+              <Building2 className="h-3.5 w-3.5" />
             </div>
             <div className="text-left min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
+              <p className="text-[13px] font-semibold text-gray-900 truncate leading-tight">
                 {activeCompany?.name || 'Perusahaan tidak tersedia'}
               </p>
               {user?.companies && user.companies.length > 1 && (
@@ -308,7 +307,7 @@ const Navbar = () => {
               )}
             </div>
             {user?.companies && user.companies.length > 1 && (
-              <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             )}
           </button>
 
@@ -329,11 +328,11 @@ const Navbar = () => {
                     }`}
                   >
                     <div
-                      className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg shrink-0 ${
                         isActive ? 'bg-[#EBC170]/20 text-[#B18B3B]' : 'bg-[#142D52]/10 text-[#142D52]'
                       }`}
                     >
-                      <Building2 className="h-4 w-4" />
+                      <Building2 className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm font-medium truncate ${isActive ? 'text-gray-900' : 'text-gray-700'}`}>
@@ -355,17 +354,17 @@ const Navbar = () => {
         </div>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-200 mx-2 hidden md:block"></div>
+        <div className="h-5 w-px bg-gray-200 mx-1.5 hidden md:block"></div>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        <button className="relative p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer">
+          <Bell className="w-[18px] h-[18px]" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
 
         {/* Settings */}
-        <button className="p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer hidden md:block">
-          <Settings className="w-5 h-5" />
+        <button className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer hidden md:block">
+          <Settings className="w-[18px] h-[18px]" />
         </button>
 
         {/* Stop Impersonating Button */}
@@ -374,13 +373,13 @@ const Navbar = () => {
         {/* User Profile */}
         <Link
           href="/app/profile"
-          className="flex items-center gap-2 lg:gap-3 pl-2 lg:pl-4 border-l border-gray-100 hover:opacity-80 transition-opacity cursor-pointer"
+          className="flex items-center gap-2 lg:gap-2.5 pl-2 lg:pl-3 border-l border-gray-100 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <div className="text-right hidden md:block">
-            <p className="text-sm font-bold text-[#142D52] leading-none">{user?.name || 'Guest User'}</p>
+            <p className="text-[13px] font-bold text-[#142D52] leading-none">{user?.name || 'Guest User'}</p>
             <p className="text-xs text-gray-500 mt-1">{user?.email || 'guest@konterapp.id'}</p>
           </div>
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-[#EBC170] transition-all">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 border-gray-100 ring-2 ring-transparent group-hover:ring-[#EBC170] transition-all">
             <Image
               src={
                 user?.name
@@ -388,8 +387,8 @@ const Navbar = () => {
                   : 'https://ui-avatars.com/api/?name=Guest&background=142D52&color=fff'
               }
               alt="User Avatar"
-              width={36}
-              height={36}
+              width={32}
+              height={32}
               className="w-full h-full object-cover"
               unoptimized
             />
