@@ -31,6 +31,9 @@ DONE:
   - (done) billing bulanan
   - (done) billing bertingkat
   - (done) Kupon
+    - (done) upgrade info
+    - (done) list billing
+    - (done) webhook midtrans
 - konterapp-full-3
   - (done) verifikasi email (registrasi, create)
   - (done) lupa password
@@ -41,12 +44,9 @@ DOING:
     - (done) isolasi menu-menu tenant
     - defualt data register
 - konterapp-full-2
-    - (done) upgrade info
-    - (done) list billing
-    - (done) webhook midtrans
-    - hapus users dan backup
+    - (done) hapus users dan backup
 - konterapp-full-3
-    - () hapus fitur berita
+    - (done) hapus fitur berita
 
 PENDING:
 - catatkonter

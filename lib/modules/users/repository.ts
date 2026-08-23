@@ -132,9 +132,20 @@ export const userRepository = {
   },
 
   async softDeleteById(userId: number) {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    // Kolom email punya unique constraint di level DB yang tidak mengecualikan
+    // baris soft-deleted, jadi email lama harus "dibebaskan" di sini supaya
+    // bisa dipakai registrasi/pembuatan user baru lagi.
     return prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date() },
+      data: {
+        deletedAt: new Date(),
+        email: `deleted-${Date.now()}-${user.email}`.slice(0, 255),
+      },
     });
   },
 
