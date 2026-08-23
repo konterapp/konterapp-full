@@ -7,7 +7,7 @@ export function handleApiError(error: unknown) {
   }
 
   if (error instanceof ApiError) {
-    return errorResponse(error.message, error.statusCode, error.errors);
+    return errorResponse(error.message, error.statusCode, error.errors, error.code);
   }
 
   if (error instanceof Error) {

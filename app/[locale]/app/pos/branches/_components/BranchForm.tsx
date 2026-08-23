@@ -29,6 +29,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(mode === 'edit');
   const [error, setError] = useState('');
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formData, setFormData] = useState<BranchData>({
     code: '',
@@ -96,6 +97,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setErrorCode(null);
     setFieldErrors({});
     setIsLoading(true);
 
@@ -121,6 +123,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
         }
         const errorMsg = result.message || `Gagal ${mode === 'edit' ? 'mengubah' : 'menambah'} cabang`;
         setError(errorMsg);
+        setErrorCode(result.code ?? null);
         toast.error(errorMsg);
       }
     } catch (err: any) {
@@ -151,7 +154,21 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
       </h1>
 
       {error && (
-        <Alert variant="error" message={error} className="mb-4" />
+        <Alert
+          variant="error"
+          message={error}
+          className="mb-4"
+          action={
+            errorCode === 'plan_limit_reached' ? (
+              <Link
+                href="/app/billing"
+                className="inline-flex items-center whitespace-nowrap px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Upgrade Paket
+              </Link>
+            ) : undefined
+          }
+        />
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -18,10 +18,11 @@ export function validationError(errors: Record<string, string[]>) {
 export function errorResponse(
   message: string,
   statusCode = 500,
-  errors?: Record<string, string[]>
+  errors?: Record<string, string[]>,
+  code?: string
 ) {
   return NextResponse.json(
-    { status: "error", message, errors: errors ?? null },
+    { status: "error", message, errors: errors ?? null, code: code ?? null },
     { status: statusCode }
   );
 }

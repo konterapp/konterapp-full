@@ -5,6 +5,7 @@ export type AlertVariant = 'success' | 'error' | 'warning' | 'info';
 interface AlertProps {
   variant: AlertVariant;
   message: string;
+  action?: React.ReactNode;
   className?: string;
 }
 
@@ -35,14 +36,15 @@ const variantConfig = {
   },
 };
 
-export default function Alert({ variant, message, className = '' }: AlertProps) {
+export default function Alert({ variant, message, action, className = '' }: AlertProps) {
   const config = variantConfig[variant];
   const Icon = config.Icon;
 
   return (
     <div className={`p-4 border rounded-lg flex items-center gap-3 ${config.container} ${className}`}>
-      <Icon className={`w-5 h-5 ${config.icon}`} />
-      <span className={config.text}>{message}</span>
+      <Icon className={`w-5 h-5 shrink-0 ${config.icon}`} />
+      <span className={`flex-1 ${config.text}`}>{message}</span>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

@@ -41,7 +41,9 @@ export async function assertBranchLimit(companyUuid: string, currentBranchCount:
   if (currentBranchCount >= maxBranches) {
     throw new ApiError(
       `Batas jumlah cabang untuk paket ${tier?.name ?? "Anda"} sudah tercapai (maksimal ${maxBranches} cabang). Upgrade paket untuk menambah cabang.`,
-      400
+      400,
+      undefined,
+      "plan_limit_reached"
     );
   }
 }
@@ -59,7 +61,9 @@ export async function assertProductLimit(companyUuid: string) {
   if (count >= maxProducts) {
     throw new ApiError(
       `Batas jumlah produk untuk paket ${tier?.name ?? "Anda"} sudah tercapai (maksimal ${maxProducts} produk). Upgrade paket untuk menambah produk.`,
-      400
+      400,
+      undefined,
+      "plan_limit_reached"
     );
   }
 }
@@ -83,7 +87,9 @@ export async function assertTransactionLimit(companyUuid: string) {
   if (count >= maxTransactionsPerMonth) {
     throw new ApiError(
       `Batas transaksi bulan ini untuk paket ${tier?.name ?? "Anda"} sudah tercapai (maksimal ${maxTransactionsPerMonth} transaksi/bulan). Upgrade paket untuk transaksi tanpa batas.`,
-      400
+      400,
+      undefined,
+      "plan_limit_reached"
     );
   }
 }
