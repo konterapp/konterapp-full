@@ -54,22 +54,6 @@ export function getPermissionByPath(pathname: string): string | null {
 
 // Routes mapping dengan permission
 const routes: Record<string, RouteInfo> = {
-  'berita.index': {
-    path: '/app/berita',
-    permission: 'berita.index',
-  },
-  'berita.create': {
-    path: '/app/berita/create',
-    permission: 'berita.create',
-  },
-  'berita.detail': {
-    path: '/app/berita/:id',
-    permission: 'berita.index',
-  },
-  'berita.edit': {
-    path: '/app/berita/:id/edit',
-    permission: 'berita.update',
-  },
   'pos.sale.create': {
     path: '/app/pos',
     permission: 'pos.sale.create',

@@ -11,7 +11,6 @@ import { PERMISSIONS } from '@/lib/modules/roles/permissions';
 const MODULE_LABELS: Record<string, string> = {
   user: 'User',
   role: 'Role',
-  berita: 'Berita',
 };
 
 const FEATURE_LABELS: Record<string, string> = {

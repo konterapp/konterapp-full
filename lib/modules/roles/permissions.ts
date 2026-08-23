@@ -62,11 +62,6 @@ export const PERMISSIONS = [
   // POS - PPOB
   "pos.ppob.index",
   "pos.ppob.create",
-  // Berita management
-  "berita.index",
-  "berita.create",
-  "berita.update",
-  "berita.delete",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

@@ -105,29 +105,6 @@ CREATE TABLE "app_model_has_roles" (
 );
 
 -- CreateTable
-CREATE TABLE "berita" (
-    "id" SERIAL NOT NULL,
-    "uuid" CHAR(36) NOT NULL,
-    "title" VARCHAR(255) NOT NULL,
-    "slug" VARCHAR(255) NOT NULL,
-    "content" TEXT NOT NULL,
-    "image" VARCHAR(255),
-    "tags" JSONB,
-    "published_at" DATE,
-    "is_published" BOOLEAN NOT NULL DEFAULT false,
-    "is_draft" BOOLEAN NOT NULL DEFAULT false,
-    "news_type" VARCHAR(50),
-    "category" VARCHAR(50),
-    "views" INTEGER NOT NULL DEFAULT 0,
-    "created_by" INTEGER,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    "deleted_at" TIMESTAMP(3),
-
-    CONSTRAINT "berita_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "app_role_has_permissions" (
     "permission_name" VARCHAR(255) NOT NULL,
     "role_id" INTEGER NOT NULL,
@@ -466,21 +443,6 @@ CREATE INDEX "app_model_has_roles_model_id_model_type_index" ON "app_model_has_r
 CREATE INDEX "app_model_has_roles_company_uuid_idx" ON "app_model_has_roles"("company_uuid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "berita_uuid_key" ON "berita"("uuid");
-
--- CreateIndex
-CREATE UNIQUE INDEX "berita_slug_key" ON "berita"("slug");
-
--- CreateIndex
-CREATE INDEX "berita_slug_idx" ON "berita"("slug");
-
--- CreateIndex
-CREATE INDEX "berita_is_published_idx" ON "berita"("is_published");
-
--- CreateIndex
-CREATE INDEX "berita_created_by_idx" ON "berita"("created_by");
-
--- CreateIndex
 CREATE UNIQUE INDEX "app_pos_branches_code_key" ON "app_pos_branches"("code");
 
 -- CreateIndex
@@ -566,9 +528,6 @@ ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_role_id_fk
 
 -- AddForeignKey
 ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_model_id_fkey" FOREIGN KEY ("model_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "berita" ADD CONSTRAINT "berita_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_role_has_permissions" ADD CONSTRAINT "app_role_has_permissions_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "app_roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;

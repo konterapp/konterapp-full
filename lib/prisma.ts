@@ -10,7 +10,6 @@ const UUID_MODELS = new Set<string>([
   "Plan",
   "CompanySubscription",
   "SubscriptionInvoice",
-  "Berita",
   "AppPosProductCategory",
   "AppPosProductUnit",
   "AppPosBranch",

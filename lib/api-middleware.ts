@@ -58,7 +58,7 @@ export function withAuth(handler: RouteHandler) {
 
 export function withPermission(permission: string, handler: RouteHandler) {
   return withAuth(async (req, context) => {
-    // Gate akses tenant: semua rute operasional /api/app/* (pos, berita) lewat
+    // Gate akses tenant: semua rute operasional /api/app/* (pos, dll) lewat
     // wrapper ini, jadi subscription yang expired/nonaktif diblokir di sini.
     // Rute billing & impersonate pakai withAuth langsung dan tetap terbuka
     // supaya user masih bisa perpanjang langganan dan admin bisa impersonate.

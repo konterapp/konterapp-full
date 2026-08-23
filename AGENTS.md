@@ -51,9 +51,9 @@ npx vitest run
 - Setelah reset, jalankan ulang seeder dummy supaya ada data untuk
   testing:
   ```bash
-  npm run seed:dummy prisma/seeders/dummy/berita.ts
+  npm run seed:dummy prisma/seeders/dummy/products.ts
   ```
-  (file `berita.ts` dipilih sembarang -- `dummy/index.ts` menjalankan
+  (file `products.ts` dipilih sembarang -- `dummy/index.ts` menjalankan
   SEMUA seeder dummy terlepas dari file yang disebut di argumen).
 
 ## Restart dev server setelah ubah schema Prisma

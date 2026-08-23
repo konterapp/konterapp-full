@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { seedCore } from "../core";
-import { seedBerita } from "./berita";
 import { seedCompanies } from "./companies";
 import { seedUserCompanies } from "./user-companies";
 import { seedSubscriptions } from "./subscriptions";
@@ -33,7 +32,6 @@ async function seedDummy(prisma: PrismaClient) {
   await seedSales(prisma);
   await seedPpobTransactions(prisma);
   await seedCashierShifts(prisma);
-  await seedBerita(prisma);
 }
 
 if (require.main === module) {

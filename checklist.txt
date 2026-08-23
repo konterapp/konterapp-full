@@ -38,13 +38,18 @@ DONE:
 
 DOING:
 - konterapp-full-1
-  - defualt data register
+    - (done) isolasi menu-menu tenant
+    - defualt data register
 - konterapp-full-2
-  -
+    - (done) upgrade info
+    - (done) list billing
+    - (done) webhook midtrans
+    - hapus users dan backup
 - konterapp-full-3
+    - () hapus fitur berita
 
 PENDING:
 - catatkonter
 - notif whatsapp
-- hapus users dan backup
+- offline/online
 - apk android via Capacitor (bungkus web app ini) -> upload Play Store
