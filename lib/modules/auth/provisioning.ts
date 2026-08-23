@@ -13,8 +13,9 @@ const MODEL_TYPE_USER = "App\\Models\\User";
 
 const TENANT_DEFAULT_SALDO_ACCOUNTS = [
   { code: "CASH", name: "Tunai", type: "cash" },
-  { code: "BCA", name: "Transfer BCA", type: "bank" },
-  { code: "GOPAY", name: "GoPay", type: "e_wallet" },
+  { code: "BRI", name: "BRI", type: "bank" },
+  { code: "BNI", name: "BNI", type: "bank" },
+  { code: "DANA", name: "Dana", type: "e_wallet" },
 ];
 
 const TENANT_DEFAULT_PRODUCT_CATEGORIES = [

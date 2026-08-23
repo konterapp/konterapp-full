@@ -1,5 +1,5 @@
 /**
- * Dummy seeder untuk akun saldo (Cash, Dana, Gopay, BRI, dst) dengan
+ * Dummy seeder untuk akun saldo (Tunai, BRI, BNI, Dana, dst) dengan
  * konsep multi-cabang: 1 akun induk bisa punya beberapa grup balance,
  * tiap grup dipakai bareng oleh sekumpulan cabang tertentu.
  * Studi kasus: Cash terpisah per cabang, Dana di-share Pusat+Bandung
@@ -46,10 +46,10 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     ],
   },
   {
-    code: "BCA",
-    name: "Transfer BCA",
+    code: "BRI",
+    name: "BRI",
     type: "bank",
-    description: "Rekening bank BCA (dipakai bareng semua cabang)",
+    description: "Rekening bank BRI (dipakai bareng semua cabang)",
     isPaymentMethod: true,
     groups: [
       {
@@ -84,10 +84,10 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     ],
   },
   {
-    code: "GOPAY",
-    name: "GoPay",
-    type: "e_wallet",
-    description: "Saldo aplikasi GoPay",
+    code: "BNI",
+    name: "BNI",
+    type: "bank",
+    description: "Rekening bank BNI (dipakai bareng semua cabang)",
     isPaymentMethod: true,
     groups: [
       {
