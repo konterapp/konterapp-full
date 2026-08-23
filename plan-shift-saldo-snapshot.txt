@@ -17,7 +17,7 @@ sebelum mulai coding -- semua aturan itu berlaku juga untuk fitur ini.
     itu selesai, "cabang mana yang relevan untuk shift ini" jadi jelas
     (branch_uuid milik shift itu sendiri, lalu tinggal query akun saldo
     yang ter-link ke branch itu lewat tabel pivot
-    AppPosSaldoAccountBranch) -- baru lanjut ke plan snapshot ini.
+    AppPosSaldoAccountBalanceBranch) -- baru lanjut ke plan snapshot ini.
 
 
 1. LATAR BELAKANG
@@ -52,7 +52,7 @@ ini keputusan produk, bukan detail teknis):
 
 a) [SUDAH TERJAWAB oleh plan-saldo-multi-cabang.txt -- baca file itu.
    Ringkasan: bukan cuma "shared semua" vs "eksklusif 1 cabang", tapi
-   many-to-many lewat tabel pivot AppPosSaldoAccountBranch (1 akun bisa
+   many-to-many lewat tabel pivot AppPosSaldoAccountBalanceBranch (1 akun bisa
    di-link ke sekumpulan cabang tertentu). Setelah plan itu selesai,
    snapshot shift tinggal query akun-akun yang ter-link ke branch_uuid
    milik shift ybs -- jadi TIDAK ambigu lagi seperti dugaan awal di

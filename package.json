@@ -1,6 +1,6 @@
 {
   "name": "konterapp-full",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 3002",
@@ -12,7 +12,9 @@
     "seed:dummy:file": "ts-node --project prisma/tsconfig.seed.json",
     "seed:branches": "ts-node --project prisma/tsconfig.seed.json prisma/seeders/dummy/branches.ts",
     "check:transactions": "node scripts/check-transactions.js",
-    "test": "vitest"
+    "test": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:db:push": "prisma db push --config prisma.config.testdb.ts --accept-data-loss --skip-generate"
   },
   "prisma": {
     "seed": "ts-node --project prisma/tsconfig.seed.json prisma/seed.ts"

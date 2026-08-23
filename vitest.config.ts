@@ -10,7 +10,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['**/*.test.ts'],
-    exclude: ['node_modules', '.next', 'dist'],
+    // *.integration.test.ts punya config & setup terpisah (vitest.integration.config.ts)
+    // -- pakai DB Postgres beneran, bukan mock prisma seperti unit test biasa.
+    exclude: ['node_modules', '.next', 'dist', '**/*.integration.test.ts'],
     setupFiles: ['./vitest.setup.ts'],
   },
 });
