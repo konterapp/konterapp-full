@@ -391,6 +391,7 @@ model AppPosBranch {
   email       String?  @db.VarChar(255)
   isActive    Boolean  @default(true) @map("is_active")
   isMain      Boolean  @default(false) @map("is_main")
+  maxConcurrentUsers Int @default(1) @map("max_concurrent_users")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

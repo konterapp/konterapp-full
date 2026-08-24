@@ -16,11 +16,19 @@ interface BranchData {
   email: string;
   is_active: boolean;
   is_main: boolean;
+  max_concurrent_users: number;
 }
 
 interface BranchFormProps {
   branchId?: string;
   mode: 'create' | 'edit';
+}
+
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+  return 'Terjadi kesalahan. Silakan coba lagi.';
 }
 
 export default function BranchForm({ branchId, mode }: BranchFormProps) {
@@ -39,6 +47,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
     email: '',
     is_active: true,
     is_main: false,
+    max_concurrent_users: 1,
   });
 
   useEffect(() => {
@@ -65,12 +74,13 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
           email: result.data.email || '',
           is_active: result.data.is_active ?? true,
           is_main: result.data.is_main ?? false,
+          max_concurrent_users: result.data.max_concurrent_users ?? 1,
         });
       } else {
         setError(result.message || 'Gagal memuat data cabang');
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setIsLoadingData(false);
     }
@@ -79,7 +89,7 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
 
-    let finalValue: any = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    const finalValue: string | boolean = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
 
     setFormData(prev => ({
       ...prev,
@@ -127,8 +137,8 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
         setErrorCode(result.code ?? null);
         toast.error(errorMsg);
       }
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.';
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -259,6 +269,32 @@ export default function BranchForm({ branchId, mode }: BranchFormProps) {
             />
             {fieldErrors.email && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.email[0]}</div>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="max_concurrent_users" className="block text-sm font-medium text-gray-700 mb-2">
+              Maksimal Kasir Aktif
+            </label>
+            <input
+              type="number"
+              id="max_concurrent_users"
+              name="max_concurrent_users"
+              min={1}
+              value={formData.max_concurrent_users}
+              onChange={(e) => {
+                const parsed = parseInt(e.target.value, 10);
+                setFormData(prev => ({ ...prev, max_concurrent_users: Number.isNaN(parsed) ? 1 : parsed }));
+              }}
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                fieldErrors.maxConcurrentUsers
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+              }`}
+            />
+            <p className="mt-1 text-xs text-gray-500">Jumlah kasir yang boleh buka shift bersamaan di cabang ini</p>
+            {fieldErrors.maxConcurrentUsers && (
+              <div className="mt-1 text-sm text-red-600">{fieldErrors.maxConcurrentUsers[0]}</div>
             )}
           </div>
 

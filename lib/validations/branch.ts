@@ -11,6 +11,11 @@ export const createBranchSchema = z.object({
   ]).optional().nullable(),
   isActive: z.boolean().optional(),
   isMain: z.boolean().optional(),
+  maxConcurrentUsers: z
+    .number({ error: "Maksimal kasir aktif wajib berupa angka" })
+    .int("Maksimal kasir aktif wajib bilangan bulat")
+    .min(1, "Maksimal kasir aktif minimal 1")
+    .optional(),
 });
 
 export const updateBranchSchema = createBranchSchema;

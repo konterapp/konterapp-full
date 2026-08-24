@@ -45,8 +45,23 @@
  */
 import { randomUUID } from 'node:crypto';
 import { describe, it, expect, afterAll } from 'vitest';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { runWithTenantContext } from '@/lib/tenant-context';
+
+/**
+ * appPosBranch.create di bawah ini sengaja TIDAK mengirim company_uuid --
+ * itu justru yang mau dibuktikan (auto-fill oleh extension tenant-scoping).
+ * Tipe AppPosBranchUncheckedCreateInput yang di-generate Prisma tetap
+ * mewajibkan company_uuid (extension $allOperations tidak mengubah tipe
+ * hasil generate), jadi perlu type assertion di sini -- bukan bug di kode
+ * aplikasi, cuma keterbatasan typing Prisma Client extension.
+ */
+function branchCreateData(
+  data: Omit<Prisma.AppPosBranchUncheckedCreateInput, 'companyUuid'>
+): Prisma.AppPosBranchUncheckedCreateInput {
+  return data as unknown as Prisma.AppPosBranchUncheckedCreateInput;
+}
 
 describe('lib/prisma.ts tenant-scoping extension (real DB)', () => {
   const createdCompanyUuids: string[] = [];
@@ -87,11 +102,11 @@ describe('lib/prisma.ts tenant-scoping extension (real DB)', () => {
 
     const branch = await runWithTenantContext(company.uuid, async () => {
       return await prisma.appPosBranch.create({
-        data: {
+        data: branchCreateData({
           code: 'MAIN',
           name: 'Cabang Test',
           isActive: true,
-        },
+        }),
       });
     });
 
@@ -104,7 +119,7 @@ describe('lib/prisma.ts tenant-scoping extension (real DB)', () => {
 
     await runWithTenantContext(companyA.uuid, async () => {
       return await prisma.appPosBranch.create({
-        data: { code: 'A1', name: 'Cabang Milik A', isActive: true },
+        data: branchCreateData({ code: 'A1', name: 'Cabang Milik A', isActive: true }),
       });
     });
 
@@ -134,7 +149,7 @@ describe('lib/prisma.ts tenant-scoping extension (real DB)', () => {
     const branch = await runWithTenantContext(company.uuid, async () => {
       return await prisma.$transaction(async (tx) => {
         const created = await tx.appPosBranch.create({
-          data: { code: 'TX1', name: 'Cabang Dalam Transaction', isActive: true },
+          data: branchCreateData({ code: 'TX1', name: 'Cabang Dalam Transaction', isActive: true }),
         });
 
         return await tx.appPosBranch.findUniqueOrThrow({

@@ -25,6 +25,7 @@ export const PUT = withPermission(
       ...rawBody,
       isActive: rawBody.isActive ?? rawBody.is_active,
       isMain: rawBody.isMain ?? rawBody.is_main,
+      maxConcurrentUsers: rawBody.maxConcurrentUsers ?? rawBody.max_concurrent_users,
     };
 
     const result = validateSchema(updateBranchSchema, body);

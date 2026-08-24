@@ -6,7 +6,7 @@ export const posBranchRepository = {
     return (prisma as unknown as PrismaClient).$transaction(cb);
   },
 
-  findMany(params: { where: any; skip: number; take: number }) {
+  findMany(params: { where: Prisma.AppPosBranchWhereInput; skip: number; take: number }) {
     const { where, skip, take } = params;
     return prisma.appPosBranch.findMany({
       where,
@@ -16,7 +16,7 @@ export const posBranchRepository = {
     });
   },
 
-  count(where: any) {
+  count(where: Prisma.AppPosBranchWhereInput) {
     return prisma.appPosBranch.count({ where });
   },
 
@@ -37,6 +37,7 @@ export const posBranchRepository = {
     email: string | null;
     isActive: boolean;
     isMain: boolean;
+    maxConcurrentUsers: number;
   }, tx?: Prisma.TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosBranch.create({ data });

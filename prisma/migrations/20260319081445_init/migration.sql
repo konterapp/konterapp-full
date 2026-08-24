@@ -133,6 +133,7 @@ CREATE TABLE "app_pos_branches" (
     "email" VARCHAR(255),
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "is_main" BOOLEAN NOT NULL DEFAULT false,
+    "max_concurrent_users" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 

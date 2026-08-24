@@ -7,6 +7,7 @@ export interface Branch {
   email?: string;
   is_active: boolean;
   is_main: boolean;
+  max_concurrent_users: number;
   created_at: string;
   updated_at: string;
 }
@@ -29,6 +30,7 @@ export async function createBranch(data: {
   email?: string;
   is_active?: boolean;
   is_main?: boolean;
+  max_concurrent_users?: number;
 }): Promise<{ status: string; data: Branch }> {
   const response = await fetch('/api/app/pos/branches', {
     method: 'POST',
@@ -48,6 +50,7 @@ export async function updateBranch(
     email?: string;
     is_active?: boolean;
     is_main?: boolean;
+    max_concurrent_users?: number;
   }
 ): Promise<{ status: string; data: Branch }> {
   const response = await fetch(`/api/app/pos/branches/${uuid}`, {

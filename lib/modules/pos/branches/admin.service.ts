@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posBranchRepository } from './repository';
 import { mapBranch, mapBranchListSimple } from './branch.mapper';
@@ -15,7 +16,7 @@ export const posBranchService = {
   }) {
     const { page, perPage, search, isActive } = params;
     const skip = (page - 1) * perPage;
-    const where: any = {};
+    const where: Prisma.AppPosBranchWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -109,6 +110,7 @@ export const posBranchService = {
       email?: string | null;
       isActive?: boolean;
       isMain?: boolean;
+      maxConcurrentUsers?: number;
     }
   ) {
     const existing = await posBranchRepository.findByCode(companyUuid, payload.code);
@@ -134,6 +136,7 @@ export const posBranchService = {
           email: payload.email || null,
           isActive: payload.isActive ?? true,
           isMain: payload.isMain ?? false,
+          maxConcurrentUsers: payload.maxConcurrentUsers ?? 1,
         },
         tx
       );
@@ -169,6 +172,7 @@ export const posBranchService = {
       email?: string | null;
       isActive?: boolean;
       isMain?: boolean;
+      maxConcurrentUsers?: number;
     }
   ) {
     const existing = await posBranchRepository.findByUuid(uuid);
@@ -195,6 +199,7 @@ export const posBranchService = {
       email: payload.email ?? existing.email,
       isActive: payload.isActive ?? existing.isActive,
       isMain: payload.isMain ?? existing.isMain,
+      maxConcurrentUsers: payload.maxConcurrentUsers ?? existing.maxConcurrentUsers,
     });
     return mapBranch(branch);
   },

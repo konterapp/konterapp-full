@@ -15,6 +15,7 @@ const BRANCHES_DATA = [
     email: 'pusat@konterapp.com',
     isMain: true,
     isActive: true,
+    maxConcurrentUsers: 2,
   },
   {
     code: 'CB002',

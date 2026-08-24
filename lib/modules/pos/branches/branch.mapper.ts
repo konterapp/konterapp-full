@@ -1,4 +1,6 @@
-export function mapBranch(branch: any) {
+import type { AppPosBranch } from '@prisma/client';
+
+export function mapBranch(branch: AppPosBranch) {
   return {
     uuid: branch.uuid,
     code: branch.code,
@@ -8,12 +10,15 @@ export function mapBranch(branch: any) {
     email: branch.email,
     is_active: branch.isActive,
     is_main: branch.isMain,
+    max_concurrent_users: branch.maxConcurrentUsers,
     created_at: branch.createdAt,
     updated_at: branch.updatedAt,
   };
 }
 
-export function mapBranchListSimple(branch: any) {
+export function mapBranchListSimple(
+  branch: Pick<AppPosBranch, 'uuid' | 'code' | 'name' | 'isMain' | 'isActive'>
+) {
   return {
     uuid: branch.uuid,
     code: branch.code,

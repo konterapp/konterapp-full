@@ -112,6 +112,14 @@ export const posShiftService = {
       throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
+    const openCount = await posShiftRepository.countOpenByBranch(payload.branchUuid);
+    if (openCount >= branch.maxConcurrentUsers) {
+      throw new ApiError(
+        `Cabang ini sudah mencapai batas maksimal kasir aktif (${branch.maxConcurrentUsers})`,
+        400
+      );
+    }
+
     const shift = await posShiftRepository.create({
       companyUuid: branch.companyUuid,
       branchUuid: payload.branchUuid,

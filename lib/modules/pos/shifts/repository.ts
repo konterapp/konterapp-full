@@ -65,7 +65,14 @@ export const posShiftRepository = {
         companyUuid: true,
         name: true,
         code: true,
+        maxConcurrentUsers: true,
       },
+    });
+  },
+
+  countOpenByBranch(branchUuid: string) {
+    return prisma.appPosCashierShift.count({
+      where: { branchUuid, status: 'open' },
     });
   },
 

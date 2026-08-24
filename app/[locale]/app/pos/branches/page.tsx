@@ -241,32 +241,6 @@ export default function BranchesPage() {
       ),
     },
     {
-      key: 'address',
-      label: 'Alamat',
-      sortable: false,
-      width: '25rem',
-      render: (_, row) => (
-        <span className="text-sm text-gray-600 truncate max-w-xs block">{row.address || '-'}</span>
-      ),
-    },
-    {
-      key: 'phone',
-      label: 'Kontak',
-      sortable: false,
-      width: '12rem',
-      render: (_, row) => (
-        <div className="space-y-1">
-          {row.phone && (
-            <div className="text-sm text-gray-600">{row.phone}</div>
-          )}
-          {row.email && (
-            <div className="text-xs text-gray-500">{row.email}</div>
-          )}
-          {!row.phone && !row.email && <span className="text-sm text-gray-400">-</span>}
-        </div>
-      ),
-    },
-    {
       key: 'status',
       label: 'Status',
       sortable: true,
