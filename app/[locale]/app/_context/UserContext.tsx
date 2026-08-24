@@ -21,6 +21,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [activeCompanyUuid, setActiveCompanyUuid] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const redirectToLogin = () => {
+    if (typeof window === 'undefined') return;
+    const nextLocale = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('NEXT_LOCALE='))
+      ?.split('=')[1];
+    const loginPath = nextLocale && nextLocale !== 'id' ? `/${nextLocale}/login` : '/login';
+    window.location.href = loginPath;
+  };
+
   const fetchUser = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -32,10 +42,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         setPermissions(userData.permissions || []);
         setActiveCompanyUuid(userData.active_company_uuid || null);
       } else {
+        // UserProvider cuma di-mount di dalam /app (area terproteksi) --
+        // gagal ambil data user di sini artinya sesi memang tidak valid
+        // (mis. akun sudah dihapus tapi cookie sesi masih ada), jadi wajib
+        // diarahkan ke login, bukan cuma tampil shell "Guest User" kosong.
         setUser(null);
         setRoles([]);
         setPermissions([]);
         setActiveCompanyUuid(null);
+        redirectToLogin();
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -43,6 +58,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setRoles([]);
       setPermissions([]);
       setActiveCompanyUuid(null);
+      redirectToLogin();
     } finally {
       setIsLoading(false);
     }

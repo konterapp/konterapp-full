@@ -57,9 +57,21 @@ export async function apiRequest<T>(
         if (axiosError.response.status === 401) {
           const requestUrl = config?.url || endpoint;
           const isAdministratorEndpoint = requestUrl.startsWith('/api/administrator/');
-          // Jangan redirect kalau sedang di halaman login (endpoint auth)
-          const isAuthEndpoint = requestUrl.startsWith('/api/auth/') || requestUrl.startsWith('/api/administrator/auth/');
-          if (!isAuthEndpoint && typeof window !== 'undefined') {
+          // Endpoint yang TIDAK boleh auto-redirect saat 401:
+          // - endpoint submit form login (401 = "email/password salah",
+          //   ditampilkan inline di form, bukan sesi invalid)
+          // - /api/auth/user: dipanggil juga dari Header di halaman publik
+          //   (landing, login, register) cuma buat cek "lagi login atau
+          //   tidak" -- 401 di situ wajar (memang belum login), BUKAN sinyal
+          //   sesi invalid. Redirect utk kasus sesi invalid di dalam /app
+          //   (mis. akun dihapus tapi cookie sesi masih ada) ditangani sendiri
+          //   oleh UserContext, bukan di sini, karena endpoint ini dipakai
+          //   lintas konteks publik & terproteksi.
+          const isExcludedFromRedirect =
+            requestUrl.startsWith('/api/auth/login') ||
+            requestUrl.startsWith('/api/administrator/auth/login') ||
+            requestUrl.startsWith('/api/auth/user');
+          if (!isExcludedFromRedirect && typeof window !== 'undefined') {
             const nextLocale = document.cookie
               .split('; ')
               .find(row => row.startsWith('NEXT_LOCALE='))

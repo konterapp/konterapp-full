@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
   });
 
   if (!user) {
-    return errorResponse("User tidak ditemukan", 404);
+    // Token sesi masih valid tapi akunnya sudah dihapus/tidak ada -- perlakukan
+    // sebagai sesi tidak valid (401) supaya interceptor axios di lib/api/api.ts
+    // auto-redirect ke /login, bukan cuma tampil shell "Guest User" kosong.
+    // Sekalian hapus cookie sesi supaya request berikutnya tidak lolos lagi.
+    const response = errorResponse("Sesi tidak valid, silakan login kembali", 401);
+    response.cookies.delete(cookieName);
+    return response;
   }
 
   const tokenData = token as AuthTokenShape;

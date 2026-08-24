@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from '@/i18n/navigation';
-import { getUser } from '@/lib/api/auth';
 import { Menu, X } from 'lucide-react';
 
 interface MenuItem {
@@ -14,7 +13,6 @@ interface MenuItem {
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const pathname = usePathname();
 
   const menuItems: MenuItem[] = [
@@ -32,21 +30,6 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const response = await getUser();
-      if (response.status === 'success' && response.data) {
-        setIsLoggedIn(true);
-      }
-    } catch {
-      // not logged in
-    }
-  };
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'backdrop-blur-md shadow-lg bg-white/90' : 'bg-transparent'}`}>
@@ -71,33 +54,24 @@ const Header = () => {
         </nav>
 
         <div className="flex items-center space-x-4">
-          {isLoggedIn ? (
+          <div className="flex items-center space-x-3">
             <Link
-              href="/app"
-              className="px-4 py-2 rounded-lg bg-[#142D52] text-white text-sm font-semibold hover:bg-[#0B1E3A] transition-colors"
+              href="/login"
+              className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-[#142D52] hover:text-[#0B1E3A]' : 'text-white hover:text-white/80'
+                }`}
             >
-              Dashboard
+              Masuk
             </Link>
-          ) : (
-            <div className="flex items-center space-x-3">
-              <Link
-                href="/login"
-                className={`text-sm font-semibold transition-colors ${isScrolled ? 'text-[#142D52] hover:text-[#0B1E3A]' : 'text-white hover:text-white/80'
-                  }`}
-              >
-                Masuk
-              </Link>
-              <Link
-                href="/register"
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isScrolled
-                  ? 'bg-[#142D52] text-white hover:bg-[#0B1E3A]'
-                  : 'bg-white text-[#142D52] hover:bg-white/90'
-                  }`}
-              >
-                Daftar
-              </Link>
-            </div>
-          )}
+            <Link
+              href="/register"
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isScrolled
+                ? 'bg-[#142D52] text-white hover:bg-[#0B1E3A]'
+                : 'bg-white text-[#142D52] hover:bg-white/90'
+                }`}
+            >
+              Daftar
+            </Link>
+          </div>
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
