@@ -17,7 +17,7 @@ export function mapBranch(branch: AppPosBranch) {
 }
 
 export function mapBranchListSimple(
-  branch: Pick<AppPosBranch, 'uuid' | 'code' | 'name' | 'isMain' | 'isActive'>
+  branch: Pick<AppPosBranch, 'uuid' | 'code' | 'name' | 'isMain' | 'isActive' | 'maxConcurrentUsers'>
 ) {
   return {
     uuid: branch.uuid,
@@ -25,5 +25,6 @@ export function mapBranchListSimple(
     name: branch.name,
     is_main: branch.isMain,
     is_active: branch.isActive,
+    max_concurrent_users: branch.maxConcurrentUsers,
   };
 }

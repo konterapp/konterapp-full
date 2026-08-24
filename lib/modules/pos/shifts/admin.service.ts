@@ -50,12 +50,19 @@ export const posShiftService = {
 
     const orderBy = sortMap[sortBy] || sortMap.opened_at;
 
-    const [rows, total, branches, activeShift] = await Promise.all([
+    const [rows, total, branchOptions, openCounts, activeShift] = await Promise.all([
       posShiftRepository.findMany({ where, skip, take: perPage, orderBy }),
       posShiftRepository.count(where),
       posBranchService.listBranchOptions(companyUuid, userId),
+      posShiftRepository.countOpenGroupedByBranch(),
       posShiftRepository.findOpenByUser(userId),
     ]);
+
+    const openCountByBranch = new Map(openCounts.map((row) => [row.branchUuid, row._count._all]));
+    const branches = branchOptions.map((branch) => ({
+      ...branch,
+      open_shift_count: openCountByBranch.get(branch.uuid) || 0,
+    }));
 
     let activeShiftMapped: ReturnType<typeof mapActiveShiftWithLiveTotals> | null = null;
 

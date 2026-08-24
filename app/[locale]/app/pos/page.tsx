@@ -32,6 +32,8 @@ interface BranchOption {
   name: string;
   code?: string;
   is_main?: boolean;
+  max_concurrent_users?: number;
+  open_shift_count?: number;
 }
 
 interface ActiveShift {
@@ -332,6 +334,13 @@ export default function KasirPage() {
 
   const canProcess = Boolean(activeShift) && cart.length > 0 && selectedBranch && selectedPaymentMethod && totalAmount > 0;
 
+  const selectedOpenShiftBranch = branches.find((branch) => branch.uuid === openShiftForm.branch_uuid);
+  const isSelectedBranchFull = Boolean(
+    selectedOpenShiftBranch &&
+    typeof selectedOpenShiftBranch.max_concurrent_users === 'number' &&
+    (selectedOpenShiftBranch.open_shift_count || 0) >= selectedOpenShiftBranch.max_concurrent_users
+  );
+
   const handleOpenShift = async () => {
     if (!openShiftForm.branch_uuid) {
       setError('Pilih cabang untuk membuka shift');
@@ -614,6 +623,12 @@ export default function KasirPage() {
                 </select>
               </div>
 
+              {isSelectedBranchFull && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  Cabang ini sudah mencapai batas maksimal kasir aktif ({selectedOpenShiftBranch?.max_concurrent_users}). Tunggu salah satu kasir menutup shift-nya dulu.
+                </div>
+              )}
+
               {openShiftForm.branch_uuid && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
                   <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
@@ -658,7 +673,7 @@ export default function KasirPage() {
             <button
               type="button"
               onClick={handleOpenShift}
-              disabled={isSubmittingShift}
+              disabled={isSubmittingShift || isSelectedBranchFull}
               className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmittingShift ? 'Membuka Shift...' : 'Buka Shift'}

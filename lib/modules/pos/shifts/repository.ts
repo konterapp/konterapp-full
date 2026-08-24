@@ -76,6 +76,14 @@ export const posShiftRepository = {
     });
   },
 
+  countOpenGroupedByBranch() {
+    return prisma.appPosCashierShift.groupBy({
+      by: ['branchUuid'],
+      where: { status: 'open' },
+      _count: { _all: true },
+    });
+  },
+
   create(data: Prisma.AppPosCashierShiftUncheckedCreateInput) {
     return prisma.appPosCashierShift.create({
       data,

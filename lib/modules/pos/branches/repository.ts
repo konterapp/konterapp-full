@@ -79,6 +79,7 @@ export const posBranchRepository = {
         name: true,
         isMain: true,
         isActive: true,
+        maxConcurrentUsers: true,
       },
     });
   },

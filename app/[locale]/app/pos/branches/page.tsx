@@ -21,6 +21,7 @@ interface Branch {
   email?: string;
   is_active: boolean;
   is_main: boolean;
+  max_concurrent_users: number;
 }
 
 export default function BranchesPage() {
@@ -238,6 +239,16 @@ export default function BranchesPage() {
       width: '20rem',
       render: (_, row) => (
         <span className="text-sm text-gray-900">{row.name}</span>
+      ),
+    },
+    {
+      key: 'max_concurrent_users',
+      label: 'Maks. Kasir',
+      sortable: true,
+      sortValue: (row) => row.max_concurrent_users,
+      width: '8rem',
+      render: (_, row) => (
+        <span className="text-sm text-gray-600">{row.max_concurrent_users}</span>
       ),
     },
     {
