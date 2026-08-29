@@ -11,6 +11,7 @@ type AuthTokenShape = {
   id?: string;
   activeCompanyUuid?: string;
   impersonatorId?: string;
+  impersonatedByAdministratorId?: string;
 };
 
 export async function GET(req: NextRequest) {
@@ -50,8 +51,11 @@ export async function GET(req: NextRequest) {
 
   const subscription = await billingRepository.findSubscriptionByCompanyUuid(companyContext.activeCompanyUuid);
 
-  // Check if impersonating
+  // Check if impersonating -- baik oleh sesama tenant administrator (impersonatorId,
+  // User.id lain di company yang sama) maupun oleh SaaS administrator dari panel
+  // /administrator (impersonatedByAdministratorId, Administrator.id).
   const impersonatorId = tokenData.impersonatorId ?? null;
+  const impersonatedByAdministratorId = tokenData.impersonatedByAdministratorId ?? null;
 
   return successResponse("User data", {
     id: user.id,
@@ -63,6 +67,7 @@ export async function GET(req: NextRequest) {
     active_company_uuid: companyContext.activeCompanyUuid,
     companies,
     subscription: formatSubscription(subscription),
-    impersonating: !!impersonatorId,
+    impersonating: !!impersonatorId || !!impersonatedByAdministratorId,
+    impersonated_by_administrator: !!impersonatedByAdministratorId,
   });
 }

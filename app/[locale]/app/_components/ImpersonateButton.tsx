@@ -12,7 +12,8 @@ export default function ImpersonateButton() {
   const [isStopping, setIsStopping] = useState(false);
 
   // Only render if user data indicates impersonating
-  const isImpersonating = (user as any)?.impersonating === true;
+  const isImpersonating = user?.impersonating === true;
+  const isFromSaasAdmin = user?.impersonated_by_administrator === true;
 
   if (!isImpersonating) {
     return null;
@@ -21,15 +22,15 @@ export default function ImpersonateButton() {
   const handleStopImpersonating = async () => {
     setIsStopping(true);
     try {
-      const response = await apiRequest<any>('/api/app/impersonate/stop', {
+      const response = await apiRequest<{ redirect_to?: string }>('/api/app/impersonate/stop', {
         method: 'POST',
       });
 
       if (response.status === 'success') {
-        toast.success('Berhasil kembali ke admin');
-        window.location.href = '/app';
+        toast.success(isFromSaasAdmin ? 'Berhasil kembali ke panel administrator' : 'Berhasil kembali ke admin');
+        window.location.href = response.data?.redirect_to || '/app';
       } else {
-        toast.error(response.message || 'Gagal kembali ke admin');
+        toast.error(response.message || 'Gagal kembali');
         setIsStopping(false);
       }
     } catch {
@@ -47,7 +48,7 @@ export default function ImpersonateButton() {
     >
       <LogOut className="w-4 h-4" />
       <span className="hidden md:inline">
-        {isStopping ? 'Menghentikan...' : 'Kembali ke Admin'}
+        {isStopping ? 'Menghentikan...' : isFromSaasAdmin ? 'Kembali ke Panel Admin' : 'Kembali ke Admin'}
       </span>
     </button>
   );

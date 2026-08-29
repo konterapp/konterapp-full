@@ -27,6 +27,7 @@ declare module "next-auth" {
       activeCompanyUuid: string;
       companies: SessionCompany[];
       impersonatorId?: string;
+      impersonatedByAdministratorId?: string;
     };
   }
 }
@@ -39,6 +40,7 @@ declare module "@auth/core/jwt" {
     activeCompanyUuid: string;
     companies: SessionCompany[];
     impersonatorId?: string;
+    impersonatedByAdministratorId?: string;
   }
 }
 
@@ -156,6 +158,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       session.user.activeCompanyUuid = token.activeCompanyUuid;
       session.user.companies = token.companies;
       session.user.impersonatorId = token.impersonatorId;
+      session.user.impersonatedByAdministratorId = token.impersonatedByAdministratorId;
       return session;
     },
   },

@@ -10,6 +10,7 @@ export interface User {
   companies?: UserCompany[];
   subscription?: UserSubscription | null;
   impersonating?: boolean;
+  impersonated_by_administrator?: boolean;
 }
 
 export interface UserCompany {

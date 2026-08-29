@@ -21,6 +21,17 @@ export async function POST() {
       salt: "authjs.session-token",
     });
 
+    if (decoded?.impersonatedByAdministratorId) {
+      // Login-as dari panel /administrator (SaaS Administrator, bukan User
+      // lain) -- tidak ada sesi User sebelumnya untuk di-restore. Sesi
+      // administrator_session tetap utuh di cookie terpisah, jadi cukup
+      // hapus cookie tenant ini supaya kembali "keluar" dari sesi User.
+      cookieStore.delete("authjs.session-token");
+      return successResponse("Berhasil kembali ke panel administrator", {
+        redirect_to: "/administrator",
+      });
+    }
+
     if (!decoded?.impersonatorId) {
       return errorResponse("Anda tidak sedang dalam mode impersonate", 400);
     }
@@ -72,6 +83,7 @@ export async function POST() {
     });
 
     return successResponse("Berhasil kembali ke admin", {
+      redirect_to: "/app",
       user: {
         id: adminUser.id,
         name: adminUser.name,

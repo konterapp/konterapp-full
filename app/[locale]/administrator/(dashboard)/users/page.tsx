@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Users, Plus, Edit, Trash2, User as UserIcon, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, User as UserIcon, ToggleLeft, ToggleRight, LogIn } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
-import { getUsers, deleteUser, getRoles, toggleUserActive, User, Role } from '@/lib/api/administrator/user';
+import { getUsers, deleteUser, getRoles, toggleUserActive, impersonateUser, User, Role } from '@/lib/api/administrator/user';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Select2 from '@/components/ui/Select2';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -148,6 +148,28 @@ export default function UsersPage() {
       }
    };
 
+   const [isImpersonating, setIsImpersonating] = useState(false);
+
+   const handleImpersonate = async (user: User) => {
+      if (isImpersonating) return;
+      setIsImpersonating(true);
+      try {
+         const response = await impersonateUser(user.uuid);
+
+         if (response.status === 'success') {
+            toast.success(`Berhasil login sebagai ${user.name}`);
+            window.location.href = '/app';
+         } else {
+            toast.error(response.message || 'Gagal login sebagai user ini');
+            setIsImpersonating(false);
+         }
+      } catch (err: unknown) {
+         const errorMsg = err instanceof Error ? err.message : 'Terjadi kesalahan, silakan coba lagi';
+         toast.error(errorMsg);
+         setIsImpersonating(false);
+      }
+   };
+
    // Define columns
    const columns: Column<User>[] = [
       {
@@ -165,7 +187,7 @@ export default function UsersPage() {
          key: 'actions',
          label: 'Actions',
          sortable: false,
-         width: '10rem',
+         width: '13rem',
          className: 'whitespace-nowrap',
          render: (_, row) => {
             const canEdit = true;
@@ -173,6 +195,16 @@ export default function UsersPage() {
 
             return (
                <div className="flex items-center gap-2">
+                  {row.is_active && (
+                     <button
+                        onClick={() => handleImpersonate(row)}
+                        disabled={isImpersonating}
+                        className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Login as</span>
+                     </button>
+                  )}
                   {canEdit && (
                      <Link
                         href={`/administrator/users/${row.uuid}`}
