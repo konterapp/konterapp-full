@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Save, X } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getSaldoAccount, createSaldoAccount, updateSaldoAccount } from '@/lib/api/app/saldo';
 
@@ -282,19 +283,11 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
               <label htmlFor="opening_balance" className="block text-sm font-medium text-gray-700 mb-2">
                 Saldo Awal
               </label>
-              <input
-                type="number"
+              <RupiahInput
                 id="opening_balance"
-                name="opening_balance"
-                min="0"
                 value={formData.opening_balance}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                  fieldErrors.opening_balance
-                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                    : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-                }`}
-                placeholder="0"
+                onChange={(v) => setFormData((prev) => ({ ...prev, opening_balance: v }))}
+                hasError={!!fieldErrors.opening_balance}
               />
               {fieldErrors.opening_balance && (
                 <div className="mt-1 text-sm text-red-600">{fieldErrors.opening_balance[0]}</div>

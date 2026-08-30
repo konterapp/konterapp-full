@@ -6,6 +6,7 @@ import { useRouter, Link } from '@/i18n/navigation';
 import { Save, X, Upload, Trash2, Star } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
 
 interface Category {
@@ -732,16 +733,10 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
             <label htmlFor="purchase_price" className="block text-sm font-medium text-gray-700 mb-2">
               Harga Beli
             </label>
-            <input
-              type="number"
+            <RupiahInput
               id="purchase_price"
-              name="purchase_price"
-              value={formData.purchase_price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
-              placeholder="0"
+              value={String(formData.purchase_price)}
+              onChange={(v) => setFormData(prev => ({ ...prev, purchase_price: Number(v) || 0 }))}
             />
           </div>
 
@@ -749,20 +744,11 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
             <label htmlFor="selling_price" className="block text-sm font-medium text-gray-700 mb-2">
               Harga Jual <span className="text-red-500">*</span>
             </label>
-            <input
-              type="number"
+            <RupiahInput
               id="selling_price"
-              name="selling_price"
-              value={formData.selling_price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.selling_price
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
-              placeholder="0"
+              value={String(formData.selling_price)}
+              onChange={(v) => setFormData(prev => ({ ...prev, selling_price: Number(v) || 0 }))}
+              hasError={!!fieldErrors.selling_price}
             />
             {fieldErrors.selling_price && (
               <div className="mt-1 text-sm text-red-600">{fieldErrors.selling_price[0]}</div>
@@ -773,16 +759,10 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
             <label htmlFor="wholesale_price" className="block text-sm font-medium text-gray-700 mb-2">
               Harga Grosir
             </label>
-            <input
-              type="number"
+            <RupiahInput
               id="wholesale_price"
-              name="wholesale_price"
-              value={formData.wholesale_price}
-              onChange={handleChange}
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
-              placeholder="0"
+              value={String(formData.wholesale_price)}
+              onChange={(v) => setFormData(prev => ({ ...prev, wholesale_price: Number(v) || 0 }))}
             />
           </div>
 
@@ -825,26 +805,16 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               </div>
               <div className="md:col-span-4">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Harga Jual Cabang</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={row.selling_price}
-                  onChange={(e) => handleBranchPriceChange(row.branch_uuid, 'selling_price', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
-                  placeholder="0"
+                <RupiahInput
+                  value={String(row.selling_price)}
+                  onChange={(v) => handleBranchPriceChange(row.branch_uuid, 'selling_price', v)}
                 />
               </div>
               <div className="md:col-span-4">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Harga Grosir Cabang</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={row.wholesale_price}
-                  onChange={(e) => handleBranchPriceChange(row.branch_uuid, 'wholesale_price', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
-                  placeholder="0"
+                <RupiahInput
+                  value={String(row.wholesale_price)}
+                  onChange={(v) => handleBranchPriceChange(row.branch_uuid, 'wholesale_price', v)}
                 />
               </div>
             </div>

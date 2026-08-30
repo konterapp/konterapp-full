@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { createCoupon, updateCoupon, getCoupon, getPlansOptions, AdminPlanTier, CouponFormData } from '@/lib/api/administrator/coupon';
 import { useToast } from '@/components/toast/ToastContainer';
 
@@ -292,15 +293,11 @@ export default function CouponFormModal({ isOpen, onClose, onSaved, couponUuid }
                            <label className="block text-sm font-medium text-gray-700 mb-1">
                               Maks. Diskon (Rp)
                            </label>
-                           <input
-                              type="number"
-                              name="max_discount"
+                           <RupiahInput
                               value={form.max_discount}
-                              onChange={handleChange}
+                              onChange={(v) => setForm(prev => ({ ...prev, max_discount: v }))}
                               placeholder="Kosongkan jika tanpa batas"
-                              min={0}
-                              step={1000}
-                              className={inputClass('max_discount')}
+                              hasError={!!fieldErrors.max_discount}
                            />
                            {errorText('max_discount')}
                         </div>

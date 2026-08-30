@@ -5,6 +5,7 @@ import { Loader2, Search, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { PpobProductLocal, PpobInquiryResult, PpobTransaction, inquiryBill, purchasePrepaid, payPostpaid } from '@/lib/api/app/ppob';
 import { Branch } from '@/lib/api/app/branch';
 import { SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
+import RupiahInput from '@/components/ui/RupiahInput';
 
 interface TransactionPanelProps {
   selectedProduct: PpobProductLocal | null;
@@ -332,12 +333,10 @@ export default function TransactionPanel({
       {/* Selling price */}
       <div>
         <label className="block text-xs font-medium text-gray-500 mb-1">Harga Jual</label>
-        <input
-          type="number"
+        <RupiahInput
           value={sellingPriceInput}
-          onChange={(e) => setSellingPriceInput(e.target.value)}
-          placeholder={productPrice ? formatPrice(productPrice) : '0'}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#142D52]/20 focus:border-[#142D52] placeholder-gray-400"
+          onChange={setSellingPriceInput}
+          placeholder={productPrice ? productPrice.toLocaleString('id-ID') : '0'}
         />
         {(sellingPrice || productPrice) > 0 && selectedProduct && (
           <div className="text-xs text-gray-400 mt-1">

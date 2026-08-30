@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { PpobProductLocal } from './types';
+import RupiahInput from '@/components/ui/RupiahInput';
 
 const CATEGORIES = ['PULSA', 'DATA', 'PLNPRA', 'PLNPASCA', 'TELKOM', 'PDAM', 'BPJS', 'EMONEY', 'GAME'];
 
@@ -149,30 +150,24 @@ export default function ProductFormModal({ product, onClose, onSaved }: ProductF
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">Harga Dasar</label>
-              <input
-                type="number"
+              <RupiahInput
                 value={form.base_price}
-                onChange={(e) => handleChange('base_price', e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                onChange={(v) => handleChange('base_price', v)}
                 required
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">Biaya Admin</label>
-              <input
-                type="number"
+              <RupiahInput
                 value={form.admin_fee}
-                onChange={(e) => handleChange('admin_fee', e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                onChange={(v) => handleChange('admin_fee', v)}
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-500">Harga Jual</label>
-              <input
-                type="number"
+              <RupiahInput
                 value={form.selling_price}
-                onChange={(e) => handleChange('selling_price', e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                onChange={(v) => handleChange('selling_price', v)}
                 required
               />
             </div>

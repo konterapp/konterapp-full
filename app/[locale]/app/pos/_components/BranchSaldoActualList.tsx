@@ -1,6 +1,7 @@
 'use client';
 
 import type { BranchSaldoItem } from '@/lib/api/app/branch';
+import RupiahInput from '@/components/ui/RupiahInput';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('id-ID', {
@@ -98,16 +99,11 @@ export default function BranchSaldoActualList({
                     </p>
                   </td>
                   <td className="border-b border-gray-100 py-2.5 px-1">
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
-                      <input
-                        type="number"
-                        value={rawActual}
-                        onChange={(e) => onActualBalanceChange(key, e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-7 pr-1.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                      />
-                    </div>
+                    <RupiahInput
+                      size="compact"
+                      value={rawActual}
+                      onChange={(v) => onActualBalanceChange(key, v)}
+                    />
                   </td>
                   <td className={`border-b border-gray-100 py-2.5 pl-1 text-right text-xs font-semibold ${varianceStyle}`}>
                     {isHidden ? '•••' : variance === null ? '-' : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`}

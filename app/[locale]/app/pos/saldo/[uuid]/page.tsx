@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet, Pencil, PlusCircle, MinusCircle, Plus, Layers, Trash
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import {
@@ -637,15 +638,10 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Saldo Awal Grup</label>
-                <input
-                  type="number"
-                  min="0"
+                <RupiahInput
                   value={addOpeningBalance}
-                  onChange={(e) => setAddOpeningBalance(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                    addFieldErrors.opening_balance ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-                  }`}
-                  placeholder="0"
+                  onChange={setAddOpeningBalance}
+                  hasError={!!addFieldErrors.opening_balance}
                 />
                 {addFieldErrors.opening_balance && <div className="mt-1 text-sm text-red-600">{addFieldErrors.opening_balance[0]}</div>}
               </div>
@@ -792,15 +788,10 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Jumlah <span className="text-red-500">*</span></label>
-                <input
-                  type="number"
-                  min="0"
+                <RupiahInput
                   value={adjustAmount}
-                  onChange={(e) => setAdjustAmount(e.target.value)}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                    adjustFieldErrors.amount ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-                  }`}
-                  placeholder="0"
+                  onChange={setAdjustAmount}
+                  hasError={!!adjustFieldErrors.amount}
                 />
                 {adjustFieldErrors.amount && <div className="mt-1 text-sm text-red-600">{adjustFieldErrors.amount[0]}</div>}
               </div>

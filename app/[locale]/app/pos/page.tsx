@@ -13,6 +13,7 @@ import ReceiptModal from './_components/ReceiptModal';
 import BarcodeScanner from './_components/BarcodeScanner';
 import { useBranchSaldoActual } from './_components/useBranchSaldoActual';
 import BranchSaldoActualList from './_components/BranchSaldoActualList';
+import RupiahInput from '@/components/ui/RupiahInput';
 
 interface CartItem {
   id: number;
@@ -857,13 +858,12 @@ export default function KasirPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Diskon</span>
-                <input
-                  type="number"
-                  value={discountAmount || ''}
-                  onChange={(e) => setDiscountAmount(Number(e.target.value) || 0)}
+                <RupiahInput
+                  showPrefix={false}
+                  value={discountAmount ? String(discountAmount) : ''}
+                  onChange={(v) => setDiscountAmount(Number(v) || 0)}
                   placeholder="0"
                   className="w-28 text-right px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
-                  min="0"
                 />
               </div>
               <div className="flex justify-between items-baseline pt-2 border-t border-gray-200">
@@ -876,13 +876,12 @@ export default function KasirPage() {
             <div className="px-4 py-3 space-y-2 border-b border-gray-200">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Bayar</label>
-                <input
-                  type="number"
-                  value={paidAmount || ''}
-                  onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
+                <RupiahInput
+                  showPrefix={false}
+                  value={paidAmount ? String(paidAmount) : ''}
+                  onChange={(v) => setPaidAmount(Number(v) || 0)}
                   placeholder="0"
                   className="w-full px-3 py-2.5 text-lg font-bold text-right border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
-                  min="0"
                 />
               </div>
               {totalAmount > 0 && (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/toast/ToastContainer';
+import RupiahInput from '@/components/ui/RupiahInput';
 
 type PurchaseFormMode = 'create' | 'edit';
 
@@ -664,25 +665,19 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
+                        <RupiahInput
                           value={row.unit_price}
-                          onChange={(e) => handleRowChange(row.key, { unit_price: e.target.value })}
+                          onChange={(v) => handleRowChange(row.key, { unit_price: v })}
                           disabled={isSubmitting || isLockedEdit}
-                          className="w-40 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                          className="w-40"
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
-                          min={0}
-                          step={1}
+                        <RupiahInput
                           value={row.discount}
-                          onChange={(e) => handleRowChange(row.key, { discount: e.target.value })}
+                          onChange={(v) => handleRowChange(row.key, { discount: v })}
                           disabled={isSubmitting || isLockedEdit}
-                          className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                          className="w-32"
                         />
                       </td>
                       <td className="px-4 py-2 text-right text-sm font-semibold text-gray-900">
@@ -744,14 +739,10 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-600">Diskon Tambahan</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
+                <RupiahInput
                   value={discountAmount}
-                  onChange={(e) => setDiscountAmount(e.target.value)}
+                  onChange={setDiscountAmount}
                   disabled={isSubmitting || isLockedEdit}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100"
                 />
                 {fieldErrors.discount_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.discount_amount[0]}</p>}
               </div>
@@ -761,14 +752,10 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               </div>
               <div>
                 <label className="mb-1 block text-xs text-gray-600">Nominal Bayar (untuk final)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
+                <RupiahInput
                   value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
+                  onChange={setPaidAmount}
                   disabled={isSubmitting || isLockedEdit || !calculations.hasSupplier}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100 disabled:text-gray-500"
                 />
                 {!calculations.hasSupplier && (
                   <p className="mt-1 text-xs text-gray-500">Tanpa supplier, sistem otomatis set lunas saat final.</p>

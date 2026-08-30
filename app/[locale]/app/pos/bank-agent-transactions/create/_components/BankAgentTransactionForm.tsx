@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { Save, X } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getAllSaldoAccounts, getPaymentMethodOptions, SaldoAccount, PaymentMethodOption } from '@/lib/api/app/saldo';
 import { getBankAgentTransactionTypes, createBankAgentTransaction, BankAgentTransactionType } from '@/lib/api/app/bank-agent-transaction';
@@ -85,6 +86,8 @@ export default function BankAgentTransactionForm() {
 
   const baseAmountNumber = Number(baseAmount) || 0;
   const feeNumber = Number(fee) || 0;
+  const adminFeeNumber = Number(adminFee) || 0;
+  const netProfit = feeNumber - adminFeeNumber;
   const sellingAmountNumber = Number(sellingAmount) || 0;
   const paidAmountNumber = Number(paidAmount) || 0;
 
@@ -213,27 +216,17 @@ export default function BankAgentTransactionForm() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Nominal <span className="text-red-500">*</span></label>
-            <input
-              type="number"
-              min="0"
+            <RupiahInput
               value={baseAmount}
-              onChange={(e) => setBaseAmount(e.target.value)}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.baseAmount ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
-              placeholder="0"
+              onChange={setBaseAmount}
+              hasError={!!fieldErrors.baseAmount}
             />
             {fieldErrors.baseAmount && <div className="mt-1 text-sm text-red-600">{fieldErrors.baseAmount[0]}</div>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Komisi</label>
-            <input
-              type="number"
-              min="0"
-              value={fee}
-              onChange={(e) => setFee(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white"
-              placeholder="0"
-            />
+            <RupiahInput value={fee} onChange={setFee} />
           </div>
 
           {!isWithdrawal && (
@@ -244,13 +237,10 @@ export default function BankAgentTransactionForm() {
                   Isi otomatis (Nominal + Komisi)
                 </button>
               </div>
-              <input
-                type="number"
-                min="0"
+              <RupiahInput
                 value={sellingAmount}
-                onChange={(e) => setSellingAmount(e.target.value)}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.sellingAmount ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
-                placeholder="0"
+                onChange={setSellingAmount}
+                hasError={!!fieldErrors.sellingAmount}
               />
               {fieldErrors.sellingAmount && <div className="mt-1 text-sm text-red-600">{fieldErrors.sellingAmount[0]}</div>}
             </div>
@@ -258,14 +248,12 @@ export default function BankAgentTransactionForm() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Biaya Admin Bank (opsional)</label>
-            <input
-              type="number"
-              min="0"
-              value={adminFee}
-              onChange={(e) => setAdminFee(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white"
-              placeholder="0"
-            />
+            <RupiahInput value={adminFee} onChange={setAdminFee} />
+            {(feeNumber > 0 || adminFeeNumber > 0) && (
+              <p className={`mt-1 text-xs font-medium ${netProfit === 0 ? 'text-gray-400' : netProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                Laba Bersih: {formatCurrency(netProfit)}
+              </p>
+            )}
           </div>
 
           {isWithdrawal && (
@@ -310,14 +298,7 @@ export default function BankAgentTransactionForm() {
           {!isWithdrawal && isCashPayment && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Uang Diterima</label>
-              <input
-                type="number"
-                min="0"
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white"
-                placeholder="0"
-              />
+              <RupiahInput value={paidAmount} onChange={setPaidAmount} />
               {paidAmountNumber > 0 && (
                 <p className="mt-1 text-xs text-gray-500">Kembalian: {formatCurrency(changeAmount)}</p>
               )}

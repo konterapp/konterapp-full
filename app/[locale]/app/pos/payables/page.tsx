@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { HandCoins, Landmark, Loader2, X } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
+import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 
@@ -548,20 +549,16 @@ export default function PayablesPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">Nominal Bayar</label>
-                <input
-                  type="number"
-                  min={0.01}
-                  step={0.01}
+                <RupiahInput
                   value={paymentModal.amount}
-                  onChange={(event) =>
+                  onChange={(v) =>
                     setPaymentModal((prev) => ({
                       ...prev,
-                      amount: event.target.value,
+                      amount: v,
                       error: '',
                     }))
                   }
                   disabled={paymentModal.isSubmitting}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] disabled:bg-gray-100"
                   placeholder="Masukkan nominal pembayaran"
                   required
                 />
