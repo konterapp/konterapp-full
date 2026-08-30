@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
-import { Search, ChevronRight, ChevronDown, Menu, X, Bell, Settings, Building2, Check } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, Menu, X, Bell, Settings, Building2, Check, Headset } from 'lucide-react';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { switchActiveCompany } from '@/lib/api/auth';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -11,6 +11,7 @@ import { allMenuItems } from '../_constants/menuItems';
 import { useUser } from '../_context/UserContext';
 import { useSidebar } from '../contexts/SidebarContext';
 import ImpersonateButton from './ImpersonateButton';
+import { SUPPORT_WHATSAPP_URL } from '@/lib/support';
 
 // AdminMenu translations (id)
 const menuTranslations: Record<string, string> = {
@@ -356,16 +357,34 @@ const Navbar = () => {
         {/* Divider */}
         <div className="h-5 w-px bg-gray-200 mx-1.5 hidden md:block"></div>
 
+        {/* Customer Service / Support */}
+        <a
+          href={SUPPORT_WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-emerald-600 cursor-pointer"
+          title="Hubungi Customer Service"
+          aria-label="Hubungi Customer Service via WhatsApp"
+        >
+          <Headset className="w-[18px] h-[18px]" />
+        </a>
+
         {/* Notifications */}
         <button className="relative p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer">
           <Bell className="w-[18px] h-[18px]" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
 
-        {/* Settings */}
-        <button className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer hidden md:block">
-          <Settings className="w-[18px] h-[18px]" />
-        </button>
+        {/* Settings (Profil Perusahaan) */}
+        {permissions.includes('company.update') && (
+          <Link
+            href="/app/company"
+            className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors text-gray-500 hover:text-[#142D52] cursor-pointer hidden md:block"
+            title="Profil Perusahaan"
+          >
+            <Settings className="w-[18px] h-[18px]" />
+          </Link>
+        )}
 
         {/* Stop Impersonating Button */}
         <ImpersonateButton />
