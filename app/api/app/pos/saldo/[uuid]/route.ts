@@ -10,7 +10,7 @@ export const GET = withPermission(
   'pos.saldo.index',
   withApiErrorHandling(async (_req: NextRequest, context) => {
     const { uuid } = await context.params;
-    const account = await posSaldoService.getAccount(uuid);
+    const account = await posSaldoService.getAccount(uuid, context.companyUuid, context.userId);
     return successResponse('Akun saldo berhasil dimuat', account);
   })
 );

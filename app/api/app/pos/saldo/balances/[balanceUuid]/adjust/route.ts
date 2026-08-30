@@ -7,7 +7,7 @@ import { adjustSaldoSchema } from '@/lib/validations/saldo';
 import { posSaldoService } from '@/lib/modules/pos/saldo/admin.service';
 
 export const POST = withPermission(
-  'pos.saldo.update',
+  'pos.saldo.adjust',
   withApiErrorHandling(async (req: NextRequest, context) => {
     const { balanceUuid } = await context.params;
     const rawBody = await req.json();

@@ -56,6 +56,11 @@ export const PERMISSIONS = [
   "pos.saldo.create",
   "pos.saldo.update",
   "pos.saldo.delete",
+  // Topup/koreksi saldo (beda dari pos.saldo.update -- itu ubah metadata
+  // akun/grup, ini cuma nambah/kurangi nominal). Kasir dapat ini secara
+  // default supaya bisa setor uang tunai yang diterima dari pemilik tanpa
+  // punya akses kelola akun saldo.
+  "pos.saldo.adjust",
   // POS - Branch
   "pos.branch.index",
   "pos.branch.create",

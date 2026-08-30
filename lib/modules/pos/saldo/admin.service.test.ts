@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { posSaldoRepository } from './repository';
 import { posBranchRepository } from '@/lib/modules/pos/branches/repository';
+import { appUserRepository } from '@/lib/modules/users/app.repository';
 import { posSaldoService } from './admin.service';
 
 vi.mock('./repository', () => ({
@@ -37,8 +38,15 @@ vi.mock('@/lib/modules/pos/branches/repository', () => ({
   },
 }));
 
+vi.mock('@/lib/modules/users/app.repository', () => ({
+  appUserRepository: {
+    getAssignedBranchUuids: vi.fn(),
+  },
+}));
+
 const mockSaldoRepo = posSaldoRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
 const mockBranchRepo = posBranchRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
+const mockUserRepo = appUserRepository as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
 const mockTx = {
   appPosSaldoAccount: { findFirst: vi.fn() },
@@ -74,6 +82,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockSaldoRepo.runInTransaction.mockImplementation((cb: (tx: unknown) => Promise<unknown>) => cb(mockTx));
   mockSaldoRepo.findAllOrderedForReorder.mockResolvedValue([]);
+  mockUserRepo.getAssignedBranchUuids.mockResolvedValue([]);
 });
 
 describe('posSaldoService.createAccount', () => {
@@ -312,7 +321,7 @@ describe('posSaldoService.listMutations', () => {
     mockSaldoRepo.findMutations.mockResolvedValue([]);
     mockSaldoRepo.countMutations.mockResolvedValue(0);
 
-    await posSaldoService.listMutations('acc-1', { page: 1, perPage: 10, balanceUuid: 'bal-9' });
+    await posSaldoService.listMutations('acc-1', { page: 1, perPage: 10, balanceUuid: 'bal-9', companyUuid: 'company-1', userId: 7 });
 
     const arg = mockSaldoRepo.findMutations.mock.calls[0][0];
     expect(arg.where).toMatchObject({
@@ -326,7 +335,7 @@ describe('posSaldoService.listMutations', () => {
     mockSaldoRepo.findMutations.mockResolvedValue([]);
     mockSaldoRepo.countMutations.mockResolvedValue(0);
 
-    await posSaldoService.listMutations('acc-1', { page: 2, perPage: 10 });
+    await posSaldoService.listMutations('acc-1', { page: 2, perPage: 10, companyUuid: 'company-1', userId: 7 });
 
     const arg = mockSaldoRepo.findMutations.mock.calls[0][0];
     expect(arg.where).toEqual({ saldoBalance: { saldoAccountUuid: 'acc-1' } });
@@ -350,6 +359,8 @@ describe('posSaldoService.listAccounts (sort by balance)', () => {
       isPaymentMethod: null,
       sortBy: 'balance',
       sortOrder: 'desc',
+      companyUuid: 'company-1',
+      userId: 7,
     });
 
     expect(result.data.map((a: { uuid: string }) => a.uuid)).toEqual(['besar', 'kecil']);
@@ -367,6 +378,8 @@ describe('posSaldoService.listAccounts (sort by balance)', () => {
       isPaymentMethod: null,
       sortBy: 'code',
       sortOrder: 'asc',
+      companyUuid: 'company-1',
+      userId: 7,
     });
 
     expect(mockSaldoRepo.count).toHaveBeenCalled();

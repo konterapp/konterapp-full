@@ -32,11 +32,19 @@ export const TENANT_DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
     // syarat permission spesifik). Tanpa permission ini, role Kasir kena
     // fitur pembatasan cabang: admin wajib pilih cabang penempatan saat
     // bikin user dengan role ini.
+    // pos.saldo.index & pos.saldo.adjust (BUKAN create/update/delete) --
+    // Kasir boleh lihat & topup/koreksi saldo cabangnya sendiri (mis. setor
+    // uang tunai dari pemilik), tapi tidak boleh kelola akun/grup saldo
+    // (tambah akun baru, ubah rekening, hapus, dst -- itu tetap urusan
+    // admin). Tampilan/aksesnya otomatis ke-scope ke cabang yang di-assign
+    // (lihat CompanyUserBranch), sama seperti pembatasan cabang lainnya.
     permissions: [
       "pos.sale.index",
       "pos.sale.create",
       "pos.product.index",
       "pos.category.index",
+      "pos.saldo.index",
+      "pos.saldo.adjust",
     ],
   },
 ];

@@ -443,14 +443,18 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                   </div>
                 </div>
 
-                {hasPermission('pos.saldo.update') && (
+                {(hasPermission('pos.saldo.adjust') || hasPermission('pos.saldo.delete')) && (
                   <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                    <Button size="sm" variant="success" icon={PlusCircle} onClick={() => openAdjustModal(group, 'in')}>
-                      Top-up
-                    </Button>
-                    <Button size="sm" variant="danger" icon={MinusCircle} onClick={() => openAdjustModal(group, 'out')}>
-                      Koreksi Kurang
-                    </Button>
+                    {hasPermission('pos.saldo.adjust') && (
+                      <>
+                        <Button size="sm" variant="success" icon={PlusCircle} onClick={() => openAdjustModal(group, 'in')}>
+                          Top-up
+                        </Button>
+                        <Button size="sm" variant="danger" icon={MinusCircle} onClick={() => openAdjustModal(group, 'out')}>
+                          Koreksi Kurang
+                        </Button>
+                      </>
+                    )}
                     {hasPermission('pos.saldo.delete') && (
                       <button
                         onClick={() => setDeleteTarget(group)}

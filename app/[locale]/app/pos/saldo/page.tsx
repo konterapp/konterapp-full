@@ -151,48 +151,36 @@ export default function SaldoPage() {
       },
     },
     {
-      key: 'sort_order',
-      label: 'Urutan',
-      sortable: false,
-      width: '6rem',
-      render: (_, row) => {
-        const index = accounts.findIndex(a => a.uuid === row.uuid);
-        const canEdit = hasPermission('pos.saldo.update');
-        return (
-          <div className="flex items-center gap-1">
-            {canEdit && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => handleMove(row, 'up')}
-                  disabled={index === 0}
-                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                  title="Naikkan urutan"
-                >
-                  <ArrowUp className="w-4 h-4 text-gray-600" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleMove(row, 'down')}
-                  disabled={index === accounts.length - 1}
-                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                  title="Turunkan urutan"
-                >
-                  <ArrowDown className="w-4 h-4 text-gray-600" />
-                </button>
-              </>
-            )}
-          </div>
-        );
-      },
-    },
-    {
       key: 'actions',
       label: 'Aksi',
       sortable: false,
       className: 'whitespace-nowrap',
-      render: (_, row) => (
+      render: (_, row) => {
+        const index = accounts.findIndex(a => a.uuid === row.uuid);
+        return (
         <div className="flex items-center gap-2">
+          {hasPermission('pos.saldo.update') && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleMove(row, 'up')}
+                disabled={index === 0}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="Naikkan urutan"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-gray-600" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMove(row, 'down')}
+                disabled={index === accounts.length - 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="Turunkan urutan"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-gray-600" />
+              </button>
+            </>
+          )}
           <Link
             href={`/app/pos/saldo/${row.uuid}`}
             className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
@@ -219,7 +207,8 @@ export default function SaldoPage() {
             </button>
           )}
         </div>
-      ),
+        );
+      },
     },
     {
       key: 'code',

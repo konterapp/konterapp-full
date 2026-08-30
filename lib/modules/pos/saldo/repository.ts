@@ -1,44 +1,72 @@
 import { prisma } from '@/lib/prisma';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
-const balanceGroupInclude = {
-  balances: {
-    orderBy: { createdAt: 'asc' as const },
-    include: {
-      branchLinks: {
-        orderBy: { createdAt: 'asc' as const },
-        include: { branch: { select: { uuid: true, code: true, name: true } } },
+/**
+ * Kalau branchUuids diisi, cuma include baris balance yang ter-link ke
+ * salah satu cabang itu -- dipakai buat scoping tampilan Kasir/user yang
+ * dibatasi cabangnya (lihat CompanyUserBranch), supaya cuma lihat grup
+ * balance cabangnya sendiri, bukan semua grup company.
+ */
+function buildBalanceGroupInclude(branchUuids?: string[]) {
+  return {
+    balances: {
+      ...(branchUuids && branchUuids.length > 0
+        ? { where: { branchLinks: { some: { branchUuid: { in: branchUuids } } } } }
+        : {}),
+      orderBy: { createdAt: 'asc' as const },
+      include: {
+        branchLinks: {
+          orderBy: { createdAt: 'asc' as const },
+          include: { branch: { select: { uuid: true, code: true, name: true } } },
+        },
       },
     },
-  },
-};
+  };
+}
 
-export type SaldoAccountWithBalances = Prisma.AppPosSaldoAccountGetPayload<{ include: typeof balanceGroupInclude }>;
+export type SaldoAccountWithBalances = Prisma.AppPosSaldoAccountGetPayload<{
+  include: ReturnType<typeof buildBalanceGroupInclude>;
+}>;
 
 export const posSaldoRepository = {
   runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
     return (prisma as unknown as PrismaClient).$transaction(cb);
   },
 
-  findMany(params: { where: any; skip?: number; take?: number; orderBy: any; withBalances?: boolean }): Promise<any> {
-    const { where, skip, take, orderBy, withBalances } = params;
+  findMany(params: {
+    where: any;
+    skip?: number;
+    take?: number;
+    orderBy: any;
+    withBalances?: boolean;
+    branchUuids?: string[];
+  }): Promise<any> {
+    const { where, skip, take, orderBy, withBalances, branchUuids } = params;
+    const scopedWhere =
+      branchUuids && branchUuids.length > 0
+        ? { ...where, balances: { some: { branchLinks: { some: { branchUuid: { in: branchUuids } } } } } }
+        : where;
     return prisma.appPosSaldoAccount.findMany({
-      where,
+      where: scopedWhere,
       skip,
       take,
       orderBy,
-      ...(withBalances ? { include: balanceGroupInclude } : {}),
+      ...(withBalances ? { include: buildBalanceGroupInclude(branchUuids) } : {}),
     });
   },
 
-  count(where: any) {
-    return prisma.appPosSaldoAccount.count({ where });
+  count(where: any, branchUuids?: string[]) {
+    const scopedWhere =
+      branchUuids && branchUuids.length > 0
+        ? { ...where, balances: { some: { branchLinks: { some: { branchUuid: { in: branchUuids } } } } } }
+        : where;
+    return prisma.appPosSaldoAccount.count({ where: scopedWhere });
   },
 
-  async findByUuid(uuid: string, withBalances = true): Promise<any> {
+  async findByUuid(uuid: string, withBalances = true, branchUuids?: string[]): Promise<any> {
     return prisma.appPosSaldoAccount.findFirst({
       where: { uuid },
-      ...(withBalances ? { include: balanceGroupInclude } : {}),
+      ...(withBalances ? { include: buildBalanceGroupInclude(branchUuids) } : {}),
     });
   },
 

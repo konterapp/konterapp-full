@@ -1,6 +1,7 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posSaldoRepository } from './repository';
 import { posBranchRepository } from '@/lib/modules/pos/branches/repository';
+import { appUserRepository } from '@/lib/modules/users/app.repository';
 import { mapSaldoAccount, mapSaldoMutation, mapPaymentMethodOption } from './saldo.mapper';
 
 function sumBalances(account: any): number {
@@ -17,9 +18,18 @@ export const posSaldoService = {
     isPaymentMethod: string | null;
     sortBy: string;
     sortOrder: string;
+    companyUuid: string;
+    userId: number;
   }) {
-    const { page, perPage, search, isActive, isPaymentMethod, sortBy, sortOrder } = params;
+    const { page, perPage, search, isActive, isPaymentMethod, sortBy, sortOrder, companyUuid, userId } = params;
     const skip = (page - 1) * perPage;
+
+    // User yang dibatasi cabangnya (lihat CompanyUserBranch) cuma boleh
+    // lihat akun saldo yang punya grup balance di cabang-cabang itu, dan
+    // rollup saldo-nya cuma jumlah grup yang relevan buat dia -- bukan
+    // total company. User tanpa pembatasan (assignment kosong) tetap lihat
+    // semua seperti biasa.
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(companyUuid, userId);
 
     const where: any = {};
     if (search) {
@@ -56,6 +66,7 @@ export const posSaldoService = {
         where,
         orderBy: { createdAt: 'desc' },
         withBalances: true,
+        branchUuids: assignedBranchUuids,
       });
       accounts.sort((a: any, b: any) => {
         const diff = sumBalances(a) - sumBalances(b);
@@ -76,8 +87,9 @@ export const posSaldoService = {
         take: perPage,
         orderBy: { [sortFieldMap[sortField]]: sortDir },
         withBalances: true,
+        branchUuids: assignedBranchUuids,
       }),
-      posSaldoRepository.count(where),
+      posSaldoRepository.count(where, assignedBranchUuids),
     ]);
 
     return {
@@ -96,9 +108,16 @@ export const posSaldoService = {
     return accounts.map(mapPaymentMethodOption);
   },
 
-  async getAccount(uuid: string) {
-    const account = await posSaldoRepository.findByUuid(uuid);
+  async getAccount(uuid: string, companyUuid: string, userId: number) {
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(companyUuid, userId);
+    const account = await posSaldoRepository.findByUuid(uuid, true, assignedBranchUuids);
     if (!account) {
+      throw new ApiError('Akun saldo tidak ditemukan', 404);
+    }
+    // User yang dibatasi cabangnya tapi tidak punya grup balance sama
+    // sekali di akun ini -- perlakukan seperti tidak ditemukan (jangan
+    // bocorkan metadata akun yang tidak relevan buat cabangnya).
+    if (assignedBranchUuids.length > 0 && account.balances.length === 0) {
       throw new ApiError('Akun saldo tidak ditemukan', 404);
     }
     return mapSaldoAccount(account);
@@ -458,16 +477,40 @@ export const posSaldoService = {
     await posSaldoRepository.deleteBalanceByUuid(balanceUuid);
   },
 
-  async listMutations(uuid: string, params: { page: number; perPage: number; balanceUuid?: string | null }) {
-    const account = await posSaldoRepository.findByUuid(uuid, false);
+  async listMutations(
+    uuid: string,
+    params: { page: number; perPage: number; balanceUuid?: string | null; companyUuid: string; userId: number }
+  ) {
+    const { page, perPage, balanceUuid, companyUuid, userId } = params;
+
+    // Sama seperti getAccount -- user yang dibatasi cabangnya cuma boleh
+    // lihat riwayat mutasi grup balance cabangnya sendiri, bukan semua
+    // grup di akun ini (kalau tidak, tampilan "Grup Balance" sudah benar
+    // ke-scope tapi "Riwayat Mutasi" di bawahnya malah bocor data cabang
+    // lain).
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(companyUuid, userId);
+    const account = await posSaldoRepository.findByUuid(uuid, true, assignedBranchUuids);
     if (!account) {
       throw new ApiError('Akun saldo tidak ditemukan', 404);
     }
+    if (assignedBranchUuids.length > 0 && account.balances.length === 0) {
+      throw new ApiError('Akun saldo tidak ditemukan', 404);
+    }
 
-    const { page, perPage, balanceUuid } = params;
     const skip = (page - 1) * perPage;
     const where: any = { saldoBalance: { saldoAccountUuid: uuid } };
-    if (balanceUuid) {
+
+    if (assignedBranchUuids.length > 0) {
+      const visibleBalanceUuids = account.balances.map((balance: { uuid: string }) => balance.uuid);
+      if (balanceUuid) {
+        if (!visibleBalanceUuids.includes(balanceUuid)) {
+          throw new ApiError('Anda tidak punya akses ke grup balance ini', 403);
+        }
+        where.saldoAccountBalanceUuid = balanceUuid;
+      } else {
+        where.saldoAccountBalanceUuid = { in: visibleBalanceUuids };
+      }
+    } else if (balanceUuid) {
       where.saldoAccountBalanceUuid = balanceUuid;
     }
 
@@ -496,6 +539,18 @@ export const posSaldoService = {
     const balanceRow = await posSaldoRepository.findBalanceByUuid(balanceUuid);
     if (!balanceRow) {
       throw new ApiError('Grup balance tidak ditemukan', 404);
+    }
+
+    // User yang dibatasi cabangnya cuma boleh koreksi grup balance yang
+    // ter-link ke salah satu cabangnya -- jangan sampai kasir cabang A
+    // koreksi saldo grup yang cuma dipakai cabang B (walau tahu UUID-nya).
+    const assignedBranchUuids = await appUserRepository.getAssignedBranchUuids(companyUuid, userId);
+    if (assignedBranchUuids.length > 0) {
+      const groupBranchUuids = balanceRow.branchLinks.map((link) => link.branchUuid);
+      const hasAccess = groupBranchUuids.some((uuid) => assignedBranchUuids.includes(uuid));
+      if (!hasAccess) {
+        throw new ApiError('Anda tidak punya akses ke grup balance ini', 403);
+      }
     }
 
     if (payload.direction === 'out' && Number(balanceRow.balance) < payload.amount) {

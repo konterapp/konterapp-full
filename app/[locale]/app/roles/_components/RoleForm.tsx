@@ -33,6 +33,7 @@ const ACTION_LABELS: Record<string, string> = {
   create: 'Tambah',
   update: 'Edit',
   delete: 'Hapus',
+  adjust: 'Koreksi',
 };
 
 function permissionLabel(permission: string): string {
