@@ -44,7 +44,20 @@ export const posReportRepository = {
 
     return prisma.appPosProduct.findMany({
       where: { uuid: { in: productUuids } },
-      select: { uuid: true, name: true, sku: true, purchasePrice: true },
+      select: { uuid: true, name: true, sku: true, purchasePrice: true, isSystem: true },
+    });
+  },
+
+  /**
+   * SUM biaya admin bank dari transaksi Agen Bank periode ini -- dihitung
+   * on-the-fly langsung dari kolom admin_fee (sama seperti pola CatatKonter,
+   * TIDAK ditulis ke tabel Pengeluaran manapun), dipakai sbg salah satu
+   * komponen "Total Pengeluaran" di Laba Rugi.
+   */
+  sumBankAgentAdminFee(where: Prisma.AppPosBankAgentTransactionWhereInput) {
+    return prisma.appPosBankAgentTransaction.aggregate({
+      where,
+      _sum: { adminFee: true },
     });
   },
 

@@ -62,10 +62,17 @@ export const posReportService = {
       },
       paymentStatus: { notIn: ['draft', 'void'] },
     };
+    const bankAgentWhere: Prisma.AppPosBankAgentTransactionWhereInput = {
+      createdAt: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+    };
 
     if (branchUuid) {
       saleWhere.branchUuid = branchUuid;
       purchaseWhere.branchUuid = branchUuid;
+      bankAgentWhere.branchUuid = branchUuid;
     }
 
     const totalTransactions = await posReportRepository.countSales(saleWhere);
@@ -91,7 +98,12 @@ export const posReportService = {
     let totalCogs = 0;
     let totalItemsSold = 0;
 
-    const productDetails = soldProducts.map((item) => {
+    // Produk sistem (mis. "Komisi Agen Bank", AppPosProduct.isSystem) TETAP
+    // dihitung ke total pendapatan/laba di bawah -- itu pendapatan riil
+    // toko. Yang dikecualikan cuma dari breakdown "Detail Per Produk" (lihat
+    // filter setelah .map ini), karena HPP/rata-rata beli/margin per-produk
+    // tidak relevan & menyesatkan buat baris komisi (bukan barang beneran).
+    const computedRows = soldProducts.map((item) => {
       const qtySold = Number(item._sum.quantity || 0);
       const revenue = Number(item._sum.subtotal || 0);
       const avgSellingPrice = qtySold > 0 ? revenue / qtySold : 0;
@@ -106,30 +118,47 @@ export const posReportService = {
       totalCogs += cogs;
       totalItemsSold += qtySold;
 
-      return mapProfitLossProduct({
-        productUuid: item.productUuid,
-        productName: product ? product.name : 'Produk Dihapus',
-        sku: product ? product.sku : '-',
-        qtySold,
-        avgPurchasePrice: round2(avgPurchasePrice),
-        avgSellingPrice: round2(avgSellingPrice),
-        revenue: round2(revenue),
-        cogs: round2(cogs),
-        profit: round2(profit),
-        marginPct,
-      });
+      return {
+        isSystem: product?.isSystem ?? false,
+        detail: mapProfitLossProduct({
+          productUuid: item.productUuid,
+          productName: product ? product.name : 'Produk Dihapus',
+          sku: product ? product.sku : '-',
+          qtySold,
+          avgPurchasePrice: round2(avgPurchasePrice),
+          avgSellingPrice: round2(avgSellingPrice),
+          revenue: round2(revenue),
+          cogs: round2(cogs),
+          profit: round2(profit),
+          marginPct,
+        }),
+      };
     });
+
+    const productDetails = computedRows.filter((row) => !row.isSystem).map((row) => row.detail);
 
     productDetails.sort((a, b) => b.profit - a.profit);
 
     const totalProfit = totalRevenue - totalCogs;
     const overallMargin = totalRevenue > 0 ? round2((totalProfit / totalRevenue) * 100) : 0;
 
+    // Total Pengeluaran -- baru berisi biaya admin bank (dihitung on-the-fly
+    // dari app_pos_bank_agent_transactions, pola CatatKonter), belum ada
+    // komponen lain krn modul Pengeluaran umum (listrik, gaji, dst) belum
+    // dibangun. Kalau nanti dibangun, tinggal ditambah ke totalExpenses ini.
+    const adminFeeAgg = await posReportRepository.sumBankAgentAdminFee(bankAgentWhere);
+    const totalAdminFee = Number(adminFeeAgg._sum.adminFee || 0);
+    const totalExpenses = totalAdminFee;
+    const netProfit = round2(totalProfit - totalExpenses);
+
     const branchInfo = await resolveBranchInfo(branchUuid);
 
     return mapProfitLossReport({
       dateFrom,
       dateTo,
+      totalAdminFee: round2(totalAdminFee),
+      totalExpenses: round2(totalExpenses),
+      netProfit,
       branchInfo,
       totalRevenue: round2(totalRevenue),
       totalCogs: round2(totalCogs),

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Landmark, Plus } from 'lucide-react';
+import { Landmark, Plus, Eye } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { getBankAgentTransactions, BankAgentTransaction } from '@/lib/api/app/bank-agent-transaction';
@@ -132,6 +132,21 @@ export default function BankAgentTransactionsPage() {
       },
     },
     {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '4rem',
+      render: (_, row) => (
+        <Link
+          href={`/app/pos/bank-agent-transactions/${row.uuid}`}
+          className="inline-flex cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100"
+          title="Lihat Detail"
+        >
+          <Eye className="h-4 w-4 text-gray-600" />
+        </Link>
+      ),
+    },
+    {
       key: 'transaction_number',
       label: 'No. Transaksi',
       sortable: false,
@@ -177,6 +192,12 @@ export default function BankAgentTransactionsPage() {
       render: (_, row) => <span className="text-sm text-gray-700">{row.fee > 0 ? formatCurrency(row.fee) : '-'}</span>,
     },
     {
+      key: 'admin_fee',
+      label: 'Adm Bank',
+      sortable: false,
+      render: (_, row) => <span className="text-sm text-gray-700">{row.admin_fee > 0 ? formatCurrency(row.admin_fee) : '-'}</span>,
+    },
+    {
       key: 'net_profit',
       label: 'Laba Bersih',
       sortable: false,
@@ -185,18 +206,6 @@ export default function BankAgentTransactionsPage() {
           {row.net_profit === 0 ? '-' : formatCurrency(row.net_profit)}
         </span>
       ),
-    },
-    {
-      key: 'payment_method',
-      label: 'Metode Bayar',
-      sortable: false,
-      render: (_, row) => <span className="text-sm text-gray-700">{row.payment_method?.name || '-'}</span>,
-    },
-    {
-      key: 'creator',
-      label: 'Kasir',
-      sortable: false,
-      render: (_, row) => <span className="text-sm text-gray-700">{row.creator?.name || '-'}</span>,
     },
   ];
 
