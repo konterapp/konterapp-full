@@ -183,7 +183,19 @@ let subtotal = 0;
           : 'paid';
 
     const sale = await posTransactionRepository.runInTransaction(async (tx: Prisma.TransactionClient) => {
+      // Produk non-'barang' (digital/jasa/ppob) sengaja TIDAK punya baris
+      // stok sama sekali (lihat AppPosProduct.kind) -- jangan ikut dicek/
+      // dipotong stoknya, selalu boleh dijual selama harga & qty valid.
+      const products = await tx.appPosProduct.findMany({
+        where: { uuid: { in: items.map((item) => item.productUuid) } },
+        select: { uuid: true, kind: true },
+      });
+      const productKindByUuid = new Map(products.map((p) => [p.uuid, p.kind]));
+      const tracksStock = (productUuid: string) => (productKindByUuid.get(productUuid) ?? 'barang') === 'barang';
+
       for (const item of items) {
+        if (!tracksStock(item.productUuid)) continue;
+
         const stock = await tx.appPosProductStock.findFirst({
           where: {
             companyUuid,
@@ -242,6 +254,8 @@ let subtotal = 0;
             subtotal: item.quantity * Number(item.unit_price) - (item.discount || 0),
           },
         });
+
+        if (!tracksStock(item.productUuid)) continue;
 
         const stock = await tx.appPosProductStock.findFirst({
           where: {

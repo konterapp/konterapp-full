@@ -84,6 +84,7 @@ export function normalizeProductBody(raw: Record<string, any>) {
     wholesale_price: parseNumber(raw.wholesale_price ?? raw.wholesalePrice),
     min_stock: parseNumber(raw.min_stock ?? raw.minStock),
     unit: raw.unit,
+    kind: raw.kind,
     unit_conversions: parsedUnitConversions
       ? parsedUnitConversions
           .filter((row) => row.unit && row.factor_to_base !== undefined && row.factor_to_base !== null && row.factor_to_base !== '')
@@ -133,10 +134,11 @@ export const posProductService = {
     branchUuid: string | null;
     isActive: string | null;
     inStockOnly: string | null;
+    kind: string | null;
     sortBy: string;
     sortOrder: 'asc' | 'desc';
   }) {
-    const { page, perPage, search, categoryUuid, branchUuid, isActive, inStockOnly, sortBy, sortOrder } = params;
+    const { page, perPage, search, categoryUuid, branchUuid, isActive, inStockOnly, kind, sortBy, sortOrder } = params;
 
     const skip = (page - 1) * perPage;
     // Produk sistem (mis. "Komisi Agen Bank") disembunyikan dari listing
@@ -154,6 +156,7 @@ export const posProductService = {
     }
 
     if (categoryUuid) where.categoryUuid = categoryUuid;
+    if (kind) where.kind = kind;
 
     if (isActive !== null && isActive !== undefined && isActive !== '') {
       where.isActive = isActive === 'true' || isActive === '1';
@@ -259,6 +262,7 @@ export const posProductService = {
         wholesalePrice: payload.wholesale_price ?? 0,
         minStock: payload.min_stock ?? 0,
         unit: payload.unit || 'pcs',
+        kind: payload.kind || 'barang',
         isActive: payload.is_active ?? true,
       });
 
@@ -380,6 +384,7 @@ export const posProductService = {
         wholesalePrice: payload.wholesale_price ?? existingProduct.wholesalePrice,
         minStock: payload.min_stock ?? existingProduct.minStock,
         unit: payload.unit ?? existingProduct.unit,
+        kind: payload.kind ?? existingProduct.kind,
         isActive: payload.is_active ?? existingProduct.isActive,
       });
 

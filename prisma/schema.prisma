@@ -428,6 +428,12 @@ model AppPosProduct {
   wholesalePrice Decimal  @default(0) @map("wholesale_price") @db.Decimal(15, 2)
   minStock       Int      @default(0) @map("min_stock")
   unit           String   @default("pcs") @db.VarChar(20)
+  // Tipe produk: 'barang' (fisik, pakai stok & pembelian seperti biasa),
+  // 'digital'/'jasa' (fixed price, qty=1, tanpa stok fisik), 'ppob' (produk
+  // PPOB generasi baru -- katalog & harga tetap, dijual lewat alur Penjualan
+  // yang sama, TANPA integrasi provider di tahap ini; beda dgn Agen Bank yang
+  // variable amount tanpa qty, makanya modul terpisah bukan produk).
+  kind           String   @default("barang") @db.VarChar(20)
   isActive       Boolean  @default(true) @map("is_active")
   // Produk yg dibuat otomatis oleh sistem (mis. "Komisi Agen Bank") --
   // disembunyikan dari listing produk biasa, cuma dipakai internal supaya

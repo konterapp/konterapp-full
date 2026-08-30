@@ -152,6 +152,7 @@ CREATE TABLE "app_pos_products" (
     "wholesale_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "min_stock" INTEGER NOT NULL DEFAULT 0,
     "unit" VARCHAR(20) NOT NULL DEFAULT 'pcs',
+    "kind" VARCHAR(20) NOT NULL DEFAULT 'barang',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "is_system" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

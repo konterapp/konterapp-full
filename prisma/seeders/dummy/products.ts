@@ -17,6 +17,9 @@ type ProductSeed = {
   min_stock: number;
   is_active: boolean;
   initial_stock: number;
+  // 'barang' (default) kalau tidak diisi -- produk 'digital'/'jasa'/'ppob'
+  // sengaja tidak dapat baris AppPosProductStock (lihat AppPosProduct.kind).
+  kind?: 'barang' | 'digital' | 'jasa' | 'ppob';
 };
 
 const PRODUCTS_DATA: ProductSeed[] = [
@@ -432,6 +435,45 @@ const PRODUCTS_DATA: ProductSeed[] = [
     is_active: true,
     initial_stock: 30,
   },
+
+  // Contoh produk non-'barang' -- kind digital/jasa/ppob, sengaja tanpa
+  // stok fisik (initial_stock diabaikan, lihat seedProducts di bawah).
+  {
+    category_name: 'Pulsa & Paket Data',
+    name: 'Voucher Game Diamond 100',
+    code: 'DGT-GAME-D100',
+    description: 'Top up diamond game, dikirim via kode voucher digital',
+    selling_price: 25000,
+    unit: 'pcs',
+    min_stock: 0,
+    is_active: true,
+    initial_stock: 0,
+    kind: 'digital',
+  },
+  {
+    category_name: 'Aksesoris HP',
+    name: 'Jasa Pasang Tempered Glass',
+    code: 'JASA-PASANG-TG',
+    description: 'Jasa pemasangan tempered glass/anti gores',
+    selling_price: 10000,
+    unit: 'pcs',
+    min_stock: 0,
+    is_active: true,
+    initial_stock: 0,
+    kind: 'jasa',
+  },
+  {
+    category_name: 'Pulsa & Paket Data',
+    name: 'Token Listrik PLN 50.000',
+    code: 'PPOB-PLN-50K',
+    description: 'Token listrik prabayar PLN nominal 50.000',
+    selling_price: 52500,
+    unit: 'pcs',
+    min_stock: 0,
+    is_active: true,
+    initial_stock: 0,
+    kind: 'ppob',
+  },
 ];
 
 export async function seedProducts(prisma: PrismaClient) {
@@ -471,6 +513,8 @@ export async function seedProducts(prisma: PrismaClient) {
       where: { sku: productCode },
     });
 
+    const kind = data.kind || 'barang';
+
     const product = existing
       ? await prisma.appPosProduct.update({
           where: { sku: productCode },
@@ -484,6 +528,7 @@ export async function seedProducts(prisma: PrismaClient) {
             wholesalePrice: Math.round(data.selling_price * 0.95),
             minStock: data.min_stock,
             unit: data.unit,
+            kind,
             isActive: data.is_active,
           },
         })
@@ -500,11 +545,15 @@ export async function seedProducts(prisma: PrismaClient) {
             wholesalePrice: Math.round(data.selling_price * 0.95),
             minStock: data.min_stock,
             unit: data.unit,
+            kind,
             isActive: data.is_active,
           },
         });
 
     if (!existing) createdCount += 1;
+
+    // Produk non-'barang' sengaja tidak dapat baris stok sama sekali.
+    if (kind !== 'barang') continue;
 
     for (const branch of branches) {
       const stockValue = branch.uuid === mainBranch.uuid ? data.initial_stock : 0;

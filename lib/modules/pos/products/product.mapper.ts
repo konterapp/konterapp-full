@@ -50,6 +50,7 @@ export function mapProduct(product: any) {
     wholesale_price: Number(product.wholesalePrice ?? 0),
     min_stock: Number(product.minStock ?? 0),
     unit: product.unit,
+    kind: product.kind ?? 'barang',
     unit_conversions: unitConversions,
     branch_prices: branchPrices,
     is_active: product.isActive,

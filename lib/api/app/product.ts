@@ -1,3 +1,12 @@
+export type ProductKind = 'barang' | 'digital' | 'jasa' | 'ppob';
+
+export const PRODUCT_KIND_OPTIONS: { value: ProductKind; label: string; tracksStock: boolean }[] = [
+  { value: 'barang', label: 'Barang', tracksStock: true },
+  { value: 'digital', label: 'Digital', tracksStock: false },
+  { value: 'jasa', label: 'Jasa', tracksStock: false },
+  { value: 'ppob', label: 'PPOB', tracksStock: false },
+];
+
 export interface ProductImageData {
   uuid: string;
   url: string;
@@ -14,6 +23,7 @@ export interface Product {
   wholesale_price?: number;
   min_stock: number;
   unit: string;
+  kind: ProductKind;
   barcode?: string;
   additional_barcodes?: string[];
   unit_conversions?: {

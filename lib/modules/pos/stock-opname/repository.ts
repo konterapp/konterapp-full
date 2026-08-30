@@ -6,7 +6,9 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export const posStockOpnameRepository = {
   listProducts() {
     return prisma.appPosProduct.findMany({
-      where: { isActive: true },
+      // Stok opname cuma relevan buat produk 'barang' -- digital/jasa/ppob
+      // tidak punya stok fisik buat dihitung ulang.
+      where: { isActive: true, kind: 'barang' },
       orderBy: { name: 'asc' },
       select: { uuid: true, name: true, sku: true, unit: true },
     });
@@ -14,7 +16,7 @@ export const posStockOpnameRepository = {
 
   listProductsWithStock(branchUuid: string) {
     return prisma.appPosProduct.findMany({
-      where: { isActive: true },
+      where: { isActive: true, kind: 'barang' },
       orderBy: { name: 'asc' },
       select: {
         uuid: true,

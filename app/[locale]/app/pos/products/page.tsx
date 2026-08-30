@@ -23,12 +23,20 @@ interface Product {
   selling_price: number;
   min_stock: number;
   unit: string;
+  kind: 'barang' | 'digital' | 'jasa' | 'ppob';
   is_active: boolean;
   image?: string | null;
   total_stock?: number;
   created_at?: string;
   updated_at?: string;
 }
+
+const PRODUCT_KIND_BADGE: Record<Product['kind'], { label: string; className: string }> = {
+  barang: { label: 'Barang', className: 'bg-gray-100 text-gray-700' },
+  digital: { label: 'Digital', className: 'bg-blue-100 text-blue-700' },
+  jasa: { label: 'Jasa', className: 'bg-purple-100 text-purple-700' },
+  ppob: { label: 'PPOB', className: 'bg-amber-100 text-amber-700' },
+};
 
 export default function ProductsPage() {
   const toast = useToast();
@@ -357,6 +365,20 @@ export default function ProductsPage() {
       ),
     },
     {
+      key: 'kind',
+      label: 'Tipe',
+      sortable: false,
+      width: '7rem',
+      render: (_, row) => {
+        const badge = PRODUCT_KIND_BADGE[row.kind] || PRODUCT_KIND_BADGE.barang;
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${badge.className}`}>
+            {badge.label}
+          </span>
+        );
+      },
+    },
+    {
       key: 'selling_price',
       label: 'Harga Jual',
       sortable: true,
@@ -373,6 +395,9 @@ export default function ProductsPage() {
       sortValue: (row) => row.total_stock || 0,
       width: '8rem',
       render: (_, row) => {
+        if (row.kind !== 'barang') {
+          return <span className="text-sm text-gray-400">-</span>;
+        }
         const totalStock = row.total_stock || 0;
         const isLowStock = totalStock <= row.min_stock;
         return (

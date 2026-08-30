@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const PRODUCT_KINDS = ["barang", "digital", "jasa", "ppob"] as const;
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+const productKindSchema = z.enum(PRODUCT_KINDS, { error: "Tipe produk tidak valid" });
+
 const additionalBarcodeSchema = z
   .string()
   .min(1, "Barcode tambahan tidak boleh kosong")
@@ -28,6 +32,7 @@ export const createProductSchema = z.object({
   wholesale_price: z.number().min(0, "Harga grosir minimal 0").optional(),
   min_stock: z.number().min(0, "Minimal stok minimal 0").optional().nullable(),
   unit: z.string().max(20, "Satuan maksimal 20 karakter").optional().nullable().or(z.literal("")),
+  kind: productKindSchema.optional(),
   unit_conversions: z.array(unitConversionSchema).optional(),
   branch_prices: z.array(branchPriceSchema).optional(),
   is_active: z.boolean().optional(),
@@ -44,6 +49,7 @@ export const updateProductSchema = z.object({
   wholesale_price: z.number().min(0, "Harga grosir minimal 0").optional(),
   min_stock: z.number().min(0, "Minimal stok minimal 0").optional().nullable(),
   unit: z.string().max(20, "Satuan maksimal 20 karakter").optional().nullable().or(z.literal("")),
+  kind: productKindSchema.optional(),
   unit_conversions: z.array(unitConversionSchema).optional(),
   branch_prices: z.array(branchPriceSchema).optional(),
   is_active: z.boolean().optional(),

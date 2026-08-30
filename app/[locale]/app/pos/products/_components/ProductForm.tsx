@@ -8,6 +8,7 @@ import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import RupiahInput from '@/components/ui/RupiahInput';
 import { useToast } from '@/components/toast/ToastContainer';
+import { ProductKind, PRODUCT_KIND_OPTIONS } from '@/lib/api/app/product';
 
 interface Category {
   uuid: string;
@@ -43,6 +44,7 @@ interface ProductFormData {
   wholesale_price: number;
   min_stock: number;
   unit: string;
+  kind: ProductKind;
   unit_conversions: {
     unit: string;
     factor_to_base: string;
@@ -107,6 +109,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
     wholesale_price: 0,
     min_stock: 0,
     unit: '',
+    kind: 'barang',
     unit_conversions: createDefaultUnitConversions(),
     branch_prices: [],
     is_active: true,
@@ -185,6 +188,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           wholesale_price: Number(result.data.wholesale_price || 0),
           min_stock: Number(result.data.min_stock || 0),
           unit: result.data.unit || '',
+          kind: (result.data.kind as ProductKind) || 'barang',
           unit_conversions: Array.isArray(result.data.unit_conversions) && result.data.unit_conversions.length > 0
             ? result.data.unit_conversions.map((row: { unit?: string; factor_to_base?: number | string; is_active?: boolean }) => ({
               unit: row.unit || '',
@@ -274,6 +278,8 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
       fetchProduct();
     }
   }, [mode, productId, fetchCategories, fetchUnits, fetchBranches, fetchProduct]);
+
+  const isPhysicalGoods = formData.kind === 'barang';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -422,6 +428,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
       fd.append('wholesale_price', String(formData.wholesale_price || 0));
       fd.append('min_stock', String(formData.min_stock || 0));
       fd.append('unit', formData.unit || 'pcs');
+      fd.append('kind', formData.kind);
       fd.append(
         'unit_conversions',
         JSON.stringify(
@@ -631,6 +638,28 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
 
           <div>
+            <label htmlFor="kind" className="block text-sm font-medium text-gray-700 mb-2">
+              Tipe Produk
+            </label>
+            <select
+              id="kind"
+              name="kind"
+              value={formData.kind}
+              onChange={handleChange}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+            >
+              {PRODUCT_KIND_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {!isPhysicalGoods && (
+              <p className="mt-1 text-xs text-gray-500">Tipe ini tidak pakai stok -- selalu bisa dijual berapa pun.</p>
+            )}
+          </div>
+
+          <div>
             <label htmlFor="unit" className="block text-sm font-medium text-gray-700 mb-2">
               Satuan
             </label>
@@ -658,6 +687,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
         </div>
 
+        {isPhysicalGoods && (
         <div className="rounded-lg border border-gray-200 p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-semibold text-gray-800">Konversi Multi-Satuan (opsional)</h3>
@@ -727,6 +757,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           ))}
           <p className="text-xs text-gray-500">Contoh: 1 Dus = 12 Pcs, maka faktor ke base = 12.</p>
         </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -766,28 +797,30 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
             />
           </div>
 
-          <div>
-            <label htmlFor="min_stock" className="block text-sm font-medium text-gray-700 mb-2">
-              Stok Minimum
-            </label>
-            <input
-              type="number"
-              id="min_stock"
-              name="min_stock"
-              value={formData.min_stock}
-              onChange={handleChange}
-              min="0"
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-                fieldErrors.min_stock
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-              }`}
-              placeholder="0"
-            />
-            {fieldErrors.min_stock && (
-              <div className="mt-1 text-sm text-red-600">{fieldErrors.min_stock[0]}</div>
-            )}
-          </div>
+          {isPhysicalGoods && (
+            <div>
+              <label htmlFor="min_stock" className="block text-sm font-medium text-gray-700 mb-2">
+                Stok Minimum
+              </label>
+              <input
+                type="number"
+                id="min_stock"
+                name="min_stock"
+                value={formData.min_stock}
+                onChange={handleChange}
+                min="0"
+                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                  fieldErrors.min_stock
+                    ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                    : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+                }`}
+                placeholder="0"
+              />
+              {fieldErrors.min_stock && (
+                <div className="mt-1 text-sm text-red-600">{fieldErrors.min_stock[0]}</div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg border border-gray-200 p-4 space-y-3">

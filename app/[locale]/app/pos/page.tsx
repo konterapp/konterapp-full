@@ -192,6 +192,11 @@ export default function KasirPage() {
   const outstandingAmount = Math.max(totalAmount - paidAmount, 0);
 
   const getStockForBranch = (product: Product): number => {
+    // Produk non-'barang' (digital/jasa/ppob) sengaja tidak punya stok fisik
+    // -- selalu boleh dijual, tidak ada batas kuantitas dari stok.
+    if (product.kind && product.kind !== 'barang') {
+      return Number.MAX_SAFE_INTEGER;
+    }
     if (selectedBranch && Array.isArray(product.stocks) && product.stocks.length > 0) {
       const stock = product.stocks.find(s => s.branch_uuid === selectedBranch);
       return stock ? Number(stock.stock) : 0;
