@@ -683,9 +683,13 @@ export default function KasirPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-xs font-semibold text-[#142D52]">{formatCurrency(Number(product.selling_price))}</p>
-                            <p className={`text-[10px] ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
-                              Stok: {stock}
-                            </p>
+                            {product.kind === 'barang' ? (
+                              <p className={`text-[10px] ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                                Stok: {stock}
+                              </p>
+                            ) : (
+                              <p className="text-[10px] text-gray-400">Tanpa stok</p>
+                            )}
                           </div>
                         </button>
                       );

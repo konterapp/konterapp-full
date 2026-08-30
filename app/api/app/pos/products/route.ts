@@ -17,6 +17,7 @@ export const GET = withPermission(
     const branchUuid = searchParams.get('branch_uuid');
     const isActive = searchParams.get('is_active');
     const inStockOnly = searchParams.get('in_stock');
+    const kind = searchParams.get('kind');
     const sortBy = searchParams.get('sort_by') || 'created_at';
     const sortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc';
 
@@ -28,6 +29,7 @@ export const GET = withPermission(
       branchUuid,
       isActive,
       inStockOnly,
+      kind,
       sortBy,
       sortOrder,
     });

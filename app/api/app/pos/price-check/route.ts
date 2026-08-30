@@ -23,6 +23,7 @@ export const GET = withPermission(
       branchUuid,
       isActive: 'true',
       inStockOnly: null,
+      kind: null,
       sortBy,
       sortOrder,
     });
