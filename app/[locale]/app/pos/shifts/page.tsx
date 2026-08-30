@@ -270,14 +270,18 @@ export default function CashierShiftsPage() {
                   {item.account.name}
                   {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
                 </span>
-                <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+                <span className="font-medium text-[#142D52]">
+                  {item.group.balance === null ? 'Disembunyikan' : formatCurrency(item.group.balance)}
+                </span>
               </div>
               {item.actual_balance !== null && item.actual_balance !== undefined && (
                 <div className="flex items-center justify-between text-xs text-gray-500 mt-0.5">
                   <span>Aktual: {formatCurrency(item.actual_balance)}</span>
-                  <span className={`font-semibold ${item.variance === 0 ? 'text-gray-500' : (item.variance || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    Selisih: {formatCurrency(item.variance ?? 0)}
-                  </span>
+                  {item.variance !== null && item.variance !== undefined && (
+                    <span className={`font-semibold ${item.variance === 0 ? 'text-gray-500' : item.variance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      Selisih: {formatCurrency(item.variance)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

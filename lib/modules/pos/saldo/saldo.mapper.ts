@@ -47,7 +47,16 @@ export function mapSaldoAccount(account: any) {
   };
 }
 
-export function mapBranchSaldoLink(row: any) {
+/**
+ * `revealHidden = false` dipakai khusus alur buka/tutup shift utk viewer yg
+ * TIDAK punya pos.saldo.view-real-balance (default: Kasir) -- akun yg
+ * ditandai show_in_shift=false nominalnya di-null-kan (bukan barisnya yg
+ * disembunyikan, cuma angkanya) supaya kasir blind-count, bukan salin
+ * angka sistem. Administrator (isFullAccess) selalu revealHidden=true.
+ */
+export function mapBranchSaldoLink(row: any, revealHidden: boolean = true) {
+  const isHidden = !revealHidden && row.saldoAccount?.showInShift === false;
+
   return {
     account: {
       uuid: row.saldoAccount?.uuid,
@@ -59,7 +68,7 @@ export function mapBranchSaldoLink(row: any) {
     group: {
       uuid: row.saldoAccountBalance?.uuid,
       name: row.saldoAccountBalance?.name ?? null,
-      balance: Number(row.saldoAccountBalance?.balance ?? 0),
+      balance: isHidden ? null : Number(row.saldoAccountBalance?.balance ?? 0),
       account_number: row.saldoAccountBalance?.accountNumber ?? null,
       account_name: row.saldoAccountBalance?.accountName ?? null,
     },

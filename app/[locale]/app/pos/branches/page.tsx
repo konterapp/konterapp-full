@@ -369,7 +369,7 @@ export default function BranchesPage() {
                           </div>
                         )}
                       </div>
-                      <div className="text-sm font-bold text-[#142D52] whitespace-nowrap">{formatCurrency(item.group.balance)}</div>
+                      <div className="text-sm font-bold text-[#142D52] whitespace-nowrap">{formatCurrency(item.group.balance ?? 0)}</div>
                     </div>
                   ))}
 

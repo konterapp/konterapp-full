@@ -183,14 +183,11 @@ export const posSaldoRepository = {
    * bisa lihat nominal saldo cabang itu tanpa perlu buka tiap akun saldo
    * satu-satu.
    */
-  findLinksForBranchWithDetails(branchUuid: string, options?: { onlyShowInShift?: boolean }) {
+  findLinksForBranchWithDetails(branchUuid: string) {
     return prisma.appPosSaldoAccountBalanceBranch.findMany({
-      where: {
-        branchUuid,
-        ...(options?.onlyShowInShift ? { saldoAccount: { showInShift: true } } : {}),
-      },
+      where: { branchUuid },
       include: {
-        saldoAccount: { select: { uuid: true, code: true, name: true, type: true, isPaymentMethod: true } },
+        saldoAccount: { select: { uuid: true, code: true, name: true, type: true, isPaymentMethod: true, showInShift: true } },
         saldoAccountBalance: { select: { uuid: true, name: true, balance: true, accountNumber: true, accountName: true } },
       },
       orderBy: [{ saldoAccount: { sortOrder: 'asc' } }, { saldoAccount: { code: 'asc' } }],

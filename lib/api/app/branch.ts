@@ -79,7 +79,10 @@ export interface BranchSaldoItem {
   group: {
     uuid: string;
     name: string | null;
-    balance: number;
+    // null = disembunyikan dari viewer ini (akun show_in_shift=false &
+    // viewer tidak punya permission pos.saldo.view-real-balance, mis.
+    // Kasir) -- BUKAN saldo Rp0. Administrator selalu lihat angka asli.
+    balance: number | null;
     account_number: string | null;
     account_name: string | null;
   };

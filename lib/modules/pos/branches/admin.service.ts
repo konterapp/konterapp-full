@@ -83,15 +83,21 @@ export const posBranchService = {
     return mapBranch(branch);
   },
 
-  async getBranchSaldo(uuid: string, options?: { onlyShowInShift?: boolean }) {
+  /**
+   * `revealHidden = false` -- utk alur buka/tutup shift saat viewer TIDAK
+   * punya pos.saldo.view-real-balance (lihat mapBranchSaldoLink). Default
+   * true supaya pemanggil lain (mis. halaman Cabang admin) tidak terdampak.
+   */
+  async getBranchSaldo(uuid: string, options?: { revealHidden?: boolean }) {
     const branch = await posBranchRepository.findByUuid(uuid);
     if (!branch) {
       throw new ApiError('Branch not found', 404);
     }
 
-    const links = await posSaldoRepository.findLinksForBranchWithDetails(uuid, options);
-    const items = links.map(mapBranchSaldoLink);
-    const totalBalance = items.reduce((sum, item) => sum + item.group.balance, 0);
+    const revealHidden = options?.revealHidden ?? true;
+    const links = await posSaldoRepository.findLinksForBranchWithDetails(uuid);
+    const items = links.map((link) => mapBranchSaldoLink(link, revealHidden));
+    const totalBalance = items.reduce((sum, item) => sum + (item.group.balance ?? 0), 0);
 
     return {
       branch: mapBranch(branch),

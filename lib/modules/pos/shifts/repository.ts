@@ -8,7 +8,7 @@ const shiftInclude = {
   user: { select: { id: true, uuid: true, name: true, email: true } },
   saldoSnapshots: {
     include: {
-      saldoAccount: { select: { uuid: true, code: true, name: true, type: true } },
+      saldoAccount: { select: { uuid: true, code: true, name: true, type: true, showInShift: true } },
       saldoAccountBalance: { select: { uuid: true, name: true } },
     },
   },

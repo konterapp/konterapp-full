@@ -76,7 +76,9 @@ export default function BranchSaldoActualList({
               const key = item.group.uuid;
               const rawActual = actualBalances[key] ?? '';
               const actualNumber = rawActual.trim() === '' ? null : Number(rawActual);
-              const variance = actualNumber !== null && !Number.isNaN(actualNumber) ? actualNumber - item.group.balance : null;
+              const isHidden = item.group.balance === null;
+              const variance =
+                !isHidden && actualNumber !== null && !Number.isNaN(actualNumber) ? actualNumber - (item.group.balance as number) : null;
               const varianceStyle =
                 variance === null
                   ? 'text-gray-300'
@@ -91,7 +93,7 @@ export default function BranchSaldoActualList({
                   <td className="border-b border-gray-100 py-2.5 pr-1">
                     <p className="font-medium text-gray-800 truncate">{item.account.name}</p>
                     <p className="text-xs text-gray-400 truncate">
-                      Sistem {formatCurrency(item.group.balance)}
+                      {isHidden ? 'Sistem disembunyikan' : `Sistem ${formatCurrency(item.group.balance as number)}`}
                       {item.group.name ? ` · ${item.group.name}` : ''}
                     </p>
                   </td>
@@ -108,7 +110,7 @@ export default function BranchSaldoActualList({
                     </div>
                   </td>
                   <td className={`border-b border-gray-100 py-2.5 pl-1 text-right text-xs font-semibold ${varianceStyle}`}>
-                    {variance === null ? '-' : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`}
+                    {isHidden ? '•••' : variance === null ? '-' : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`}
                   </td>
                 </tr>
               );
@@ -119,6 +121,13 @@ export default function BranchSaldoActualList({
                 {formatCurrency(totalBalance)}
               </td>
             </tr>
+            {items.some((item) => item.group.balance === null) && (
+              <tr>
+                <td colSpan={3} className="pt-1 text-right text-[11px] italic text-gray-400">
+                  Total belum termasuk akun yang disembunyikan
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

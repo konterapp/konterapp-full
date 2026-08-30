@@ -61,6 +61,14 @@ export const PERMISSIONS = [
   // default supaya bisa setor uang tunai yang diterima dari pemilik tanpa
   // punya akses kelola akun saldo.
   "pos.saldo.adjust",
+  // Lihat nominal saldo ASLI + Selisih saat buka/tutup shift, khusus utk
+  // akun yg ditandai show_in_shift=false. Administrator dapat otomatis
+  // (isFullAccess), Kasir default TIDAK dapat -- tujuannya blind-count:
+  // kasir input hasil hitung fisik tanpa lihat angka sistem, supaya tidak
+  // sekadar salin balik angka yg sama (anti-kecurangan). Kalau akun
+  // show_in_shift=true, permission ini tidak relevan (semua orang tetap
+  // lihat nominalnya seperti biasa).
+  "pos.saldo.view-real-balance",
   // POS - Branch
   "pos.branch.index",
   "pos.branch.create",

@@ -4,6 +4,14 @@ import { posShiftRepository } from './repository';
 import { mapActiveShiftWithLiveTotals, mapShift } from './shift.mapper';
 import { appUserRepository } from '@/lib/modules/users/app.repository';
 import { posBranchService } from '@/lib/modules/pos/branches/admin.service';
+import { getUserPermissions, hasPermission } from '@/lib/permissions';
+
+const VIEW_REAL_BALANCE_PERMISSION = 'pos.saldo.view-real-balance';
+
+async function canRevealRealBalance(userId: number, companyUuid: string) {
+  const permissions = await getUserPermissions(userId, companyUuid);
+  return hasPermission(permissions, VIEW_REAL_BALANCE_PERMISSION);
+}
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -13,7 +21,10 @@ function toNumber(value: unknown): number {
 
 interface SaldoLinkItem {
   account: { uuid: string };
-  group: { uuid: string; balance: number };
+  // Nullable krn tipe balik getBranchSaldo dukung masking -- di titik
+  // pemakaian fungsi ini SELALU dipanggil dgn revealHidden: true (nilai
+  // asli utk disimpan), jadi null cuma teoretis, ditangani via `?? 0`.
+  group: { uuid: string; balance: number | null };
 }
 
 /**
@@ -35,9 +46,10 @@ function buildSaldoSnapshotRows(params: {
   const { companyUuid, shiftUuid, phase, saldo, actualBalances } = params;
 
   return saldo.data.map((item) => {
+    const balance = item.group.balance ?? 0;
     const rawActual = actualBalances?.[item.group.uuid];
     const hasActual = typeof rawActual === 'number' && !Number.isNaN(rawActual);
-    const variance = hasActual ? Number((rawActual - item.group.balance).toFixed(2)) : null;
+    const variance = hasActual ? Number((rawActual - balance).toFixed(2)) : null;
 
     return {
       companyUuid,
@@ -45,7 +57,7 @@ function buildSaldoSnapshotRows(params: {
       phase,
       saldoAccountUuid: item.account.uuid,
       saldoAccountBalanceUuid: item.group.uuid,
-      balance: item.group.balance,
+      balance,
       actualBalance: hasActual ? rawActual : null,
       variance,
     };
@@ -91,12 +103,13 @@ export const posShiftService = {
 
     const orderBy = sortMap[sortBy] || sortMap.opened_at;
 
-    const [rows, total, branchOptions, openCounts, activeShift] = await Promise.all([
+    const [rows, total, branchOptions, openCounts, activeShift, canReveal] = await Promise.all([
       posShiftRepository.findMany({ where, skip, take: perPage, orderBy }),
       posShiftRepository.count(where),
       posBranchService.listBranchOptions(companyUuid, userId),
       posShiftRepository.countOpenGroupedByBranch(),
       posShiftRepository.findOpenByUser(userId),
+      canRevealRealBalance(userId, companyUuid),
     ]);
 
     const openCountByBranch = new Map(openCounts.map((row) => [row.branchUuid, row._count._all]));
@@ -118,13 +131,11 @@ export const posShiftService = {
 
       const currentTotalSales = toNumber(salesAgg._sum.totalAmount);
 
-      activeShiftMapped = mapActiveShiftWithLiveTotals(activeShift, {
-        currentTotalSales,
-      });
+      activeShiftMapped = mapActiveShiftWithLiveTotals(activeShift, { currentTotalSales }, canReveal);
     }
 
     return {
-      data: rows.map(mapShift),
+      data: rows.map((row) => mapShift(row, canReveal)),
       active_shift: activeShiftMapped,
       filters: {
         branches,
@@ -172,8 +183,12 @@ export const posShiftService = {
     // Snapshot saldo cabang PADA SAAT INI -- direkam sekali & disimpan
     // permanen di baris shift, bukan di-query ulang tiap kali riwayat shift
     // dibuka (kalau live, semua baris riwayat di cabang yang sama bakal
-    // kelihatan sama persis, percuma buat rekonsiliasi per shift).
-    const openingSaldo = await posBranchService.getBranchSaldo(payload.branchUuid, { onlyShowInShift: true });
+    // kelihatan sama persis, percuma buat rekonsiliasi per shift). Selalu
+    // ambil nilai ASLI (revealHidden: true) -- masking utk kasir cuma
+    // berlaku saat DITAMPILKAN (lihat mapShift di bawah), bukan saat
+    // disimpan (histori tetap perlu akurat buat admin).
+    const openingSaldo = await posBranchService.getBranchSaldo(payload.branchUuid, { revealHidden: true });
+    const canReveal = await canRevealRealBalance(userId, branch.companyUuid);
 
     const shift = await posShiftRepository.runInTransaction(async (tx) => {
       const created = await posShiftRepository.createInTx(tx, {
@@ -198,7 +213,7 @@ export const posShiftService = {
       return posShiftRepository.findByUuidInTx(tx, created.uuid);
     });
 
-    return mapShift(shift);
+    return mapShift(shift, canReveal);
   },
 
   async closeShift(
@@ -228,7 +243,8 @@ export const posShiftService = {
 
     const totalSales = toNumber(salesAgg._sum.totalAmount);
 
-    const closingSaldo = await posBranchService.getBranchSaldo(existing.branchUuid, { onlyShowInShift: true });
+    const closingSaldo = await posBranchService.getBranchSaldo(existing.branchUuid, { revealHidden: true });
+    const canReveal = await canRevealRealBalance(userId, existing.companyUuid);
 
     const updated = await posShiftRepository.runInTransaction(async (tx) => {
       const closed = await posShiftRepository.updateByUuidInTx(tx, shiftUuid, {
@@ -250,7 +266,7 @@ export const posShiftService = {
       return posShiftRepository.findByUuidInTx(tx, closed.uuid);
     });
 
-    return mapShift(updated);
+    return mapShift(updated, canReveal);
   },
 
   async getBranchSaldoForShift(branchUuid: string, userId: number) {
@@ -264,6 +280,7 @@ export const posShiftService = {
       throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
-    return posBranchService.getBranchSaldo(branchUuid, { onlyShowInShift: true });
+    const canReveal = await canRevealRealBalance(userId, branch.companyUuid);
+    return posBranchService.getBranchSaldo(branchUuid, { revealHidden: canReveal });
   },
 };

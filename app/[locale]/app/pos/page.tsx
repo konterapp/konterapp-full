@@ -537,7 +537,7 @@ export default function KasirPage() {
         </div>
       ) : !activeShift ? (
         <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
-          <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
             <div className="text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EBC170]/20">
                 <ShoppingCart className="h-7 w-7 text-[#c99a3f]" />

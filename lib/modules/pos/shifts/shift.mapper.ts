@@ -8,6 +8,7 @@ type SnapshotRow = {
     code: string;
     name: string;
     type: string;
+    showInShift: boolean;
   } | null;
   saldoAccountBalance: {
     uuid: string;
@@ -50,8 +51,14 @@ function toNullableNumber(value: unknown): number | null {
   return Number(value);
 }
 
-/** Rakit baris snapshot 1 fase (opening/closing) jadi bentuk yg dipakai frontend. */
-function buildSaldoSnapshotGroup(rows: SnapshotRow[] | undefined, phase: string) {
+/**
+ * Rakit baris snapshot 1 fase (opening/closing) jadi bentuk yg dipakai
+ * frontend. `revealHidden = false` (viewer tanpa pos.saldo.view-real-balance,
+ * default Kasir) -- akun show_in_shift=false di-null-kan balance/variance-nya
+ * (barisnya tetap ada, cuma angkanya disembunyikan) & tidak ikut dihitung ke
+ * total_balance/total_variance supaya tidak bisa ditebak via pengurangan.
+ */
+function buildSaldoSnapshotGroup(rows: SnapshotRow[] | undefined, phase: string, revealHidden: boolean) {
   const filtered = (rows || []).filter((row) => row.phase === phase);
   if (filtered.length === 0) return null;
 
@@ -60,13 +67,15 @@ function buildSaldoSnapshotGroup(rows: SnapshotRow[] | undefined, phase: string)
   let hasAnyActual = false;
 
   const data = filtered.map((row) => {
-    const balance = toNumber(row.balance);
+    const isHidden = !revealHidden && row.saldoAccount?.showInShift === false;
+    const balance = isHidden ? null : toNumber(row.balance);
     const actualBalance = toNullableNumber(row.actualBalance);
-    const variance = toNullableNumber(row.variance);
-    totalBalance += balance;
-    if (actualBalance !== null) {
+    const variance = isHidden ? null : toNullableNumber(row.variance);
+
+    if (balance !== null) totalBalance += balance;
+    if (variance !== null && actualBalance !== null) {
       hasAnyActual = true;
-      totalVariance += variance ?? 0;
+      totalVariance += variance;
     }
 
     return {
@@ -97,7 +106,7 @@ function buildSaldoSnapshotGroup(rows: SnapshotRow[] | undefined, phase: string)
   };
 }
 
-export function mapShift(shift: ShiftRow) {
+export function mapShift(shift: ShiftRow, revealHidden: boolean = true) {
   return {
     uuid: shift.uuid,
     status: shift.status,
@@ -106,8 +115,8 @@ export function mapShift(shift: ShiftRow) {
     total_sales: toNumber(shift.totalSales),
     notes_open: shift.notesOpen,
     notes_close: shift.notesClose,
-    opening_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'opening'),
-    closing_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'closing'),
+    opening_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'opening', revealHidden),
+    closing_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'closing', revealHidden),
     created_at: shift.createdAt,
     updated_at: shift.updatedAt,
     branch: shift.branch
@@ -130,9 +139,10 @@ export function mapShift(shift: ShiftRow) {
 
 export function mapActiveShiftWithLiveTotals(
   shift: ShiftRow,
-  params: { currentTotalSales: number }
+  params: { currentTotalSales: number },
+  revealHidden: boolean = true
 ) {
-  const mapped = mapShift(shift);
+  const mapped = mapShift(shift, revealHidden);
   return {
     ...mapped,
     current_total_sales: params.currentTotalSales,
