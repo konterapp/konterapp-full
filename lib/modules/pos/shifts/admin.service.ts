@@ -187,6 +187,6 @@ export const posShiftService = {
       throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
-    return posBranchService.getBranchSaldo(branchUuid);
+    return posBranchService.getBranchSaldo(branchUuid, { onlyShowInShift: true });
   },
 };

@@ -18,6 +18,8 @@ vi.mock('./repository', () => ({
     findBalanceWithAccount: vi.fn(),
     findBranchLink: vi.fn(),
     listActiveAccountUuids: vi.fn(),
+    findAllOrderedForReorder: vi.fn(),
+    updateSortOrderInTx: vi.fn(),
     createBalanceGroupInTx: vi.fn(),
     reassignBranchesInTx: vi.fn(),
     deleteBalanceByUuid: vi.fn(),
@@ -71,6 +73,7 @@ function fullAccount(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSaldoRepo.runInTransaction.mockImplementation((cb: (tx: unknown) => Promise<unknown>) => cb(mockTx));
+  mockSaldoRepo.findAllOrderedForReorder.mockResolvedValue([]);
 });
 
 describe('posSaldoService.createAccount', () => {

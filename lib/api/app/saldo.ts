@@ -25,6 +25,8 @@ export interface SaldoAccount {
   balances?: SaldoBalanceGroup[];
   is_payment_method: boolean;
   is_active: boolean;
+  show_in_shift: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +44,23 @@ export interface SaldoMutation {
   branch: { uuid: string; name: string; code: string } | null;
   creator: { id: number; name: string } | null;
   created_at: string;
+}
+
+export interface PaymentMethodOption {
+  uuid: string;
+  code: string;
+  name: string;
+  type: string;
+}
+
+/**
+ * Khusus buat halaman Kasir pilih metode bayar -- cukup permission
+ * pos.sale.create (dimiliki role Kasir), bukan pos.saldo.index (permission
+ * kelola menu Saldo yang sengaja tidak diberikan ke Kasir default).
+ */
+export async function getPaymentMethodOptions(): Promise<{ status: string; data: PaymentMethodOption[] }> {
+  const response = await fetch('/api/app/pos/saldo/payment-methods');
+  return response.json();
 }
 
 export async function getAllSaldoAccounts(params?: { isPaymentMethod?: boolean }): Promise<{ status: string; data: { data: SaldoAccount[] } }> {
@@ -64,6 +83,8 @@ export async function createSaldoAccount(data: {
   description?: string;
   is_payment_method?: boolean;
   is_active?: boolean;
+  show_in_shift?: boolean;
+  sort_order?: number;
   opening_balance?: number;
 }): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
   const response = await fetch('/api/app/pos/saldo', {
@@ -83,12 +104,26 @@ export async function updateSaldoAccount(
     description?: string;
     is_payment_method?: boolean;
     is_active?: boolean;
+    show_in_shift?: boolean;
+    sort_order?: number;
   }
 ): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
   const response = await fetch(`/api/app/pos/saldo/${uuid}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function moveSaldoAccount(
+  uuid: string,
+  direction: 'up' | 'down'
+): Promise<{ status: string; message?: string }> {
+  const response = await fetch(`/api/app/pos/saldo/${uuid}/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction }),
   });
   return response.json();
 }

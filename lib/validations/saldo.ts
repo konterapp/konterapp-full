@@ -11,6 +11,8 @@ export const createSaldoAccountSchema = z.object({
   description: z.string().optional().nullable().or(z.literal("")),
   isPaymentMethod: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  showInShift: z.boolean().optional(),
+  sortOrder: z.coerce.number().int("Urutan wajib bilangan bulat").optional(),
   openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
 });
 
@@ -39,6 +41,10 @@ export const updateSaldoBalanceGroupSchema = z.object({
   accountNumber: z.string().max(100, "No. rekening maksimal 100 karakter").optional().nullable().or(z.literal("")),
   accountName: z.string().max(100, "Nama akun maksimal 100 karakter").optional().nullable().or(z.literal("")),
   branchUuids: z.array(z.string({ error: "Cabang tidak valid" }).min(1, "Cabang tidak valid")).optional().default([]),
+});
+
+export const moveSaldoAccountSchema = z.object({
+  direction: z.enum(["up", "down"], { error: "Arah urutan wajib dipilih" }),
 });
 
 export const adjustSaldoSchema = z.object({

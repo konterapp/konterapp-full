@@ -13,6 +13,16 @@ ALTER INDEX "app_pos_payment_methods_company_uuid_code_key" RENAME TO "app_pos_s
 -- baris AppPosSaldoAccountBalance (per kelompok cabang) di bawah.
 ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "is_payment_method" BOOLEAN NOT NULL DEFAULT true;
 
+-- AlterTable: penanda apakah akun ini ditampilkan di ringkasan saldo saat
+-- kasir buka/tutup shift (halaman /app/pos). Akun tetap kelihatan penuh di
+-- menu Saldo -- ini cuma nyembunyikan dari ringkasan shift buat akun yang
+-- tidak relevan buat kasir (mis. saldo deposit PPOB internal).
+ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "show_in_shift" BOOLEAN NOT NULL DEFAULT true;
+
+-- AlterTable: urutan tampil manual (dipakai buat urutkan tombol metode
+-- bayar di halaman Kasir & daftar akun saldo -- supaya tidak acak-acakan).
+ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "sort_order" INTEGER NOT NULL DEFAULT 0;
+
 -- AlterTable: account_number/account_name (warisan dari app_pos_payment_methods
 -- lewat rename di atas) pindah ke level baris balance per kelompok cabang --
 -- 1 akun induk bisa punya beberapa grup dengan nomor rekening berbeda-beda.

@@ -46,6 +46,33 @@ export const posSaldoRepository = {
     return prisma.appPosSaldoAccount.findFirst({ where: { companyUuid, code } });
   },
 
+  /**
+   * Dipakai kasir buat pilih metode bayar di halaman transaksi -- cuma
+   * field minimal (bukan saldo/balance), jadi bisa dilayani tanpa
+   * permission pos.saldo.index (yang itu buat kelola menu Saldo, bukan
+   * sekadar pilih metode bayar saat jualan).
+   */
+  listPaymentMethodOptions() {
+    return prisma.appPosSaldoAccount.findMany({
+      where: { isPaymentMethod: true, isActive: true },
+      select: { uuid: true, code: true, name: true, type: true },
+      orderBy: [{ sortOrder: 'asc' }, { code: 'asc' }],
+    });
+  },
+
+  /** Urutan lengkap 1 company buat kebutuhan geser urutan (naik/turun). */
+  findAllOrderedForReorder(companyUuid: string) {
+    return prisma.appPosSaldoAccount.findMany({
+      where: { companyUuid },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { uuid: true, sortOrder: true },
+    });
+  },
+
+  updateSortOrderInTx(tx: Prisma.TransactionClient, uuid: string, sortOrder: number) {
+    return tx.appPosSaldoAccount.update({ where: { uuid }, data: { sortOrder } });
+  },
+
   create(data: {
     companyUuid: string;
     code: string;
@@ -54,6 +81,8 @@ export const posSaldoRepository = {
     description: string | null;
     isPaymentMethod: boolean;
     isActive: boolean;
+    showInShift: boolean;
+    sortOrder: number;
   }, tx?: Prisma.TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccount.create({ data });
@@ -125,14 +154,17 @@ export const posSaldoRepository = {
    * bisa lihat nominal saldo cabang itu tanpa perlu buka tiap akun saldo
    * satu-satu.
    */
-  findLinksForBranchWithDetails(branchUuid: string) {
+  findLinksForBranchWithDetails(branchUuid: string, options?: { onlyShowInShift?: boolean }) {
     return prisma.appPosSaldoAccountBalanceBranch.findMany({
-      where: { branchUuid },
+      where: {
+        branchUuid,
+        ...(options?.onlyShowInShift ? { saldoAccount: { showInShift: true } } : {}),
+      },
       include: {
         saldoAccount: { select: { uuid: true, code: true, name: true, type: true, isPaymentMethod: true } },
         saldoAccountBalance: { select: { uuid: true, name: true, balance: true, accountNumber: true, accountName: true } },
       },
-      orderBy: { saldoAccount: { code: 'asc' } },
+      orderBy: [{ saldoAccount: { sortOrder: 'asc' } }, { saldoAccount: { code: 'asc' } }],
     });
   },
 

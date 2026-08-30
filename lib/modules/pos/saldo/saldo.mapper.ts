@@ -14,6 +14,15 @@ export function mapSaldoBalanceGroup(row: any) {
   };
 }
 
+export function mapPaymentMethodOption(account: { uuid: string; code: string; name: string; type: string }) {
+  return {
+    uuid: account.uuid,
+    code: account.code,
+    name: account.name,
+    type: account.type,
+  };
+}
+
 export function mapSaldoAccount(account: any) {
   const balanceRows = account.balances ?? [];
   const totalBalance = balanceRows.reduce((total: number, row: any) => total + Number(row.balance), 0);
@@ -30,6 +39,8 @@ export function mapSaldoAccount(account: any) {
     balances: account.balances ? balanceRows.map(mapSaldoBalanceGroup) : undefined,
     is_payment_method: account.isPaymentMethod,
     is_active: account.isActive,
+    show_in_shift: account.showInShift,
+    sort_order: account.sortOrder,
     created_at: account.createdAt,
     updated_at: account.updatedAt,
   };

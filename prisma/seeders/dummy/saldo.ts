@@ -29,6 +29,8 @@ interface SaldoAccountSeed {
   type: string;
   description: string;
   isPaymentMethod: boolean;
+  /** Default true kalau tidak diisi -- tampil di ringkasan saldo saat buka/tutup shift. */
+  showInShift?: boolean;
   groups: BalanceGroupSeed[];
 }
 
@@ -104,6 +106,9 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     type: "other",
     description: "Saldo deposit provider PPOB (bukan metode bayar customer)",
     isPaymentMethod: false,
+    // Contoh dummy fitur hide: saldo internal ini tidak relevan buat kasir
+    // lihat saat buka/tutup shift, jadi disembunyikan dari ringkasan itu.
+    showInShift: false,
     groups: [{ branchCodes: ["CB001"], openingBalance: 1000000 }],
   },
 ];
@@ -128,7 +133,7 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
 
   let createdCount = 0;
 
-  for (const data of SALDO_ACCOUNTS_DATA) {
+  for (const [sortOrder, data] of SALDO_ACCOUNTS_DATA.entries()) {
     const existing = await prisma.appPosSaldoAccount.findUnique({
       where: { companyUuid_code: { companyUuid, code: data.code } },
     });
@@ -145,6 +150,8 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
           description: data.description,
           isPaymentMethod: data.isPaymentMethod,
           isActive: true,
+          showInShift: data.showInShift ?? true,
+          sortOrder,
         },
       });
 

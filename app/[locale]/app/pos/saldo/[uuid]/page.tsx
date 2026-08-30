@@ -21,7 +21,6 @@ import {
 } from '@/lib/api/app/saldo';
 
 const groupLabel = (group: SaldoBalanceGroup, index: number) => group.name || `Grup ${index + 1}`;
-import SaldoAccountForm from '../_components/SaldoAccountForm';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -52,12 +51,10 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
   const [account, setAccount] = useState<SaldoAccount | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   const [balanceGroups, setBalanceGroups] = useState<SaldoBalanceGroup[]>([]);
 
   const [branchOptions, setBranchOptions] = useState<BranchOption[]>([]);
-  const [linkedFilter, setLinkedFilter] = useState<Set<string>>(new Set());
   const [addOpen, setAddOpen] = useState(false);
   const [addName, setAddName] = useState('');
   const [addAccountNumber, setAddAccountNumber] = useState('');
@@ -200,7 +197,6 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
   };
 
   const openAddModal = () => {
-    const linkedBranchUuids = new Set(balanceGroups.flatMap(group => group.branches.map(b => b.uuid)));
     setAddName('');
     setAddAccountNumber('');
     setAddAccountName('');
@@ -209,13 +205,8 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
     setAddNotes('');
     setAddError('');
     setAddFieldErrors({});
-    // Cabang yang sudah masuk grup lain tidak boleh dipilih lagi (unique
-    // per akun induk), jadi sembunyikan dari daftar.
-    setLinkedFilter(linkedBranchUuids);
     setAddOpen(true);
   };
-
-  const availableBranchOptions = branchOptions.filter(b => !linkedFilter.has(b.uuid));
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,11 +263,11 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
     setEditFieldErrors({});
   };
 
-  // Cabang yang saat ini masuk grup LAIN (bukan grup yang sedang diedit) --
-  // dipilih di form edit tetap boleh, tapi otomatis pindah dari grup asalnya.
-  const findOtherGroupOwning = (branchUuid: string): SaldoBalanceGroup | null => {
-    if (!editTarget) return null;
-    return balanceGroups.find(g => g.uuid !== editTarget.uuid && g.branches.some(b => b.uuid === branchUuid)) || null;
+  // Cabang yang saat ini masuk grup LAIN (bukan grup yang sedang diedit,
+  // atau grup mana pun kalau ini buat modal Tambah) -- tetap boleh dipilih,
+  // backend (reassignBranchesInTx) otomatis pindahkan dari grup asalnya.
+  const findOtherGroupOwning = (branchUuid: string, excludeGroupUuid?: string): SaldoBalanceGroup | null => {
+    return balanceGroups.find(g => g.uuid !== excludeGroupUuid && g.branches.some(b => b.uuid === branchUuid)) || null;
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -350,21 +341,6 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
     );
   }
 
-  if (isEditing) {
-    return (
-      <div className="space-y-6">
-        <button
-          onClick={() => setIsEditing(false)}
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Kembali ke Detail Saldo</span>
-        </button>
-        <SaldoAccountForm mode="edit" saldoUuid={uuid} />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -373,9 +349,11 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
           <span>Kembali ke Daftar Saldo</span>
         </Link>
         {hasPermission('pos.saldo.update') && (
-          <Button variant="light" icon={Pencil} onClick={() => setIsEditing(true)}>
-            Edit
-          </Button>
+          <Link href={`/app/pos/saldo/${uuid}/edit`}>
+            <Button variant="light" icon={Pencil}>
+              Edit
+            </Button>
+          </Link>
         )}
       </div>
 
@@ -628,11 +606,12 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Cabang <span className="text-red-500">*</span></label>
-                {availableBranchOptions.length === 0 ? (
-                  <div className="text-sm text-gray-400 italic py-2">Semua cabang sudah punya grup balance untuk akun ini</div>
-                ) : (
-                  <div className="space-y-2">
-                    {availableBranchOptions.map(branch => (
+                <p className="text-xs text-gray-500 mb-2">Cabang yang masih ada di grup lain akan dipindahkan ke grup baru ini.</p>
+                <div className="space-y-2">
+                  {branchOptions.map(branch => {
+                    const otherOwner = findOtherGroupOwning(branch.uuid);
+                    const otherOwnerIndex = otherOwner ? balanceGroups.findIndex(g => g.uuid === otherOwner.uuid) : -1;
+                    return (
                       <label key={branch.uuid} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                         <input
                           type="checkbox"
@@ -642,10 +621,13 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
                         />
                         <span>{branch.name}</span>
                         <span className="text-xs text-gray-400 font-mono">{branch.code}</span>
+                        {otherOwner && (
+                          <span className="text-xs text-amber-600">(saat ini di {groupLabel(otherOwner, otherOwnerIndex)})</span>
+                        )}
                       </label>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
                 {addFieldErrors.branch_uuids && <div className="mt-1 text-sm text-red-600">{addFieldErrors.branch_uuids[0]}</div>}
               </div>
 
@@ -699,7 +681,6 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[85vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Edit Grup Balance</h3>
-              <p className="text-sm text-gray-500 mt-1">Cabang yang masih ada di grup lain akan dipindahkan ke grup ini. Cabang yang di-uncheck akan dilepas dari grup ini.</p>
             </div>
             <form onSubmit={handleEditSubmit} className="px-6 py-4 space-y-4">
               {editError && <Alert variant="error" message={editError} />}
@@ -749,9 +730,10 @@ export default function SaldoAccountDetailPage({ params }: { params: Promise<{ u
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Cabang</label>
+                <p className="text-xs text-gray-500 mb-2">Cabang yang masih ada di grup lain akan dipindahkan ke grup ini. Cabang yang di-uncheck akan dilepas dari grup ini.</p>
                 <div className="space-y-2">
                   {branchOptions.map(branch => {
-                    const otherOwner = findOtherGroupOwning(branch.uuid);
+                    const otherOwner = findOtherGroupOwning(branch.uuid, editTarget?.uuid);
                     const otherOwnerIndex = otherOwner ? balanceGroups.findIndex(g => g.uuid === otherOwner.uuid) : -1;
                     return (
                       <label key={branch.uuid} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

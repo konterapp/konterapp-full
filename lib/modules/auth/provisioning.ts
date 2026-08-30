@@ -84,7 +84,7 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
     },
   });
 
-  for (const saldo of TENANT_DEFAULT_SALDO_ACCOUNTS) {
+  for (const [sortOrder, saldo] of TENANT_DEFAULT_SALDO_ACCOUNTS.entries()) {
     const account = await tx.appPosSaldoAccount.create({
       data: {
         uuid: uuidv7(),
@@ -94,6 +94,7 @@ async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: str
         type: saldo.type,
         isPaymentMethod: true,
         isActive: true,
+        sortOrder,
       },
     });
 

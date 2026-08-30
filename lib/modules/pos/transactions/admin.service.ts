@@ -281,13 +281,20 @@ let subtotal = 0;
         });
       }
 
-      if (finalPaidAmount > 0) {
+      // Yang benar-benar nambah saldo/laci cuma nominal bayar DIKURANGI
+      // kembalian -- bukan nominal bayar mentah. Kalau bayar 20.000 buat
+      // transaksi 5.000, kembalian 15.000 diserahkan balik ke customer,
+      // jadi uang yang nyantol cuma 5.000 (== totalAmount). Kalau bayar
+      // sebagian (finalPaidAmount < totalAmount), tidak ada kembalian, jadi
+      // yang masuk ya sebesar yang dibayar.
+      const netCashIn = finalPaidAmount - changeAmount;
+      if (netCashIn > 0) {
         await posSaldoRepository.applyMutationInTx(tx, {
           saldoAccountBalanceUuid: saldoBranchLink.saldoAccountBalanceUuid,
           companyUuid,
           branchUuid,
           direction: 'in',
-          amount: finalPaidAmount,
+          amount: netCashIn,
           referenceType: 'sale',
           referenceUuid: createdSale.uuid,
           notes: `Penjualan ${saleNumber}`,

@@ -24,6 +24,8 @@ export const PUT = withPermission(
       ...rawBody,
       isPaymentMethod: rawBody.isPaymentMethod ?? rawBody.is_payment_method,
       isActive: rawBody.isActive ?? rawBody.is_active,
+      showInShift: rawBody.showInShift ?? rawBody.show_in_shift,
+      sortOrder: rawBody.sortOrder ?? rawBody.sort_order,
     };
 
     const result = validateSchema(updateSaldoAccountSchema, body);

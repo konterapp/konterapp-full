@@ -20,6 +20,7 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
   const prevCollapsedRef = useRef<boolean | null>(null);
   const currentWidth = isCollapsed ? collapsedWidth : sidebarWidth;
   const [isMobile, setIsMobile] = useState(false);
+  const isPosRoot = /\/app\/pos$/.test(pathname || '');
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 1023px)');
@@ -30,7 +31,6 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
   }, []);
 
   useEffect(() => {
-    const isPosRoot = /\/app\/pos$/.test(pathname || '');
     if (isPosRoot) {
       if (prevCollapsedRef.current === null) {
         prevCollapsedRef.current = isCollapsed;
@@ -44,7 +44,7 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
       setIsCollapsed(prevCollapsedRef.current);
       prevCollapsedRef.current = null;
     }
-  }, [pathname, setIsCollapsed]);
+  }, [pathname, setIsCollapsed, isPosRoot]);
 
   return (
     <UserProvider>
@@ -61,7 +61,7 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
             </SubscriptionGuard>
           </main>
         </div>
-        <FloatingWhatsApp />
+        {!isPosRoot && <FloatingWhatsApp />}
       </div>
     </UserProvider>
   );

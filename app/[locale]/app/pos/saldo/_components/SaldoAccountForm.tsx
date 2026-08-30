@@ -18,6 +18,8 @@ interface SaldoAccountFormData {
   description: string;
   is_payment_method: boolean;
   is_active: boolean;
+  show_in_shift: boolean;
+  sort_order: string;
   opening_balance: string;
 }
 
@@ -42,6 +44,8 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
     description: '',
     is_payment_method: true,
     is_active: true,
+    show_in_shift: true,
+    sort_order: '',
     opening_balance: '0',
   });
 
@@ -69,6 +73,8 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
           description: result.data.description || '',
           is_payment_method: result.data.is_payment_method ?? true,
           is_active: result.data.is_active ?? true,
+          show_in_shift: result.data.show_in_shift ?? true,
+          sort_order: String(result.data.sort_order ?? 0),
           opening_balance: '0',
         });
       } else {
@@ -111,6 +117,11 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
         description: formData.description,
         is_payment_method: formData.is_payment_method,
         is_active: formData.is_active,
+        show_in_shift: formData.show_in_shift,
+        // Kosongkan berarti "biarkan server yang atur" -- taruh di urutan
+        // paling akhir (lihat posSaldoService.createAccount). Kalau diisi
+        // manual, pakai nilai itu.
+        ...(formData.sort_order !== '' ? { sort_order: Number(formData.sort_order) || 0 } : {}),
         ...(mode === 'create'
           ? {
               account_number: formData.account_number,
@@ -127,7 +138,8 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
       if (result.status === 'success') {
         const successMsg = mode === 'edit' ? 'Akun saldo berhasil diperbarui' : 'Akun saldo berhasil ditambahkan';
         toast.success(successMsg);
-        router.push('/app/pos/saldo');
+        const targetUuid = result.data?.uuid || saldoUuid;
+        router.push(targetUuid ? `/app/pos/saldo/${targetUuid}` : '/app/pos/saldo');
       } else {
         if (result.errors) {
           setFieldErrors(result.errors);
@@ -238,6 +250,29 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
             )}
           </div>
 
+          <div>
+            <label htmlFor="sort_order" className="block text-sm font-medium text-gray-700 mb-2">
+              Urutan Tampil
+            </label>
+            <input
+              type="number"
+              id="sort_order"
+              name="sort_order"
+              value={formData.sort_order}
+              onChange={handleInputChange}
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                fieldErrors.sortOrder
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+              }`}
+              placeholder={mode === 'create' ? 'Kosongkan = paling akhir' : '0'}
+            />
+            <p className="mt-1 text-xs text-gray-500">Menentukan urutan tombol metode bayar di halaman Kasir. Bisa juga diatur lewat tombol naik/turun di daftar akun saldo.</p>
+            {fieldErrors.sortOrder && (
+              <div className="mt-1 text-sm text-red-600">{fieldErrors.sortOrder[0]}</div>
+            )}
+          </div>
+
           {mode === 'create' && (
             <div>
               <label htmlFor="opening_balance" className="block text-sm font-medium text-gray-700 mb-2">
@@ -311,7 +346,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
             </>
           )}
 
-          <div className="flex items-center gap-6">
+          <div className="md:col-span-2 flex flex-col gap-3">
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -337,6 +372,20 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
               />
               <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
                 Aktif
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="show_in_shift"
+                name="show_in_shift"
+                checked={formData.show_in_shift}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+              />
+              <label htmlFor="show_in_shift" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
+                Tampilkan saat buka/tutup shift kasir
               </label>
             </div>
           </div>

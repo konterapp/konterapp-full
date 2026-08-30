@@ -1,7 +1,7 @@
 import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posSaldoRepository } from './repository';
 import { posBranchRepository } from '@/lib/modules/pos/branches/repository';
-import { mapSaldoAccount, mapSaldoMutation } from './saldo.mapper';
+import { mapSaldoAccount, mapSaldoMutation, mapPaymentMethodOption } from './saldo.mapper';
 
 function sumBalances(account: any): number {
   if (!account?.balances?.length) return 0;
@@ -35,8 +35,9 @@ export const posSaldoService = {
       where.isPaymentMethod = isPaymentMethod === 'true';
     }
 
-    const allowedSorts = ['created_at', 'code', 'name', 'type', 'balance', 'is_active'];
+    const allowedSorts = ['sort_order', 'created_at', 'code', 'name', 'type', 'balance', 'is_active'];
     const sortFieldMap: Record<string, string> = {
+      sort_order: 'sortOrder',
       created_at: 'createdAt',
       code: 'code',
       name: 'name',
@@ -44,7 +45,7 @@ export const posSaldoService = {
       balance: 'createdAt',
       is_active: 'isActive',
     };
-    const sortField = allowedSorts.includes(sortBy) ? sortBy : 'created_at';
+    const sortField = allowedSorts.includes(sortBy) ? sortBy : 'sort_order';
     const sortDir = sortOrder === 'asc' ? 'asc' : 'desc';
 
     // Sort by "balance" = rollup SUM semua grup balance -- tidak bisa
@@ -90,6 +91,11 @@ export const posSaldoService = {
     };
   },
 
+  async listPaymentMethodOptions() {
+    const accounts = await posSaldoRepository.listPaymentMethodOptions();
+    return accounts.map(mapPaymentMethodOption);
+  },
+
   async getAccount(uuid: string) {
     const account = await posSaldoRepository.findByUuid(uuid);
     if (!account) {
@@ -110,6 +116,8 @@ export const posSaldoService = {
       description?: string | null;
       isPaymentMethod?: boolean;
       isActive?: boolean;
+      showInShift?: boolean;
+      sortOrder?: number;
       openingBalance?: number;
     }
   ) {
@@ -126,6 +134,13 @@ export const posSaldoService = {
     const branches = await posBranchRepository.listSimple();
     const activeBranchUuids = branches.filter((b) => b.isActive).map((b) => b.uuid);
 
+    // Akun baru default ditaruh PALING BAWAH urutan (bukan sortOrder 0) --
+    // supaya tidak nyelonong ke depan akun-akun yang urutannya sudah diatur
+    // manual lewat tombol naik/turun.
+    const existingOrder = await posSaldoRepository.findAllOrderedForReorder(companyUuid);
+    const nextSortOrder =
+      payload.sortOrder ?? (existingOrder.length > 0 ? existingOrder[existingOrder.length - 1].sortOrder + 1 : 0);
+
     return posSaldoRepository.runInTransaction(async (tx) => {
       const account = await posSaldoRepository.create(
         {
@@ -135,7 +150,9 @@ export const posSaldoService = {
           type: payload.type || 'cash',
           description: payload.description || null,
           isPaymentMethod: payload.isPaymentMethod ?? true,
+          sortOrder: nextSortOrder,
           isActive: payload.isActive ?? true,
+          showInShift: payload.showInShift ?? true,
         },
         tx
       );
@@ -194,6 +211,8 @@ export const posSaldoService = {
       description?: string | null;
       isPaymentMethod?: boolean;
       isActive?: boolean;
+      showInShift?: boolean;
+      sortOrder?: number;
     }
   ) {
     const existing = await posSaldoRepository.findByUuid(uuid);
@@ -215,8 +234,42 @@ export const posSaldoService = {
       description: payload.description ?? existing.description,
       isPaymentMethod: payload.isPaymentMethod ?? existing.isPaymentMethod,
       isActive: payload.isActive ?? existing.isActive,
+      sortOrder: payload.sortOrder ?? existing.sortOrder,
+      showInShift: payload.showInShift ?? existing.showInShift,
     });
     return mapSaldoAccount({ ...account, balances: existing.balances });
+  },
+
+  /**
+   * Geser urutan akun 1 posisi naik/turun (tukar posisi dengan tetangganya
+   * di urutan saat ini). Renumber SEMUA akun di company ini jadi 0..N-1
+   * sesuai posisi baru -- bukan cuma tukar nilai sortOrder mentah -- supaya
+   * akun-akun yang masih sama-sama sortOrder default (0) tetap ke-resolve
+   * jadi urutan yang benar-benar berubah (bukan no-op gara-gara nilainya
+   * kebetulan sama).
+   */
+  async moveAccount(companyUuid: string, uuid: string, direction: 'up' | 'down') {
+    const accounts = await posSaldoRepository.findAllOrderedForReorder(companyUuid);
+    const index = accounts.findIndex((a) => a.uuid === uuid);
+    if (index === -1) {
+      throw new ApiError('Akun saldo tidak ditemukan', 404);
+    }
+
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= accounts.length) {
+      return; // sudah di posisi paling atas/bawah, tidak ada yang perlu diubah
+    }
+
+    const reordered = [...accounts];
+    [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+
+    await posSaldoRepository.runInTransaction(async (tx) => {
+      for (let i = 0; i < reordered.length; i++) {
+        if (reordered[i].sortOrder !== i) {
+          await posSaldoRepository.updateSortOrderInTx(tx, reordered[i].uuid, i);
+        }
+      }
+    });
   },
 
   async deleteAccount(uuid: string) {

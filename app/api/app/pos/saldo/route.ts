@@ -15,8 +15,8 @@ export const GET = withPermission(
     const search = searchParams.get('search') || '';
     const isActive = searchParams.get('is_active');
     const isPaymentMethod = searchParams.get('is_payment_method');
-    const sortBy = searchParams.get('sort_by') || 'created_at';
-    const sortOrder = searchParams.get('sort_order') || 'desc';
+    const sortBy = searchParams.get('sort_by') || 'sort_order';
+    const sortOrder = searchParams.get('sort_order') || 'asc';
 
     const result = await posSaldoService.listAccounts({
       page,
@@ -42,6 +42,8 @@ export const POST = withPermission(
       accountName: rawBody.accountName ?? rawBody.account_name,
       isPaymentMethod: rawBody.isPaymentMethod ?? rawBody.is_payment_method,
       isActive: rawBody.isActive ?? rawBody.is_active,
+      showInShift: rawBody.showInShift ?? rawBody.show_in_shift,
+      sortOrder: rawBody.sortOrder ?? rawBody.sort_order,
       openingBalance: rawBody.openingBalance ?? rawBody.opening_balance,
     };
 

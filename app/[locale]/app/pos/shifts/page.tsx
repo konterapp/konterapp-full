@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { CircleDot } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { useToast } from '@/components/toast/ToastContainer';
+import { getShiftBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
 
 interface BranchOption {
   uuid: string;
@@ -99,6 +100,19 @@ export default function CashierShiftsPage() {
   const [isSubmittingOpen, setIsSubmittingOpen] = useState(false);
   const [isSubmittingClose, setIsSubmittingClose] = useState(false);
 
+  const [openShiftSaldo, setOpenShiftSaldo] = useState<{
+    isLoading: boolean;
+    error: string;
+    items: BranchSaldoItem[];
+    totalBalance: number;
+  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
+  const [closeShiftSaldo, setCloseShiftSaldo] = useState<{
+    isLoading: boolean;
+    error: string;
+    items: BranchSaldoItem[];
+    totalBalance: number;
+  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -154,6 +168,62 @@ export default function CashierShiftsPage() {
   useEffect(() => {
     fetchShifts(currentPage);
   }, [currentPage, fetchShifts]);
+
+  useEffect(() => {
+    if (activeShift || !openForm.branch_uuid) {
+      setOpenShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
+      return;
+    }
+    let cancelled = false;
+    setOpenShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
+    getShiftBranchSaldo(openForm.branch_uuid)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 'success' && res.data) {
+          setOpenShiftSaldo({
+            isLoading: false,
+            error: '',
+            items: res.data.data || [],
+            totalBalance: res.data.total_balance || 0,
+          });
+        } else {
+          setOpenShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOpenShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+      });
+    return () => { cancelled = true; };
+  }, [openForm.branch_uuid, activeShift]);
+
+  useEffect(() => {
+    if (!activeShift?.branch?.uuid) {
+      setCloseShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
+      return;
+    }
+    let cancelled = false;
+    setCloseShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
+    getShiftBranchSaldo(activeShift.branch.uuid)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 'success' && res.data) {
+          setCloseShiftSaldo({
+            isLoading: false,
+            error: '',
+            items: res.data.data || [],
+            totalBalance: res.data.total_balance || 0,
+          });
+        } else {
+          setCloseShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCloseShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
+      });
+    return () => { cancelled = true; };
+  }, [activeShift?.branch?.uuid]);
 
   const handleOpenShift = async (e: FormEvent) => {
     e.preventDefault();
@@ -342,6 +412,33 @@ export default function CashierShiftsPage() {
             </div>
           </div>
 
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
+            {closeShiftSaldo.isLoading ? (
+              <p className="text-xs text-gray-400">Memuat saldo...</p>
+            ) : closeShiftSaldo.error ? (
+              <p className="text-xs text-red-500">{closeShiftSaldo.error}</p>
+            ) : closeShiftSaldo.items.length === 0 ? (
+              <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
+            ) : (
+              <div className="space-y-1.5">
+                {closeShiftSaldo.items.map((item) => (
+                  <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-700">
+                      {item.account.name}
+                      {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
+                    </span>
+                    <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+                  <span className="font-semibold text-gray-700">Total</span>
+                  <span className="font-bold text-[#142D52]">{formatCurrency(closeShiftSaldo.totalBalance)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleCloseShift} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tutup Shift</label>
@@ -367,6 +464,36 @@ export default function CashierShiftsPage() {
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-[#142D52] mb-3">Buka Shift Baru</h2>
+
+          {openForm.branch_uuid && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 mb-4">
+              <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
+              {openShiftSaldo.isLoading ? (
+                <p className="text-xs text-gray-400">Memuat saldo...</p>
+              ) : openShiftSaldo.error ? (
+                <p className="text-xs text-red-500">{openShiftSaldo.error}</p>
+              ) : openShiftSaldo.items.length === 0 ? (
+                <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {openShiftSaldo.items.map((item) => (
+                    <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">
+                        {item.account.name}
+                        {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
+                      </span>
+                      <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+                    <span className="font-semibold text-gray-700">Total</span>
+                    <span className="font-bold text-[#142D52]">{formatCurrency(openShiftSaldo.totalBalance)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <form onSubmit={handleOpenShift} className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cabang</label>

@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Wallet, Plus, Eye, Trash2 } from 'lucide-react';
+import { Wallet, Plus, Eye, Pencil, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
 import { usePermissions } from '@/lib/hooks/usePermissions';
-import { SaldoAccount, deleteSaldoAccount } from '@/lib/api/app/saldo';
+import { SaldoAccount, deleteSaldoAccount, moveSaldoAccount } from '@/lib/api/app/saldo';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -25,8 +25,8 @@ export default function SaldoPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState('sort_order');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; account: SaldoAccount | null; isLoading: boolean }>({
     isOpen: false,
     account: null,
@@ -114,6 +114,19 @@ export default function SaldoPage() {
     setCurrentPage(1);
   };
 
+  const handleMove = async (account: SaldoAccount, direction: 'up' | 'down') => {
+    try {
+      const result = await moveSaldoAccount(account.uuid, direction);
+      if (result.status === 'success') {
+        fetchAccounts(currentPage);
+      } else {
+        toast.error(result.message || 'Gagal mengubah urutan');
+      }
+    } catch {
+      toast.error('Gagal mengubah urutan. Silakan coba lagi.');
+    }
+  };
+
   const getTypeBadge = (type: string) => {
     const badges: Record<string, { color: string; label: string }> = {
       cash: { color: 'bg-green-100 text-green-800', label: 'Tunai' },
@@ -138,6 +151,42 @@ export default function SaldoPage() {
       },
     },
     {
+      key: 'sort_order',
+      label: 'Urutan',
+      sortable: false,
+      width: '6rem',
+      render: (_, row) => {
+        const index = accounts.findIndex(a => a.uuid === row.uuid);
+        const canEdit = hasPermission('pos.saldo.update');
+        return (
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => handleMove(row, 'up')}
+                  disabled={index === 0}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Naikkan urutan"
+                >
+                  <ArrowUp className="w-4 h-4 text-gray-600" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMove(row, 'down')}
+                  disabled={index === accounts.length - 1}
+                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  title="Turunkan urutan"
+                >
+                  <ArrowDown className="w-4 h-4 text-gray-600" />
+                </button>
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'actions',
       label: 'Aksi',
       sortable: false,
@@ -151,6 +200,15 @@ export default function SaldoPage() {
             <Eye className="w-3.5 h-3.5" />
             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Detail</span>
           </Link>
+          {hasPermission('pos.saldo.update') && (
+            <Link
+              href={`/app/pos/saldo/${row.uuid}/edit`}
+              className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-xs font-medium cursor-pointer"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
+            </Link>
+          )}
           {hasPermission('pos.saldo.delete') && (
             <button
               onClick={() => handleDeleteClick(row)}

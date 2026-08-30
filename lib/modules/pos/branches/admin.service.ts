@@ -83,13 +83,13 @@ export const posBranchService = {
     return mapBranch(branch);
   },
 
-  async getBranchSaldo(uuid: string) {
+  async getBranchSaldo(uuid: string, options?: { onlyShowInShift?: boolean }) {
     const branch = await posBranchRepository.findByUuid(uuid);
     if (!branch) {
       throw new ApiError('Branch not found', 404);
     }
 
-    const links = await posSaldoRepository.findLinksForBranchWithDetails(uuid);
+    const links = await posSaldoRepository.findLinksForBranchWithDetails(uuid, options);
     const items = links.map(mapBranchSaldoLink);
     const totalBalance = items.reduce((sum, item) => sum + item.group.balance, 0);
 

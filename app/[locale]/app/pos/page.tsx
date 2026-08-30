@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/app/product';
-import { getAllSaldoAccounts, SaldoAccount as PaymentMethod } from '@/lib/api/app/saldo';
+import { getPaymentMethodOptions, PaymentMethodOption as PaymentMethod } from '@/lib/api/app/saldo';
 import { getShiftBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
 import { Customer } from '@/lib/api/app/customer';
 import { createSale, Sale, SaleItemCreateData } from '@/lib/api/app/sale';
@@ -151,9 +151,9 @@ export default function KasirPage() {
     const loadData = async () => {
       try {
         await loadShiftState();
-        const paymentMethodsRes = await getAllSaldoAccounts({ isPaymentMethod: true });
+        const paymentMethodsRes = await getPaymentMethodOptions();
         if (paymentMethodsRes.data) {
-          const paymentItems = paymentMethodsRes.data.data || [];
+          const paymentItems = paymentMethodsRes.data || [];
           setPaymentMethods(paymentItems);
           const cashMethod = paymentItems.find(pm => pm.type === 'cash');
           if (cashMethod) setSelectedPaymentMethod(cashMethod.uuid);
