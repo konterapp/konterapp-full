@@ -418,23 +418,31 @@ export default function CashierShiftsPage() {
       </div>
 
       {activeShift ? (
-        <div className="bg-white border border-green-200 rounded-lg p-4 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-green-700">Shift Aktif</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Dibuka: {formatDateTime(activeShift.opened_at)} | Cabang: {activeShift.branch?.name || '-'}
-            </p>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-100">
+                <CircleDot className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[#142D52]">Shift Aktif</h2>
+                <p className="text-sm text-gray-500">
+                  {activeShift.branch?.name || '-'} &middot; dibuka {formatDateTime(activeShift.opened_at)}
+                </p>
+              </div>
+            </div>
+            <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+              Sedang Berjalan
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <p className="text-xs text-gray-500">Total Sales Berjalan</p>
-              <p className="text-sm font-semibold text-gray-900">{formatCurrency(activeShift.current_total_sales)}</p>
-            </div>
+          <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+            <p className="text-xs text-gray-500">Total Penjualan Berjalan</p>
+            <p className="mt-1 text-xl font-bold text-[#142D52]">{formatCurrency(activeShift.current_total_sales)}</p>
           </div>
 
           <BranchSaldoActualList
-            title="Saldo Cabang Ini"
+            title="Saldo Cabang Saat Ini"
             isLoading={closeShiftSaldo.isLoading}
             error={closeShiftSaldo.error}
             items={closeShiftSaldo.items}
@@ -443,7 +451,7 @@ export default function CashierShiftsPage() {
             onActualBalanceChange={closeShiftSaldo.setActualBalance}
           />
 
-          <form onSubmit={handleCloseShift} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <form onSubmit={handleCloseShift} className="space-y-4 border-t border-gray-100 pt-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tutup Shift</label>
               <input
@@ -454,34 +462,28 @@ export default function CashierShiftsPage() {
                 placeholder="Opsional"
               />
             </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={isSubmittingClose}
-                className="w-full px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isSubmittingClose ? 'Menutup...' : 'Tutup Shift'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={isSubmittingClose}
+              className="w-full px-4 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmittingClose ? 'Menutup...' : 'Tutup Shift'}
+            </button>
           </form>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h2 className="text-lg font-semibold text-[#142D52] mb-3">Buka Shift Baru</h2>
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#EBC170]/20">
+              <CircleDot className="h-5 w-5 text-[#c99a3f]" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[#142D52]">Buka Shift Baru</h2>
+              <p className="text-sm text-gray-500">Pilih cabang tempat kamu bertugas hari ini</p>
+            </div>
+          </div>
 
-          {openForm.branch_uuid && (
-            <BranchSaldoActualList
-              title="Saldo Cabang Ini"
-              isLoading={openShiftSaldo.isLoading}
-              error={openShiftSaldo.error}
-              items={openShiftSaldo.items}
-              totalBalance={openShiftSaldo.totalBalance}
-              actualBalances={openShiftSaldo.actualBalances}
-              onActualBalanceChange={openShiftSaldo.setActualBalance}
-            />
-          )}
-
-          <form onSubmit={handleOpenShift} className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <form onSubmit={handleOpenShift} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
               <select
@@ -497,6 +499,19 @@ export default function CashierShiftsPage() {
                 ))}
               </select>
             </div>
+
+            {openForm.branch_uuid && (
+              <BranchSaldoActualList
+                title="Saldo Awal Cabang"
+                isLoading={openShiftSaldo.isLoading}
+                error={openShiftSaldo.error}
+                items={openShiftSaldo.items}
+                totalBalance={openShiftSaldo.totalBalance}
+                actualBalances={openShiftSaldo.actualBalances}
+                onActualBalanceChange={openShiftSaldo.setActualBalance}
+              />
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Buka Shift</label>
               <input
@@ -507,15 +522,14 @@ export default function CashierShiftsPage() {
                 placeholder="Opsional"
               />
             </div>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                disabled={isSubmittingOpen}
-                className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isSubmittingOpen ? 'Membuka...' : 'Buka Shift'}
-              </button>
-            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmittingOpen}
+              className="w-full px-4 py-2.5 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmittingOpen ? 'Membuka...' : 'Buka Shift'}
+            </button>
           </form>
         </div>
       )}

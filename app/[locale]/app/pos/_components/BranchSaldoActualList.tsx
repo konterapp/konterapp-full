@@ -23,10 +23,13 @@ interface BranchSaldoActualListProps {
 }
 
 /**
- * Kartu saldo akun per cabang + input "jumlah aktual" (opsional, dipakai
+ * Tabel saldo akun per cabang + input "jumlah aktual" (opsional, dipakai
  * hitung Selisih di backend) -- dipakai bareng saat buka & tutup shift, di
  * /app/pos (layar Kasir) maupun /app/pos/shifts (menu Shift Kasir), supaya
- * kedua form konsisten (dulu masing-masing punya JSX/logic sendiri).
+ * kedua form konsisten. Kolom dibatasi 3 (bukan 4) & pakai table-fixed
+ * dengan lebar persen supaya MUAT di container sempit (mis. modal/kartu
+ * max-w-md) tanpa perlu scroll horizontal -- saldo sistem dilipat jadi
+ * sub-teks di bawah nama akun, bukan kolom sendiri.
  */
 export default function BranchSaldoActualList({
   title,
@@ -49,61 +52,75 @@ export default function BranchSaldoActualList({
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">{emptyMessage || 'Belum ada akun saldo untuk cabang ini'}</p>
       ) : (
-        <div className="space-y-2">
-          {items.map((item) => {
-            const key = item.group.uuid;
-            const rawActual = actualBalances[key] ?? '';
-            const actualNumber = rawActual.trim() === '' ? null : Number(rawActual);
-            const variance = actualNumber !== null && !Number.isNaN(actualNumber) ? actualNumber - item.group.balance : null;
-            const varianceStyle =
-              variance === null
-                ? ''
-                : variance === 0
-                  ? 'bg-gray-100 text-gray-600'
-                  : variance > 0
-                    ? 'bg-green-50 text-green-700'
-                    : 'bg-red-50 text-red-700';
+        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+          <colgroup>
+            <col className="w-[38%]" />
+            <col className="w-[40%]" />
+            <col className="w-[22%]" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="border-b border-gray-200 py-2 pr-1 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Akun
+              </th>
+              <th className="border-b border-gray-200 py-2 px-1 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Aktual
+              </th>
+              <th className="border-b border-gray-200 py-2 pl-1 text-right text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                Selisih
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const key = item.group.uuid;
+              const rawActual = actualBalances[key] ?? '';
+              const actualNumber = rawActual.trim() === '' ? null : Number(rawActual);
+              const variance = actualNumber !== null && !Number.isNaN(actualNumber) ? actualNumber - item.group.balance : null;
+              const varianceStyle =
+                variance === null
+                  ? 'text-gray-300'
+                  : variance === 0
+                    ? 'text-gray-500'
+                    : variance > 0
+                      ? 'text-green-600'
+                      : 'text-red-600';
 
-            return (
-              <div
-                key={`${item.account.uuid}-${item.group.uuid}`}
-                className="rounded-lg border border-gray-100 bg-gray-50/70 p-3 transition-colors hover:border-gray-200"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{item.account.name}</p>
-                    {item.group.name && <p className="text-xs text-gray-400 truncate">{item.group.name}</p>}
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold text-[#142D52]">{formatCurrency(item.group.balance)}</p>
-                </div>
-
-                <div className="mt-2 flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
-                    <input
-                      type="number"
-                      value={rawActual}
-                      onChange={(e) => onActualBalanceChange(key, e.target.value)}
-                      placeholder="Jumlah aktual"
-                      className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm text-gray-800 placeholder:text-gray-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
-                    />
-                  </div>
-                  {variance !== null && (
-                    <span className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${varianceStyle}`}>
-                      {variance > 0 ? '+' : ''}
-                      {formatCurrency(variance)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="flex items-center justify-between pt-1">
-            <span className="text-sm font-semibold text-gray-700">Total</span>
-            <span className="text-base font-bold text-[#142D52]">{formatCurrency(totalBalance)}</span>
-          </div>
-        </div>
+              return (
+                <tr key={`${item.account.uuid}-${item.group.uuid}`} className="align-top">
+                  <td className="border-b border-gray-100 py-2.5 pr-1">
+                    <p className="font-medium text-gray-800 truncate">{item.account.name}</p>
+                    <p className="text-xs text-gray-400 truncate">
+                      Sistem {formatCurrency(item.group.balance)}
+                      {item.group.name ? ` · ${item.group.name}` : ''}
+                    </p>
+                  </td>
+                  <td className="border-b border-gray-100 py-2.5 px-1">
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400">Rp</span>
+                      <input
+                        type="number"
+                        value={rawActual}
+                        onChange={(e) => onActualBalanceChange(key, e.target.value)}
+                        placeholder="0"
+                        className="w-full rounded-lg border border-gray-200 bg-white py-1.5 pl-7 pr-1.5 text-sm text-gray-800 placeholder:text-gray-300 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                      />
+                    </div>
+                  </td>
+                  <td className={`border-b border-gray-100 py-2.5 pl-1 text-right text-xs font-semibold ${varianceStyle}`}>
+                    {variance === null ? '-' : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`}
+                  </td>
+                </tr>
+              );
+            })}
+            <tr>
+              <td className="pt-2.5 text-sm font-semibold text-gray-700">Total</td>
+              <td colSpan={2} className="pt-2.5 text-right text-sm font-bold text-[#142D52]">
+                {formatCurrency(totalBalance)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       )}
     </div>
   );

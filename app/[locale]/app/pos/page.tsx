@@ -537,15 +537,18 @@ export default function KasirPage() {
         </div>
       ) : !activeShift ? (
         <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
-          <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold text-[#142D52]">Buka Shift Dulu</h2>
-              <p className="text-sm text-gray-600 mt-1">
+          <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
+            <div className="text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EBC170]/20">
+                <ShoppingCart className="h-7 w-7 text-[#c99a3f]" />
+              </div>
+              <h2 className="mt-3 text-lg font-semibold text-[#142D52]">Buka Shift Dulu</h2>
+              <p className="mt-1 text-sm text-gray-500">
                 POS terkunci sampai shift kasir dibuka. Setelah shift aktif, transaksi bisa diproses.
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cabang</label>
                 <select
@@ -570,7 +573,7 @@ export default function KasirPage() {
 
               {openShiftForm.branch_uuid && (
                 <BranchSaldoActualList
-                  title="Saldo Cabang Ini"
+                  title="Saldo Awal Cabang"
                   isLoading={openShiftSaldo.isLoading}
                   error={openShiftSaldo.error}
                   items={openShiftSaldo.items}
@@ -596,7 +599,7 @@ export default function KasirPage() {
               type="button"
               onClick={handleOpenShift}
               disabled={isSubmittingShift || isSelectedBranchFull}
-              className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full px-4 py-2.5 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmittingShift ? 'Membuka Shift...' : 'Buka Shift'}
             </button>
@@ -934,28 +937,34 @@ export default function KasirPage() {
 
       {showCloseShiftModal && activeShift && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-xl border border-gray-200">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-[#142D52]">Tutup Shift</h3>
+          <div className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
+                  <LogOut className="h-5 w-5 text-red-500" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#142D52]">Tutup Shift</h3>
+                  <p className="text-xs text-gray-500">{activeShift.branch?.name || '-'}</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowCloseShiftModal(false)}
-                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
             </div>
 
-            <div className="px-4 py-4 space-y-3">
-              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm">
-                <p className="text-gray-600">Cabang Shift</p>
-                <p className="font-semibold text-[#142D52]">{activeShift.branch?.name || '-'}</p>
-                <p className="text-gray-600 mt-2">Total Penjualan Berjalan</p>
-                <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
+            <div className="px-5 py-4 space-y-4 overflow-y-auto">
+              <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                <p className="text-xs text-gray-500">Total Penjualan Berjalan</p>
+                <p className="mt-1 text-xl font-bold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
               </div>
 
               <BranchSaldoActualList
-                title="Saldo Cabang Ini"
+                title="Saldo Cabang Saat Ini"
                 isLoading={closeShiftSaldo.isLoading}
                 error={closeShiftSaldo.error}
                 items={closeShiftSaldo.items}
@@ -976,11 +985,11 @@ export default function KasirPage() {
               </div>
             </div>
 
-            <div className="px-4 py-3 border-t border-gray-200 flex justify-end gap-2">
+            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowCloseShiftModal(false)}
-                className="px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
               >
                 Batal
               </button>
