@@ -21,6 +21,11 @@ interface Sale {
   sale_date: string;
   total_amount: number;
   payment_status: string;
+  notes?: string | null;
+  // Terisi cuma utk sale sintetis komisi Agen Bank -- FK asli balik ke
+  // transaksi asalnya (lihat modul bank-agent-transactions).
+  bank_agent_transaction_uuid?: string | null;
+  items?: Array<{ product?: { name: string } | null }>;
   branch?: { uuid: string; name: string };
   customer?: { uuid: string; name: string };
   payment_method?: { uuid: string; name: string };
@@ -155,6 +160,16 @@ export default function TransactionsPage() {
     });
   };
 
+  // Sale sintetis (mis. komisi Agen Bank) pakai notes-nya sendiri sbg
+  // keterangan (sudah berisi teks jelas spt "Komisi Tarik Tunai (BA-...)");
+  // penjualan biasa pakai nama produk.
+  const getKeterangan = (row: Sale): string => {
+    if (row.bank_agent_transaction_uuid && row.notes) return row.notes;
+    if (row.items && row.items.length === 1) return row.items[0].product?.name || '-';
+    if (row.items && row.items.length > 1) return `${row.items[0].product?.name || 'Produk'} +${row.items.length - 1} lainnya`;
+    return row.notes || '-';
+  };
+
   const getStatusBadge = (status: string) => {
     const badges: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -214,6 +229,12 @@ export default function TransactionsPage() {
       sortValue: (row) => row.sale_date,
       width: '10rem',
       render: (_, row) => <p className="text-sm text-gray-600">{formatDate(row.sale_date)}</p>,
+    },
+    {
+      key: 'keterangan',
+      label: 'Keterangan',
+      sortable: false,
+      render: (_, row) => <p className="text-sm text-gray-600 truncate max-w-xs">{getKeterangan(row)}</p>,
     },
     {
       key: 'branch',

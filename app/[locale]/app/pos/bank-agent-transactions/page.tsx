@@ -177,6 +177,16 @@ export default function BankAgentTransactionsPage() {
       render: (_, row) => <span className="text-sm text-gray-700">{row.fee > 0 ? formatCurrency(row.fee) : '-'}</span>,
     },
     {
+      key: 'net_profit',
+      label: 'Laba Bersih',
+      sortable: false,
+      render: (_, row) => (
+        <span className={`text-sm font-semibold ${row.net_profit === 0 ? 'text-gray-400' : row.net_profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {row.net_profit === 0 ? '-' : formatCurrency(row.net_profit)}
+        </span>
+      ),
+    },
+    {
       key: 'payment_method',
       label: 'Metode Bayar',
       sortable: false,

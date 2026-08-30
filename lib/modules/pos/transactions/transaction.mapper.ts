@@ -34,6 +34,7 @@ export function mapTransaction(sale: any) {
     change_amount: sale.changeAmount,
     payment_status: sale.paymentStatus,
     notes: sale.notes,
+    bank_agent_transaction_uuid: sale.bankAgentTransactionUuid ?? null,
     created_by: sale.createdBy,
     created_at: sale.createdAt,
     updated_at: sale.updatedAt,

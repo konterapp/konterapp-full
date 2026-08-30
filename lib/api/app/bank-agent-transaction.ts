@@ -14,6 +14,7 @@ export interface BankAgentTransaction {
   selling_amount: number;
   fee: number;
   admin_fee: number;
+  net_profit: number;
   fee_received_via: string | null;
   payment_method: { uuid: string; code: string; name: string; type: string } | null;
   paid_amount: number;

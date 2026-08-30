@@ -11,6 +11,10 @@ export function mapBankAgentTransaction(row: BankAgentTransactionWithRelations) 
     selling_amount: Number(row.sellingAmount),
     fee: Number(row.fee),
     admin_fee: Number(row.adminFee),
+    // Laba bersih transaksi ini = komisi dikurangi biaya admin yg dibebankan
+    // bank -- sengaja TIDAK dipaksa 0 kalau minus (biaya admin > komisi),
+    // biar kelihatan apa adanya (pola sama dgn app referensi CatatKonter).
+    net_profit: Number(row.fee) - Number(row.adminFee),
     fee_received_via: row.feeReceivedVia,
     payment_method: row.paymentMethod
       ? { uuid: row.paymentMethod.uuid, code: row.paymentMethod.code, name: row.paymentMethod.name, type: row.paymentMethod.type }

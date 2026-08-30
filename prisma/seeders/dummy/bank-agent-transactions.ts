@@ -113,6 +113,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
     cashDirection: "in" | "out";
     baseAmount: number;
     fee: number;
+    adminFee: number;
     feeReceivedVia: string | null;
     sellingAmount: number;
     paidAmount: number;
@@ -126,6 +127,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
       cashDirection: "out",
       baseAmount: 500000,
       fee: 5000,
+      adminFee: 0,
       feeReceivedVia: null,
       sellingAmount: 505000,
       paidAmount: 505000,
@@ -140,6 +142,9 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
       cashDirection: "in",
       baseAmount: 300000,
       fee: 5000,
+      // Contoh biaya admin bank > 0 -- demonstrasi Laba Bersih bisa lebih
+      // kecil dari komisi kotor (2.500), bukan cuma kasus adminFee=0.
+      adminFee: 2500,
       feeReceivedVia: "deducted",
       sellingAmount: 305000,
       paidAmount: 305000,
@@ -165,7 +170,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
           baseAmount: sample.baseAmount,
           sellingAmount: sample.sellingAmount,
           fee: sample.fee,
-          adminFee: 0,
+          adminFee: sample.adminFee,
           feeReceivedVia: sample.feeReceivedVia,
           paymentMethodUuid: cashAccount.uuid,
           paidAmount: sample.paidAmount,
@@ -237,9 +242,11 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
         });
       }
 
-      // (3) SELALU baris sale sintetis, walau fee = 0 -- supaya transaksi ini
-      // tetap kelihatan di menu Penjualan/Riwayat (murni pengakuan omzet,
-      // bukan mutasi kas kedua).
+      // (3) SELALU baris sale sintetis, walau fee = 0 -- nominalnya KOMISI
+      // KOTOR (fee), bukan laba bersih (lihat komentar sama di
+      // admin.service.ts -- pola gross CatatKonter, admin_fee diagregasi
+      // terpisah on-the-fly saat bikin laporan nanti, bukan dinetokan di
+      // sini, biar tidak dobel-potong).
       {
         const commissionProduct = await ensureCommissionProduct(tx, companyUuid);
         const sale = await tx.appPosSale.create({

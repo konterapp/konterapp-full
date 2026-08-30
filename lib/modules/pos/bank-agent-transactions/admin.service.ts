@@ -310,11 +310,17 @@ export const posBankAgentTransactionService = {
 
       // (3) SELALU dicatat sbg 1 baris penjualan produk sintetis ("Komisi
       // Agen Bank"), walau fee = 0 -- supaya transaksi ini tetap kelihatan
-      // di menu Penjualan/Riwayat (1 sumber data), bukan cuma yang ada
-      // komisinya. Nominalnya tetap fee (bisa 0), BUKAN baseAmount -- kalau
-      // dicatat sebesar baseAmount, omzet/laba jadi salah (uang itu cuma
-      // numpang lewat, sudah tercermin balik di mutasi akun Agen Bank/kas
-      // di atas, bukan pendapatan toko).
+      // di menu Penjualan (1 sumber data), bukan cuma yang ada komisinya.
+      // Nominalnya KOMISI KOTOR (fee), BUKAN dikurangi adminFee -- sengaja
+      // gross, sama seperti pola CatatKonter (pendapatan dicatat bruto,
+      // biaya admin bank dihitung terpisah on-the-fly dari kolom admin_fee
+      // saat bikin laporan nanti, TIDAK dinetokan di sini). Kalau dinetokan
+      // di sini, laporan Laba Rugi ke depan bisa dobel-potong (sekali di
+      // sale ini, sekali lagi saat admin_fee diagregasi jadi Pengeluaran).
+      // "Laba Bersih" per transaksi tetap tersedia terpisah di kolom list
+      // Agen Bank (lihat bank-agent-transaction.mapper.ts). Juga BUKAN
+      // baseAmount -- itu cuma numpang lewat, sudah tercermin di mutasi
+      // akun Agen Bank/kas di atas, bukan pendapatan toko.
       {
         const commissionProduct = await ensureCommissionProduct(tx, companyUuid);
         const sale = await tx.appPosSale.create({

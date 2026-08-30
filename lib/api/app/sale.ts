@@ -40,6 +40,9 @@ export interface Sale {
   change_amount: number;
   payment_status: string;
   notes?: string;
+  // Terisi cuma utk sale sintetis komisi Agen Bank (lihat modul
+  // bank-agent-transactions) -- FK asli balik ke transaksi asalnya.
+  bank_agent_transaction_uuid?: string | null;
   created_by: number;
   creator?: {
     id: number;
