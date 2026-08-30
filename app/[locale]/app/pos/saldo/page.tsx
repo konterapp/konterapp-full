@@ -229,7 +229,14 @@ export default function SaldoPage() {
       label: 'Tipe',
       sortable: true,
       sortValue: (row) => row.type,
-      render: (_, row) => getTypeBadge(row.type),
+      render: (_, row) => (
+        <div className="flex flex-wrap items-center gap-1">
+          {getTypeBadge(row.type)}
+          {row.is_bank_agent && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">Agen Bank</span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'balance',

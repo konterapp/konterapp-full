@@ -13,6 +13,9 @@ export const createSaldoAccountSchema = z.object({
   isActive: z.boolean().optional(),
   showInShift: z.boolean().optional(),
   sortOrder: z.coerce.number().int("Urutan wajib bilangan bulat").optional(),
+  // Independen dari `type` -- akun apa pun (mis. DANA, BRI) bisa ditandai
+  // boleh dipakai buat transaksi Agen Bank.
+  isBankAgent: z.boolean().optional(),
   openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
 });
 

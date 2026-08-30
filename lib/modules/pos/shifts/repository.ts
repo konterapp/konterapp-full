@@ -3,6 +3,19 @@ import { Prisma } from '@prisma/client';
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+const shiftInclude = {
+  branch: { select: { uuid: true, name: true, code: true } },
+  user: { select: { id: true, uuid: true, name: true, email: true } },
+  saldoSnapshots: {
+    include: {
+      saldoAccount: { select: { uuid: true, code: true, name: true, type: true } },
+      saldoAccountBalance: { select: { uuid: true, name: true } },
+    },
+  },
+} satisfies Prisma.AppPosCashierShiftInclude;
+
+export type ShiftWithRelations = Prisma.AppPosCashierShiftGetPayload<{ include: typeof shiftInclude }>;
+
 export const posShiftRepository = {
   findMany(params: {
     where: Prisma.AppPosCashierShiftWhereInput;
@@ -16,10 +29,7 @@ export const posShiftRepository = {
       skip,
       take,
       orderBy,
-      include: {
-        branch: { select: { uuid: true, name: true, code: true } },
-        user: { select: { id: true, uuid: true, name: true, email: true } },
-      },
+      include: shiftInclude,
     });
   },
 
@@ -34,10 +44,7 @@ export const posShiftRepository = {
         status: 'open',
       },
       orderBy: { openedAt: 'desc' },
-      include: {
-        branch: { select: { uuid: true, name: true, code: true } },
-        user: { select: { id: true, uuid: true, name: true, email: true } },
-      },
+      include: shiftInclude,
     });
   },
 
@@ -47,10 +54,7 @@ export const posShiftRepository = {
         uuid,
         userId,
       },
-      include: {
-        branch: { select: { uuid: true, name: true, code: true } },
-        user: { select: { id: true, uuid: true, name: true, email: true } },
-      },
+      include: shiftInclude,
     });
   },
 
@@ -84,25 +88,33 @@ export const posShiftRepository = {
     });
   },
 
-  create(data: Prisma.AppPosCashierShiftUncheckedCreateInput) {
-    return prisma.appPosCashierShift.create({
+  createInTx(tx: TxClient, data: Prisma.AppPosCashierShiftUncheckedCreateInput) {
+    return tx.appPosCashierShift.create({
       data,
-      include: {
-        branch: { select: { uuid: true, name: true, code: true } },
-        user: { select: { id: true, uuid: true, name: true, email: true } },
-      },
+      include: shiftInclude,
     });
   },
 
-  updateByUuid(uuid: string, data: Prisma.AppPosCashierShiftUpdateInput) {
-    return prisma.appPosCashierShift.update({
+  updateByUuidInTx(tx: TxClient, uuid: string, data: Prisma.AppPosCashierShiftUpdateInput) {
+    return tx.appPosCashierShift.update({
       where: { uuid },
       data,
-      include: {
-        branch: { select: { uuid: true, name: true, code: true } },
-        user: { select: { id: true, uuid: true, name: true, email: true } },
-      },
+      include: shiftInclude,
     });
+  },
+
+  /**
+   * Snapshot saldo per akun utk 1 fase (opening/closing) -- WAJIB dipanggil
+   * dalam transaction yang sama dgn createInTx/updateByUuidInTx (1 baris
+   * shift + N baris snapshot yg saling terkait).
+   */
+  createSaldoSnapshotsInTx(tx: TxClient, rows: Prisma.AppPosCashierShiftSaldoSnapshotUncheckedCreateInput[]) {
+    if (rows.length === 0) return Promise.resolve({ count: 0 });
+    return tx.appPosCashierShiftSaldoSnapshot.createMany({ data: rows });
+  },
+
+  findByUuidInTx(tx: TxClient, uuid: string) {
+    return tx.appPosCashierShift.findUniqueOrThrow({ where: { uuid }, include: shiftInclude });
   },
 
   sumSales(params: { branchUuid: string; userId: number; startedAt: Date; endedAt: Date }) {

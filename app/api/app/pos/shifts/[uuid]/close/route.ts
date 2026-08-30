@@ -18,6 +18,7 @@ export const POST = withPermission(
       uuid,
       {
         notesClose: result.data.notes_close || null,
+        actualBalances: result.data.actual_balances,
       },
       context.userId
     );

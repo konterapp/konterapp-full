@@ -6,12 +6,13 @@ import Link from 'next/link';
 import { ShoppingCart, Search, Plus, Minus, Trash2, Package, Camera, X, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { getProducts, Product, ProductImageData, lookupBarcode } from '@/lib/api/app/product';
 import { getPaymentMethodOptions, PaymentMethodOption as PaymentMethod } from '@/lib/api/app/saldo';
-import { getShiftBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
 import { Customer } from '@/lib/api/app/customer';
 import { createSale, Sale, SaleItemCreateData } from '@/lib/api/app/sale';
 import CustomerSelect from './_components/CustomerSelect';
 import ReceiptModal from './_components/ReceiptModal';
 import BarcodeScanner from './_components/BarcodeScanner';
+import { useBranchSaldoActual } from './_components/useBranchSaldoActual';
+import BranchSaldoActualList from './_components/BranchSaldoActualList';
 
 interface CartItem {
   id: number;
@@ -78,18 +79,8 @@ export default function KasirPage() {
   const [closeShiftForm, setCloseShiftForm] = useState({
     notes_close: '',
   });
-  const [openShiftSaldo, setOpenShiftSaldo] = useState<{
-    isLoading: boolean;
-    error: string;
-    items: BranchSaldoItem[];
-    totalBalance: number;
-  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
-  const [closeShiftSaldo, setCloseShiftSaldo] = useState<{
-    isLoading: boolean;
-    error: string;
-    items: BranchSaldoItem[];
-    totalBalance: number;
-  }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
+  const openShiftSaldo = useBranchSaldoActual(openShiftForm.branch_uuid, !activeShift);
+  const closeShiftSaldo = useBranchSaldoActual(activeShift?.branch?.uuid, showCloseShiftModal);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [nextCartId, setNextCartId] = useState(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -164,62 +155,6 @@ export default function KasirPage() {
     };
     loadData();
   }, [loadShiftState]);
-
-  useEffect(() => {
-    if (activeShift || !openShiftForm.branch_uuid) {
-      setOpenShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
-      return;
-    }
-    let cancelled = false;
-    setOpenShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
-    getShiftBranchSaldo(openShiftForm.branch_uuid)
-      .then((res) => {
-        if (cancelled) return;
-        if (res.status === 'success' && res.data) {
-          setOpenShiftSaldo({
-            isLoading: false,
-            error: '',
-            items: res.data.data || [],
-            totalBalance: res.data.total_balance || 0,
-          });
-        } else {
-          setOpenShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setOpenShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
-      });
-    return () => { cancelled = true; };
-  }, [openShiftForm.branch_uuid, activeShift]);
-
-  useEffect(() => {
-    if (!showCloseShiftModal || !activeShift?.branch?.uuid) {
-      setCloseShiftSaldo({ isLoading: false, error: '', items: [], totalBalance: 0 });
-      return;
-    }
-    let cancelled = false;
-    setCloseShiftSaldo((prev) => ({ ...prev, isLoading: true, error: '' }));
-    getShiftBranchSaldo(activeShift.branch.uuid)
-      .then((res) => {
-        if (cancelled) return;
-        if (res.status === 'success' && res.data) {
-          setCloseShiftSaldo({
-            isLoading: false,
-            error: '',
-            items: res.data.data || [],
-            totalBalance: res.data.total_balance || 0,
-          });
-        } else {
-          setCloseShiftSaldo({ isLoading: false, error: res.message || 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCloseShiftSaldo({ isLoading: false, error: 'Gagal memuat saldo cabang', items: [], totalBalance: 0 });
-      });
-    return () => { cancelled = true; };
-  }, [showCloseShiftModal, activeShift?.branch?.uuid]);
 
   const searchProducts = useCallback(async (query: string) => {
     if (!selectedBranch || !activeShift) return;
@@ -356,6 +291,7 @@ export default function KasirPage() {
         body: JSON.stringify({
           branch_uuid: openShiftForm.branch_uuid,
           notes_open: openShiftForm.notes_open || null,
+          actual_balances: openShiftSaldo.toActualBalancesPayload(),
         }),
       });
 
@@ -365,6 +301,7 @@ export default function KasirPage() {
       }
 
       setOpenShiftForm((prev) => ({ ...prev, notes_open: '' }));
+      openShiftSaldo.resetActualBalances();
       setRecentlyClosedShift(null);
       await loadShiftState();
       setProductSearch('');
@@ -434,6 +371,7 @@ export default function KasirPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           notes_close: closeShiftForm.notes_close || null,
+          actual_balances: closeShiftSaldo.toActualBalancesPayload(),
         }),
       });
 
@@ -455,6 +393,7 @@ export default function KasirPage() {
       setProductSearch('');
       setProductResults([]);
       setShowCloseShiftModal(false);
+      closeShiftSaldo.resetActualBalances();
       await loadShiftState();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal menutup shift';
@@ -630,32 +569,15 @@ export default function KasirPage() {
               )}
 
               {openShiftForm.branch_uuid && (
-                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
-                  {openShiftSaldo.isLoading ? (
-                    <p className="text-xs text-gray-400">Memuat saldo...</p>
-                  ) : openShiftSaldo.error ? (
-                    <p className="text-xs text-red-500">{openShiftSaldo.error}</p>
-                  ) : openShiftSaldo.items.length === 0 ? (
-                    <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {openShiftSaldo.items.map((item) => (
-                        <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-700">
-                            {item.account.name}
-                            {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
-                          </span>
-                          <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
-                        </div>
-                      ))}
-                      <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
-                        <span className="font-semibold text-gray-700">Total</span>
-                        <span className="font-bold text-[#142D52]">{formatCurrency(openShiftSaldo.totalBalance)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <BranchSaldoActualList
+                  title="Saldo Cabang Ini"
+                  isLoading={openShiftSaldo.isLoading}
+                  error={openShiftSaldo.error}
+                  items={openShiftSaldo.items}
+                  totalBalance={openShiftSaldo.totalBalance}
+                  actualBalances={openShiftSaldo.actualBalances}
+                  onActualBalanceChange={openShiftSaldo.setActualBalance}
+                />
               )}
 
               <div>
@@ -1032,32 +954,15 @@ export default function KasirPage() {
                 <p className="font-semibold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
               </div>
 
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <p className="text-xs font-medium text-gray-600 mb-2">Saldo Cabang Ini</p>
-                {closeShiftSaldo.isLoading ? (
-                  <p className="text-xs text-gray-400">Memuat saldo...</p>
-                ) : closeShiftSaldo.error ? (
-                  <p className="text-xs text-red-500">{closeShiftSaldo.error}</p>
-                ) : closeShiftSaldo.items.length === 0 ? (
-                  <p className="text-xs text-gray-400">Belum ada akun saldo untuk cabang ini</p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {closeShiftSaldo.items.map((item) => (
-                      <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-700">
-                          {item.account.name}
-                          {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
-                        </span>
-                        <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
-                      <span className="font-semibold text-gray-700">Total</span>
-                      <span className="font-bold text-[#142D52]">{formatCurrency(closeShiftSaldo.totalBalance)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <BranchSaldoActualList
+                title="Saldo Cabang Ini"
+                isLoading={closeShiftSaldo.isLoading}
+                error={closeShiftSaldo.error}
+                items={closeShiftSaldo.items}
+                totalBalance={closeShiftSaldo.totalBalance}
+                actualBalances={closeShiftSaldo.actualBalances}
+                onActualBalanceChange={closeShiftSaldo.setActualBalance}
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tutup Shift</label>

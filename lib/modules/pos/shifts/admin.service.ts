@@ -11,6 +11,47 @@ function toNumber(value: unknown): number {
   return Number(value);
 }
 
+interface SaldoLinkItem {
+  account: { uuid: string };
+  group: { uuid: string; balance: number };
+}
+
+/**
+ * Gabungkan saldo sistem (hasil getBranchSaldo) dengan input "hasil hitung/
+ * cek fisik" kasir (actualBalances, keyed by saldo_account_balance_uuid) --
+ * berlaku utk akun apa pun (tunai, e-wallet, bank), bukan cuma tipe cash,
+ * krn tujuan awal Saldo memang "dicocokkan dengan saldo asli di HP/dompet".
+ * Opsional per akun -- kasir boleh skip akun yg tidak dicek, sisanya tetap
+ * null (tidak dianggap selisih 0). Hasilnya baris siap-insert ke tabel
+ * app_pos_cashier_shift_saldo_snapshots (1 baris = 1 akun per fase).
+ */
+function buildSaldoSnapshotRows(params: {
+  companyUuid: string;
+  shiftUuid: string;
+  phase: 'opening' | 'closing';
+  saldo: { data: SaldoLinkItem[] };
+  actualBalances: Record<string, number> | undefined;
+}): Prisma.AppPosCashierShiftSaldoSnapshotUncheckedCreateInput[] {
+  const { companyUuid, shiftUuid, phase, saldo, actualBalances } = params;
+
+  return saldo.data.map((item) => {
+    const rawActual = actualBalances?.[item.group.uuid];
+    const hasActual = typeof rawActual === 'number' && !Number.isNaN(rawActual);
+    const variance = hasActual ? Number((rawActual - item.group.balance).toFixed(2)) : null;
+
+    return {
+      companyUuid,
+      shiftUuid,
+      phase,
+      saldoAccountUuid: item.account.uuid,
+      saldoAccountBalanceUuid: item.group.uuid,
+      balance: item.group.balance,
+      actualBalance: hasActual ? rawActual : null,
+      variance,
+    };
+  });
+}
+
 export const posShiftService = {
   async listShifts(params: {
     page: number;
@@ -101,6 +142,7 @@ export const posShiftService = {
     payload: {
       branchUuid: string;
       notesOpen?: string | null;
+      actualBalances?: Record<string, number>;
     },
     userId: number
   ) {
@@ -133,15 +175,27 @@ export const posShiftService = {
     // kelihatan sama persis, percuma buat rekonsiliasi per shift).
     const openingSaldo = await posBranchService.getBranchSaldo(payload.branchUuid, { onlyShowInShift: true });
 
-    const shift = await posShiftRepository.create({
-      companyUuid: branch.companyUuid,
-      branchUuid: payload.branchUuid,
-      userId,
-      status: 'open',
-      openedAt: new Date(),
-      totalSales: 0,
-      notesOpen: payload.notesOpen?.trim() || null,
-      openingSaldoSnapshot: { data: openingSaldo.data, total_balance: openingSaldo.total_balance },
+    const shift = await posShiftRepository.runInTransaction(async (tx) => {
+      const created = await posShiftRepository.createInTx(tx, {
+        companyUuid: branch.companyUuid,
+        branchUuid: payload.branchUuid,
+        userId,
+        status: 'open',
+        openedAt: new Date(),
+        totalSales: 0,
+        notesOpen: payload.notesOpen?.trim() || null,
+      });
+
+      const snapshotRows = buildSaldoSnapshotRows({
+        companyUuid: branch.companyUuid,
+        shiftUuid: created.uuid,
+        phase: 'opening',
+        saldo: openingSaldo,
+        actualBalances: payload.actualBalances,
+      });
+      await posShiftRepository.createSaldoSnapshotsInTx(tx, snapshotRows);
+
+      return posShiftRepository.findByUuidInTx(tx, created.uuid);
     });
 
     return mapShift(shift);
@@ -151,6 +205,7 @@ export const posShiftService = {
     shiftUuid: string,
     payload: {
       notesClose?: string | null;
+      actualBalances?: Record<string, number>;
     },
     userId: number
   ) {
@@ -175,12 +230,24 @@ export const posShiftService = {
 
     const closingSaldo = await posBranchService.getBranchSaldo(existing.branchUuid, { onlyShowInShift: true });
 
-    const updated = await posShiftRepository.updateByUuid(shiftUuid, {
-      status: 'closed',
-      closedAt: now,
-      totalSales,
-      notesClose: payload.notesClose?.trim() || null,
-      closingSaldoSnapshot: { data: closingSaldo.data, total_balance: closingSaldo.total_balance },
+    const updated = await posShiftRepository.runInTransaction(async (tx) => {
+      const closed = await posShiftRepository.updateByUuidInTx(tx, shiftUuid, {
+        status: 'closed',
+        closedAt: now,
+        totalSales,
+        notesClose: payload.notesClose?.trim() || null,
+      });
+
+      const snapshotRows = buildSaldoSnapshotRows({
+        companyUuid: existing.companyUuid,
+        shiftUuid,
+        phase: 'closing',
+        saldo: closingSaldo,
+        actualBalances: payload.actualBalances,
+      });
+      await posShiftRepository.createSaldoSnapshotsInTx(tx, snapshotRows);
+
+      return posShiftRepository.findByUuidInTx(tx, closed.uuid);
     });
 
     return mapShift(updated);

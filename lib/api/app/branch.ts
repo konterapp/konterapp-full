@@ -83,6 +83,11 @@ export interface BranchSaldoItem {
     account_number: string | null;
     account_name: string | null;
   };
+  // Cuma terisi di snapshot shift yang SUDAH disimpan (opening_saldo/
+  // closing_saldo pada ShiftRecord) -- hasil input manual kasir dibanding
+  // saldo sistem saat itu. Kosong (undefined) di live-fetch saldo cabang.
+  actual_balance?: number | null;
+  variance?: number | null;
 }
 
 export async function getBranchSaldo(uuid: string): Promise<{

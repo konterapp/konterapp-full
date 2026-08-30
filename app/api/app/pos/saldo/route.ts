@@ -46,6 +46,7 @@ export const POST = withPermission(
       isActive: rawBody.isActive ?? rawBody.is_active,
       showInShift: rawBody.showInShift ?? rawBody.show_in_shift,
       sortOrder: rawBody.sortOrder ?? rawBody.sort_order,
+      isBankAgent: rawBody.isBankAgent ?? rawBody.is_bank_agent,
       openingBalance: rawBody.openingBalance ?? rawBody.opening_balance,
     };
 

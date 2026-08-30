@@ -27,12 +27,14 @@ const UUID_MODELS = new Set<string>([
   "AppPosSale",
   "AppPosSaleItem",
   "AppPosCashierShift",
+  "AppPosCashierShiftSaldoSnapshot",
   "AppPosPpobProduct",
   "AppPosPpobTransaction",
   "AppPosSaldoAccount",
   "AppPosSaldoAccountBalance",
   "AppPosSaldoAccountBalanceBranch",
   "AppPosSaldoMutation",
+  "AppPosBankAgentTransaction",
 ]);
 
 function mergeCompanyWhere(where: unknown, companyUuid: string): unknown {

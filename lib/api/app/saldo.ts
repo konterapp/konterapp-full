@@ -27,6 +27,7 @@ export interface SaldoAccount {
   is_active: boolean;
   show_in_shift: boolean;
   sort_order: number;
+  is_bank_agent: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -85,6 +86,7 @@ export async function createSaldoAccount(data: {
   is_active?: boolean;
   show_in_shift?: boolean;
   sort_order?: number;
+  is_bank_agent?: boolean;
   opening_balance?: number;
 }): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
   const response = await fetch('/api/app/pos/saldo', {
@@ -106,6 +108,7 @@ export async function updateSaldoAccount(
     is_active?: boolean;
     show_in_shift?: boolean;
     sort_order?: number;
+    is_bank_agent?: boolean;
   }
 ): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: SaldoAccount }> {
   const response = await fetch(`/api/app/pos/saldo/${uuid}`, {

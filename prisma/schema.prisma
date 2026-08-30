@@ -24,16 +24,17 @@ model User {
   referredByUserId Int?      @map("referred_by_user_id")
   referralBalance  Decimal   @default(0) @map("referral_balance") @db.Decimal(15, 2)
 
-  modelHasRoles       ModelHasRole[]
-  companyMemberships  CompanyUser[]
-  emailVerifications  EmailVerificationToken[]
-  passwordResets      PasswordResetToken[]
-  posPurchases        AppPosPurchase[]
-  posStockMovements   AppPosStockMovement[]
-  posSales            AppPosSale[]
-  posCashierShifts    AppPosCashierShift[]
-  posPpobTransactions AppPosPpobTransaction[]
-  posSaldoMutations   AppPosSaldoMutation[]
+  modelHasRoles            ModelHasRole[]
+  companyMemberships       CompanyUser[]
+  emailVerifications       EmailVerificationToken[]
+  passwordResets           PasswordResetToken[]
+  posPurchases             AppPosPurchase[]
+  posStockMovements        AppPosStockMovement[]
+  posSales                 AppPosSale[]
+  posCashierShifts         AppPosCashierShift[]
+  posPpobTransactions      AppPosPpobTransaction[]
+  posSaldoMutations        AppPosSaldoMutation[]
+  posBankAgentTransactions AppPosBankAgentTransaction[]
 
   @@map("users")
 }
@@ -103,35 +104,37 @@ model Company {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  memberships            CompanyUser[]
-  memberBranches         CompanyUserBranch[]
-  roles                  Role[]
-  modelHasRoles          ModelHasRole[]
-  subscription           CompanySubscription?
-  invoices               SubscriptionInvoice[]
-  productCategories      AppPosProductCategory[]
-  productUnits           AppPosProductUnit[]
-  productStocks          AppPosProductStock[]
-  productBarcodes        AppPosProductBarcode[]
-  productUnitConversions AppPosProductUnitConversion[]
-  productBranchPrices    AppPosProductBranchPrice[]
-  productImages          AppPosProductImage[]
-  purchaseItems          AppPosPurchaseItem[]
-  saleItems              AppPosSaleItem[]
-  branches               AppPosBranch[]
-  products               AppPosProduct[]
-  suppliers              AppPosSupplier[]
-  purchases              AppPosPurchase[]
-  stockMovements         AppPosStockMovement[]
-  customers              AppPosCustomer[]
-  sales                  AppPosSale[]
-  cashierShifts          AppPosCashierShift[]
-  ppobProducts           AppPosPpobProduct[]
-  ppobTransactions       AppPosPpobTransaction[]
-  saldoAccounts          AppPosSaldoAccount[]
-  saldoAccountBalances   AppPosSaldoAccountBalance[]
-  saldoBalanceBranches   AppPosSaldoAccountBalanceBranch[]
-  saldoMutations         AppPosSaldoMutation[]
+  memberships                CompanyUser[]
+  memberBranches             CompanyUserBranch[]
+  roles                      Role[]
+  modelHasRoles              ModelHasRole[]
+  subscription               CompanySubscription?
+  invoices                   SubscriptionInvoice[]
+  productCategories          AppPosProductCategory[]
+  productUnits               AppPosProductUnit[]
+  productStocks              AppPosProductStock[]
+  productBarcodes            AppPosProductBarcode[]
+  productUnitConversions     AppPosProductUnitConversion[]
+  productBranchPrices        AppPosProductBranchPrice[]
+  productImages              AppPosProductImage[]
+  purchaseItems              AppPosPurchaseItem[]
+  saleItems                  AppPosSaleItem[]
+  branches                   AppPosBranch[]
+  products                   AppPosProduct[]
+  suppliers                  AppPosSupplier[]
+  purchases                  AppPosPurchase[]
+  stockMovements             AppPosStockMovement[]
+  customers                  AppPosCustomer[]
+  sales                      AppPosSale[]
+  cashierShifts              AppPosCashierShift[]
+  cashierShiftSaldoSnapshots AppPosCashierShiftSaldoSnapshot[]
+  ppobProducts               AppPosPpobProduct[]
+  ppobTransactions           AppPosPpobTransaction[]
+  saldoAccounts              AppPosSaldoAccount[]
+  saldoAccountBalances       AppPosSaldoAccountBalance[]
+  saldoBalanceBranches       AppPosSaldoAccountBalanceBranch[]
+  saldoMutations             AppPosSaldoMutation[]
+  bankAgentTransactions      AppPosBankAgentTransaction[]
 
   @@map("companies")
 }
@@ -382,30 +385,31 @@ model AppPosProductUnit {
 }
 
 model AppPosBranch {
-  uuid        String   @id @default(uuid()) @db.Char(36)
-  companyUuid String   @map("company_uuid") @db.Char(36)
-  code        String   @db.VarChar(20)
-  name        String   @db.VarChar(255)
-  address     String?  @db.Text
-  phone       String?  @db.VarChar(20)
-  email       String?  @db.VarChar(255)
-  isActive    Boolean  @default(true) @map("is_active")
-  isMain      Boolean  @default(false) @map("is_main")
-  maxConcurrentUsers Int @default(1) @map("max_concurrent_users")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  uuid               String   @id @default(uuid()) @db.Char(36)
+  companyUuid        String   @map("company_uuid") @db.Char(36)
+  code               String   @db.VarChar(20)
+  name               String   @db.VarChar(255)
+  address            String?  @db.Text
+  phone              String?  @db.VarChar(20)
+  email              String?  @db.VarChar(255)
+  isActive           Boolean  @default(true) @map("is_active")
+  isMain             Boolean  @default(false) @map("is_main")
+  maxConcurrentUsers Int      @default(1) @map("max_concurrent_users")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  company          Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  productStocks    AppPosProductStock[]
-  productPrices    AppPosProductBranchPrice[]
-  purchases        AppPosPurchase[]
-  stockMovements   AppPosStockMovement[]
-  sales            AppPosSale[]
-  cashierShifts    AppPosCashierShift[]
-  ppobTransactions AppPosPpobTransaction[]
-  saldoMutations   AppPosSaldoMutation[]
-  saldoBalances    AppPosSaldoAccountBalanceBranch[]
-  memberAccess     CompanyUserBranch[]
+  company               Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  productStocks         AppPosProductStock[]
+  productPrices         AppPosProductBranchPrice[]
+  purchases             AppPosPurchase[]
+  stockMovements        AppPosStockMovement[]
+  sales                 AppPosSale[]
+  cashierShifts         AppPosCashierShift[]
+  ppobTransactions      AppPosPpobTransaction[]
+  saldoMutations        AppPosSaldoMutation[]
+  saldoBalances         AppPosSaldoAccountBalanceBranch[]
+  memberAccess          CompanyUserBranch[]
+  bankAgentTransactions AppPosBankAgentTransaction[]
 
   @@unique([companyUuid, code])
   @@index([companyUuid])
@@ -425,6 +429,10 @@ model AppPosProduct {
   minStock       Int      @default(0) @map("min_stock")
   unit           String   @default("pcs") @db.VarChar(20)
   isActive       Boolean  @default(true) @map("is_active")
+  // Produk yg dibuat otomatis oleh sistem (mis. "Komisi Agen Bank") --
+  // disembunyikan dari listing produk biasa, cuma dipakai internal supaya
+  // laporan omzet/Riwayat bisa baca 1 sumber (app_pos_sales) tanpa UNION.
+  isSystem       Boolean  @default(false) @map("is_system")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -649,30 +657,35 @@ model AppPosCustomer {
 }
 
 model AppPosSale {
-  uuid              String   @id @default(uuid()) @db.Char(36)
-  companyUuid       String   @map("company_uuid") @db.Char(36)
-  saleNumber        String   @unique @map("sale_number") @db.VarChar(50)
-  branchUuid        String   @map("branch_uuid") @db.Char(36)
-  customerUuid      String?  @map("customer_uuid") @db.Char(36)
-  paymentMethodUuid String   @map("payment_method_uuid") @db.Char(36)
-  saleDate          DateTime @map("sale_date") @db.Date
-  subtotal          Decimal  @default(0) @db.Decimal(15, 2)
-  discountAmount    Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
-  totalAmount       Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
-  paidAmount        Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
-  changeAmount      Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
-  paymentStatus     String   @default("paid") @map("payment_status") @db.VarChar(20)
-  notes             String?  @db.Text
-  createdBy         Int      @map("created_by")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  uuid                     String   @id @default(uuid()) @db.Char(36)
+  companyUuid              String   @map("company_uuid") @db.Char(36)
+  saleNumber               String   @unique @map("sale_number") @db.VarChar(50)
+  branchUuid               String   @map("branch_uuid") @db.Char(36)
+  customerUuid             String?  @map("customer_uuid") @db.Char(36)
+  paymentMethodUuid        String   @map("payment_method_uuid") @db.Char(36)
+  saleDate                 DateTime @map("sale_date") @db.Date
+  subtotal                 Decimal  @default(0) @db.Decimal(15, 2)
+  discountAmount           Decimal  @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  totalAmount              Decimal  @default(0) @map("total_amount") @db.Decimal(15, 2)
+  paidAmount               Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  changeAmount             Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
+  paymentStatus            String   @default("paid") @map("payment_status") @db.VarChar(20)
+  notes                    String?  @db.Text
+  createdBy                Int      @map("created_by")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+  // Diisi HANYA utk sale sintetis komisi Agen Bank -- FK asli (bukan cuma
+  // konvensi nomor) supaya bisa ditelusuri balik ke transaksi asalnya.
+  // @unique krn 1 transaksi Agen Bank cuma menghasilkan 1 sale.
+  bankAgentTransactionUuid String?  @unique @map("bank_agent_transaction_uuid") @db.Char(36)
 
-  company       Company            @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  branch        AppPosBranch       @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  customer      AppPosCustomer?    @relation(fields: [customerUuid], references: [uuid], onDelete: SetNull)
-  paymentMethod AppPosSaldoAccount @relation(fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
-  creator       User               @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  items         AppPosSaleItem[]
+  company              Company                     @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch               AppPosBranch                @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  customer             AppPosCustomer?             @relation(fields: [customerUuid], references: [uuid], onDelete: SetNull)
+  paymentMethod        AppPosSaldoAccount          @relation(fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
+  creator              User                        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  bankAgentTransaction AppPosBankAgentTransaction? @relation(fields: [bankAgentTransactionUuid], references: [uuid], onDelete: Cascade)
+  items                AppPosSaleItem[]
 
   @@index([companyUuid])
   @@index([saleDate])
@@ -711,18 +724,13 @@ model AppPosCashierShift {
   totalSales  Decimal   @default(0) @map("total_sales") @db.Decimal(15, 2)
   notesOpen   String?   @map("notes_open") @db.Text
   notesClose  String?   @map("notes_close") @db.Text
-  // Snapshot saldo cabang PADA SAAT buka/tutup shift -- bukan hasil query
-  // live (kalau live, semua baris riwayat shift di cabang yang sama bakal
-  // kelihatan sama, percuma buat rekonsiliasi). Diisi sekali saat openShift/
-  // closeShift, tidak pernah diupdate lagi setelahnya.
-  openingSaldoSnapshot Json?     @map("opening_saldo_snapshot")
-  closingSaldoSnapshot Json?     @map("closing_saldo_snapshot")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  company Company      @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  branch  AppPosBranch @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company        Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch         AppPosBranch                      @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  user           User                              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  saldoSnapshots AppPosCashierShiftSaldoSnapshot[]
 
   @@index([companyUuid])
   @@index([branchUuid])
@@ -730,6 +738,36 @@ model AppPosCashierShift {
   @@index([status])
   @@index([openedAt])
   @@map("app_pos_cashier_shifts")
+}
+
+// Snapshot saldo cabang PADA SAAT buka/tutup shift -- bukan hasil query live
+// (kalau live, semua baris riwayat shift di cabang yang sama bakal kelihatan
+// sama, percuma buat rekonsiliasi). Diisi sekali saat openShift/closeShift,
+// tidak pernah diupdate lagi setelahnya. 1 baris = 1 akun saldo per fase
+// (opening/closing) -- tabel terpisah (bukan JSON) supaya bisa di-index &
+// diagregasi buat laporan Selisih lintas shift/cabang.
+model AppPosCashierShiftSaldoSnapshot {
+  uuid                    String   @id @default(uuid()) @db.Char(36)
+  companyUuid             String   @map("company_uuid") @db.Char(36)
+  shiftUuid               String   @map("shift_uuid") @db.Char(36)
+  phase                   String   @db.VarChar(10) // opening, closing
+  saldoAccountUuid        String   @map("saldo_account_uuid") @db.Char(36)
+  saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  balance                 Decimal  @db.Decimal(15, 2) // saldo sistem pd saat snapshot diambil
+  actualBalance           Decimal? @map("actual_balance") @db.Decimal(15, 2) // hasil hitung/cek fisik kasir (opsional)
+  variance                Decimal? @db.Decimal(15, 2) // actualBalance - balance
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  company             Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  shift               AppPosCashierShift        @relation(fields: [shiftUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount        AppPosSaldoAccount        @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  saldoAccountBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([shiftUuid, phase, saldoAccountBalanceUuid])
+  @@index([companyUuid])
+  @@index([shiftUuid])
+  @@index([saldoAccountUuid])
+  @@map("app_pos_cashier_shift_saldo_snapshots")
 }
 
 model AppPosPpobProduct {
@@ -816,14 +854,20 @@ model AppPosSaldoAccount {
   isActive        Boolean  @default(true) @map("is_active")
   showInShift     Boolean  @default(true) @map("show_in_shift")
   sortOrder       Int      @default(0) @map("sort_order")
+  // Independen dari `type` -- akun apa pun (DANA, BRI, dst) bisa dipakai
+  // buat transaksi Agen Bank, bukan cuma akun ber-"tipe" bank.
+  isBankAgent     Boolean  @default(false) @map("is_bank_agent")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  company          Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  balances         AppPosSaldoAccountBalance[]
-  balanceBranches  AppPosSaldoAccountBalanceBranch[]
-  sales            AppPosSale[]
-  ppobTransactions AppPosPpobTransaction[]
+  company                              Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  balances                             AppPosSaldoAccountBalance[]
+  balanceBranches                      AppPosSaldoAccountBalanceBranch[]
+  sales                                AppPosSale[]
+  ppobTransactions                     AppPosPpobTransaction[]
+  bankAgentTransactions                AppPosBankAgentTransaction[]      @relation("BankAgentTransactionAccount")
+  bankAgentTransactionsAsPaymentMethod AppPosBankAgentTransaction[]      @relation("BankAgentTransactionPaymentMethod")
+  cashierShiftSaldoSnapshots           AppPosCashierShiftSaldoSnapshot[]
 
   @@unique([companyUuid, code])
   @@index([companyUuid])
@@ -845,10 +889,12 @@ model AppPosSaldoAccountBalance {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  company      Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  saldoAccount AppPosSaldoAccount                @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
-  branchLinks  AppPosSaldoAccountBalanceBranch[]
-  mutations    AppPosSaldoMutation[]
+  company                    Company                           @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount               AppPosSaldoAccount                @relation(fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  branchLinks                AppPosSaldoAccountBalanceBranch[]
+  mutations                  AppPosSaldoMutation[]
+  bankAgentTransactions      AppPosBankAgentTransaction[]
+  cashierShiftSaldoSnapshots AppPosCashierShiftSaldoSnapshot[]
 
   @@index([companyUuid])
   @@index([saldoAccountUuid])
@@ -900,4 +946,50 @@ model AppPosSaldoMutation {
   @@index([saldoAccountBalanceUuid])
   @@index([branchUuid])
   @@map("app_pos_saldo_mutations")
+}
+
+// ==================== Agen Bank ====================
+// Transaksi harian agen bank (Setor/Tarik Tunai, Transfer Antar Bank) yang
+// menggerakkan saldo akun terkait (BRI, BRILink, dst -- REUSE
+// AppPosSaldoAccount yang ditandai is_bank_agent, bukan model saldo
+// terpisah). Jenis transaksi sengaja HARDCODE (bukan master data dinamis)
+// karena cuma 3 macam & stabil -- lihat BANK_AGENT_TRANSACTION_TYPES di
+// lib/modules/pos/bank-agent-transactions/admin.service.ts. PPOB TIDAK di
+// sini -- rencana ke depan lewat AppPosProduct (kind PPOB), bukan modul ini.
+model AppPosBankAgentTransaction {
+  uuid                    String   @id @default(uuid()) @db.Char(36)
+  companyUuid             String   @map("company_uuid") @db.Char(36)
+  branchUuid              String   @map("branch_uuid") @db.Char(36)
+  saldoAccountUuid        String   @map("saldo_account_uuid") @db.Char(36)
+  saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  transactionNumber       String   @unique @map("transaction_number") @db.VarChar(50)
+  transactionType         String   @map("transaction_type") @db.VarChar(20) // deposit, withdrawal, transfer
+  cashDirection           String   @map("cash_direction") @db.VarChar(10) // in, out (dari hardcode map, bukan input bebas)
+  accountReference        String?  @map("account_reference") @db.VarChar(100) // no. rekening tujuan/asal (opsional)
+  baseAmount              Decimal  @map("base_amount") @db.Decimal(15, 2) // nominal setor/tarik/transfer
+  sellingAmount           Decimal  @map("selling_amount") @db.Decimal(15, 2) // yang dibayar/diterima pelanggan
+  fee                     Decimal  @default(0) @db.Decimal(15, 2) // komisi/laba
+  adminFee                Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2) // beban ke bank
+  feeReceivedVia          String?  @map("fee_received_via") @db.VarChar(20) // deducted, cash, balance -- khusus dampak keluar (Tarik Tunai)
+  paymentMethodUuid       String   @map("payment_method_uuid") @db.Char(36) // akun saldo yg kena mutasi kas (mis. Cash/BCA/QRIS)
+  paidAmount              Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  changeAmount            Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
+  notes                   String?  @db.Text
+  createdBy               Int      @map("created_by")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  company             Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch              AppPosBranch              @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount        AppPosSaldoAccount        @relation("BankAgentTransactionAccount", fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  saldoAccountBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+  paymentMethod       AppPosSaldoAccount        @relation("BankAgentTransactionPaymentMethod", fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
+  creator             User                      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  sale                AppPosSale?
+
+  @@index([companyUuid])
+  @@index([branchUuid])
+  @@index([saldoAccountUuid])
+  @@index([paymentMethodUuid])
+  @@map("app_pos_bank_agent_transactions")
 }

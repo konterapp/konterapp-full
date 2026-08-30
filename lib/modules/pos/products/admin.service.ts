@@ -139,7 +139,10 @@ export const posProductService = {
     const { page, perPage, search, categoryUuid, branchUuid, isActive, inStockOnly, sortBy, sortOrder } = params;
 
     const skip = (page - 1) * perPage;
-    const where: any = {};
+    // Produk sistem (mis. "Komisi Agen Bank") disembunyikan dari listing
+    // biasa -- cuma dipakai internal buat pencatatan omzet, bukan produk
+    // yang boleh dijual/dipilih manual.
+    const where: any = { isSystem: false };
 
     if (search) {
       where.OR = [

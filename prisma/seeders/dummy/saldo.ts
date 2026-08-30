@@ -31,6 +31,9 @@ interface SaldoAccountSeed {
   isPaymentMethod: boolean;
   /** Default true kalau tidak diisi -- tampil di ringkasan saldo saat buka/tutup shift. */
   showInShift?: boolean;
+  /** Independen dari `type` -- boleh dipakai buat transaksi Agen Bank
+   * meski akunnya juga metode bayar customer biasa. */
+  isBankAgent?: boolean;
   groups: BalanceGroupSeed[];
 }
 
@@ -53,6 +56,10 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     type: "bank",
     description: "Rekening bank BRI (dipakai bareng semua cabang)",
     isPaymentMethod: true,
+    // Contoh dummy: akun bank biasa yang JUGA ditandai bisa dipakai buat
+    // Kasir Digital -- mis. transfer tarik tunai Agen Bank masuk ke BRI ini,
+    // bukan berarti "BRI" jadi tipe akun khusus.
+    isBankAgent: true,
     groups: [
       {
         accountNumber: "1234567890",
@@ -151,6 +158,7 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
           isPaymentMethod: data.isPaymentMethod,
           isActive: true,
           showInShift: data.showInShift ?? true,
+          isBankAgent: data.isBankAgent ?? false,
           sortOrder,
         },
       });

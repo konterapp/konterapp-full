@@ -162,6 +162,18 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/pos/saldo/:id',
     permission: 'pos.saldo.index',
   },
+  'pos.saldo.edit': {
+    path: '/app/pos/saldo/:id/edit',
+    permission: 'pos.saldo.update',
+  },
+  'pos.bank-agent-transaction.index': {
+    path: '/app/pos/bank-agent-transactions',
+    permission: 'pos.bank-agent-transaction.index',
+  },
+  'pos.bank-agent-transaction.create': {
+    path: '/app/pos/bank-agent-transactions/create',
+    permission: 'pos.bank-agent-transaction.create',
+  },
   'pos.ppob.index': {
     path: '/app/pos/ppob',
     permission: 'pos.ppob.index',

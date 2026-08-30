@@ -1,3 +1,20 @@
+type SnapshotRow = {
+  phase: string;
+  balance: unknown;
+  actualBalance: unknown;
+  variance: unknown;
+  saldoAccount: {
+    uuid: string;
+    code: string;
+    name: string;
+    type: string;
+  } | null;
+  saldoAccountBalance: {
+    uuid: string;
+    name: string | null;
+  } | null;
+};
+
 type ShiftRow = {
   uuid: string;
   status: string;
@@ -6,8 +23,7 @@ type ShiftRow = {
   totalSales: unknown;
   notesOpen: string | null;
   notesClose: string | null;
-  openingSaldoSnapshot?: unknown;
-  closingSaldoSnapshot?: unknown;
+  saldoSnapshots?: SnapshotRow[];
   createdAt: Date;
   updatedAt: Date;
   branch: {
@@ -29,6 +45,58 @@ function toNumber(value: unknown): number {
   return Number(value);
 }
 
+function toNullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  return Number(value);
+}
+
+/** Rakit baris snapshot 1 fase (opening/closing) jadi bentuk yg dipakai frontend. */
+function buildSaldoSnapshotGroup(rows: SnapshotRow[] | undefined, phase: string) {
+  const filtered = (rows || []).filter((row) => row.phase === phase);
+  if (filtered.length === 0) return null;
+
+  let totalBalance = 0;
+  let totalVariance = 0;
+  let hasAnyActual = false;
+
+  const data = filtered.map((row) => {
+    const balance = toNumber(row.balance);
+    const actualBalance = toNullableNumber(row.actualBalance);
+    const variance = toNullableNumber(row.variance);
+    totalBalance += balance;
+    if (actualBalance !== null) {
+      hasAnyActual = true;
+      totalVariance += variance ?? 0;
+    }
+
+    return {
+      account: row.saldoAccount
+        ? {
+            uuid: row.saldoAccount.uuid,
+            code: row.saldoAccount.code,
+            name: row.saldoAccount.name,
+            type: row.saldoAccount.type,
+          }
+        : null,
+      group: {
+        uuid: row.saldoAccountBalance?.uuid ?? '',
+        name: row.saldoAccountBalance?.name ?? null,
+        balance,
+        account_number: null,
+        account_name: null,
+      },
+      actual_balance: actualBalance,
+      variance,
+    };
+  });
+
+  return {
+    data,
+    total_balance: Number(totalBalance.toFixed(2)),
+    total_variance: hasAnyActual ? Number(totalVariance.toFixed(2)) : null,
+  };
+}
+
 export function mapShift(shift: ShiftRow) {
   return {
     uuid: shift.uuid,
@@ -38,8 +106,8 @@ export function mapShift(shift: ShiftRow) {
     total_sales: toNumber(shift.totalSales),
     notes_open: shift.notesOpen,
     notes_close: shift.notesClose,
-    opening_saldo: shift.openingSaldoSnapshot ?? null,
-    closing_saldo: shift.closingSaldoSnapshot ?? null,
+    opening_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'opening'),
+    closing_saldo: buildSaldoSnapshotGroup(shift.saldoSnapshots, 'closing'),
     created_at: shift.createdAt,
     updated_at: shift.updatedAt,
     branch: shift.branch

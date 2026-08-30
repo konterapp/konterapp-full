@@ -45,6 +45,9 @@ export const TENANT_DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       "pos.category.index",
       "pos.saldo.index",
       "pos.saldo.adjust",
+      // Agen Bank: boleh lihat & buat transaksi (setor/tarik/transfer bank).
+      "pos.bank-agent-transaction.index",
+      "pos.bank-agent-transaction.create",
     ],
   },
 ];

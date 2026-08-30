@@ -20,6 +20,7 @@ interface SaldoAccountFormData {
   is_active: boolean;
   show_in_shift: boolean;
   sort_order: string;
+  is_bank_agent: boolean;
   opening_balance: string;
 }
 
@@ -46,6 +47,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
     is_active: true,
     show_in_shift: true,
     sort_order: '',
+    is_bank_agent: false,
     opening_balance: '0',
   });
 
@@ -75,6 +77,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
           is_active: result.data.is_active ?? true,
           show_in_shift: result.data.show_in_shift ?? true,
           sort_order: String(result.data.sort_order ?? 0),
+          is_bank_agent: result.data.is_bank_agent ?? false,
           opening_balance: '0',
         });
       } else {
@@ -118,6 +121,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
         is_payment_method: formData.is_payment_method,
         is_active: formData.is_active,
         show_in_shift: formData.show_in_shift,
+        is_bank_agent: formData.is_bank_agent,
         // Kosongkan berarti "biarkan server yang atur" -- taruh di urutan
         // paling akhir (lihat posSaldoService.createAccount). Kalau diisi
         // manual, pakai nilai itu.
@@ -386,6 +390,20 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
               />
               <label htmlFor="show_in_shift" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
                 Tampilkan saat buka/tutup shift kasir
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_bank_agent"
+                name="is_bank_agent"
+                checked={formData.is_bank_agent}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+              />
+              <label htmlFor="is_bank_agent" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
+                Bisa dipakai untuk transaksi Agen Bank
               </label>
             </div>
           </div>

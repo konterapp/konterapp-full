@@ -70,24 +70,31 @@ const coreMenuItems: MenuItem[] = [
     },
     {
         section: 'Operasional',
+        label: 'Shift Kasir',
+        href: '/app/pos/shifts',
+        icon: <CircleDot className="w-5 h-5" />,
+        permission: 'pos.sale.create'
+    },
+    {
+        section: 'Operasional',
         label: 'Kasir',
-        href: '/app/pos', 
+        href: '/app/pos',
         icon: <ShoppingCart className="w-5 h-5" />,
         permission: 'pos.sale.create'
     },
     {
         section: 'Operasional',
-        label: 'Penjualan',
-        href: '/app/pos/transactions', 
-        icon: <Receipt className="w-5 h-5" />,
-        permission: 'pos.sale.index'
+        label: 'Agen Bank',
+        href: '/app/pos/bank-agent-transactions',
+        icon: <Landmark className="w-5 h-5" />,
+        permission: 'pos.bank-agent-transaction.index'
     },
     {
         section: 'Operasional',
-        label: 'Shift Kasir',
-        href: '/app/pos/shifts',
-        icon: <CircleDot className="w-5 h-5" />,
-        permission: 'pos.sale.create'
+        label: 'Transaksi',
+        href: '/app/pos/transactions',
+        icon: <Receipt className="w-5 h-5" />,
+        permission: 'pos.sale.index'
     },
     {
         section: 'Operasional',
@@ -137,7 +144,7 @@ const coreMenuItems: MenuItem[] = [
     {
         section: 'Master Data',
         label: 'Cabang/Lokasi',
-        href: '/app/pos/branches', 
+        href: '/app/pos/branches',
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
     },

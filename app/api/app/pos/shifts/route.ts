@@ -45,6 +45,7 @@ export const POST = withPermission(
       {
         branchUuid: result.data.branch_uuid,
         notesOpen: result.data.notes_open || null,
+        actualBalances: result.data.actual_balances,
       },
       context.userId
     );

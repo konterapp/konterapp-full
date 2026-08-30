@@ -137,6 +137,7 @@ export const posSaldoService = {
       isActive?: boolean;
       showInShift?: boolean;
       sortOrder?: number;
+      isBankAgent?: boolean;
       openingBalance?: number;
     }
   ) {
@@ -172,6 +173,7 @@ export const posSaldoService = {
           sortOrder: nextSortOrder,
           isActive: payload.isActive ?? true,
           showInShift: payload.showInShift ?? true,
+          isBankAgent: payload.isBankAgent ?? false,
         },
         tx
       );
@@ -232,6 +234,7 @@ export const posSaldoService = {
       isActive?: boolean;
       showInShift?: boolean;
       sortOrder?: number;
+      isBankAgent?: boolean;
     }
   ) {
     const existing = await posSaldoRepository.findByUuid(uuid);
@@ -255,6 +258,7 @@ export const posSaldoService = {
       isActive: payload.isActive ?? existing.isActive,
       sortOrder: payload.sortOrder ?? existing.sortOrder,
       showInShift: payload.showInShift ?? existing.showInShift,
+      isBankAgent: payload.isBankAgent ?? existing.isBankAgent,
     });
     return mapSaldoAccount({ ...account, balances: existing.balances });
   },

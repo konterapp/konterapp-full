@@ -69,6 +69,13 @@ export const PERMISSIONS = [
   // POS - PPOB
   "pos.ppob.index",
   "pos.ppob.create",
+  // POS - Agen Bank (setor/tarik tunai, transfer saldo -- akun bisa bank
+  // atau e-wallet). Reuse akun & ledger dari domain Saldo -- jenis transaksi
+  // hardcode, bukan master data.
+  "pos.bank-agent-transaction.index",
+  "pos.bank-agent-transaction.create",
+  "pos.bank-agent-transaction.update",
+  "pos.bank-agent-transaction.delete",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

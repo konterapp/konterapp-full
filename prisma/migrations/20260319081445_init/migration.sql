@@ -153,6 +153,7 @@ CREATE TABLE "app_pos_products" (
     "min_stock" INTEGER NOT NULL DEFAULT 0,
     "unit" VARCHAR(20) NOT NULL DEFAULT 'pcs',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "is_system" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -340,6 +341,7 @@ CREATE TABLE "app_pos_sales" (
     "created_by" INTEGER NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
+    "bank_agent_transaction_uuid" CHAR(36),
 
     CONSTRAINT "app_pos_sales_pkey" PRIMARY KEY ("uuid")
 );
@@ -493,6 +495,9 @@ CREATE INDEX "app_pos_customers_name_idx" ON "app_pos_customers"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "app_pos_sales_sale_number_key" ON "app_pos_sales"("sale_number");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "app_pos_sales_bank_agent_transaction_uuid_key" ON "app_pos_sales"("bank_agent_transaction_uuid");
 
 -- CreateIndex
 CREATE INDEX "app_pos_sales_sale_date_idx" ON "app_pos_sales"("sale_date");
