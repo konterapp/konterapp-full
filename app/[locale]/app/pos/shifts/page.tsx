@@ -1,10 +1,15 @@
 'use client';
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { CircleDot } from 'lucide-react';
+import { CircleDot, Wallet, X } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getShiftBranchSaldo, BranchSaldoItem } from '@/lib/api/app/branch';
+
+interface SaldoSnapshot {
+  data: BranchSaldoItem[];
+  total_balance: number;
+}
 
 interface BranchOption {
   uuid: string;
@@ -32,6 +37,8 @@ interface ShiftRecord {
   total_sales: number;
   notes_open: string | null;
   notes_close: string | null;
+  opening_saldo: SaldoSnapshot | null;
+  closing_saldo: SaldoSnapshot | null;
   branch: ShiftBranch | null;
   user: ShiftUser | null;
 }
@@ -112,6 +119,11 @@ export default function CashierShiftsPage() {
     items: BranchSaldoItem[];
     totalBalance: number;
   }>({ isLoading: false, error: '', items: [], totalBalance: 0 });
+
+  const [saldoModal, setSaldoModal] = useState<{ isOpen: boolean; row: ShiftRecord | null }>({
+    isOpen: false,
+    row: null,
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -295,6 +307,39 @@ export default function CashierShiftsPage() {
     }
   };
 
+  const handleSaldoClick = (row: ShiftRecord) => {
+    setSaldoModal({ isOpen: true, row });
+  };
+
+  const handleSaldoClose = () => {
+    setSaldoModal({ isOpen: false, row: null });
+  };
+
+  const renderSaldoSnapshot = (title: string, snapshot: SaldoSnapshot | null) => (
+    <div>
+      <p className="text-xs font-semibold text-gray-600 mb-2">{title}</p>
+      {!snapshot || snapshot.data.length === 0 ? (
+        <div className="text-sm text-gray-400 italic">Tidak ada data</div>
+      ) : (
+        <div className="space-y-2">
+          {snapshot.data.map((item) => (
+            <div key={`${item.account.uuid}-${item.group.uuid}`} className="flex items-center justify-between text-sm">
+              <span className="text-gray-700">
+                {item.account.name}
+                {item.group.name ? <span className="text-gray-400"> ({item.group.name})</span> : ''}
+              </span>
+              <span className="font-medium text-[#142D52]">{formatCurrency(item.group.balance)}</span>
+            </div>
+          ))}
+          <div className="flex items-center justify-between text-sm pt-1.5 border-t border-gray-200">
+            <span className="font-semibold text-gray-700">Total</span>
+            <span className="font-bold text-[#142D52]">{formatCurrency(snapshot.total_balance)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   const filterComponent = useMemo(
     () => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -338,6 +383,23 @@ export default function CashierShiftsPage() {
   );
 
   const columns: Column<ShiftRecord>[] = [
+    {
+      key: 'actions',
+      label: 'Aksi',
+      sortable: false,
+      width: '7rem',
+      render: (_, row) => (
+        <button
+          type="button"
+          onClick={() => handleSaldoClick(row)}
+          disabled={!row.opening_saldo && !row.closing_saldo}
+          className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg transition-colors text-xs font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Saldo</span>
+        </button>
+      ),
+    },
     {
       key: 'opened_at',
       label: 'Buka Shift',
@@ -559,6 +621,39 @@ export default function CashierShiftsPage() {
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
       />
+
+      {saldoModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm cursor-pointer"
+          onClick={(e) => { if (e.target === e.currentTarget) handleSaldoClose(); }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto cursor-default" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Saldo Cabang {saldoModal.row?.branch?.name}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">Snapshot saldo pada saat shift ini dibuka & ditutup (bukan saldo terkini).</p>
+              </div>
+              <button onClick={handleSaldoClose} className="p-1 rounded hover:bg-gray-100 cursor-pointer">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+              {renderSaldoSnapshot('Saat Buka Shift', saldoModal.row?.opening_saldo ?? null)}
+              {renderSaldoSnapshot(
+                'Saat Tutup Shift',
+                saldoModal.row?.status === 'closed' ? saldoModal.row?.closing_saldo ?? null : null
+              )}
+              {saldoModal.row?.status !== 'closed' && (
+                <p className="text-xs text-gray-400 italic">Shift masih berjalan, saldo tutup belum ada.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

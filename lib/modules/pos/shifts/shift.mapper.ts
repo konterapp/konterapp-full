@@ -6,6 +6,8 @@ type ShiftRow = {
   totalSales: unknown;
   notesOpen: string | null;
   notesClose: string | null;
+  openingSaldoSnapshot?: unknown;
+  closingSaldoSnapshot?: unknown;
   createdAt: Date;
   updatedAt: Date;
   branch: {
@@ -36,6 +38,8 @@ export function mapShift(shift: ShiftRow) {
     total_sales: toNumber(shift.totalSales),
     notes_open: shift.notesOpen,
     notes_close: shift.notesClose,
+    opening_saldo: shift.openingSaldoSnapshot ?? null,
+    closing_saldo: shift.closingSaldoSnapshot ?? null,
     created_at: shift.createdAt,
     updated_at: shift.updatedAt,
     branch: shift.branch

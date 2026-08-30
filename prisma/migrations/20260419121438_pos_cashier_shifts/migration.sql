@@ -10,6 +10,8 @@ CREATE TABLE "app_pos_cashier_shifts" (
     "total_sales" DECIMAL(15,2) NOT NULL DEFAULT 0,
     "notes_open" TEXT,
     "notes_close" TEXT,
+    "opening_saldo_snapshot" JSONB,
+    "closing_saldo_snapshot" JSONB,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 

@@ -711,6 +711,12 @@ model AppPosCashierShift {
   totalSales  Decimal   @default(0) @map("total_sales") @db.Decimal(15, 2)
   notesOpen   String?   @map("notes_open") @db.Text
   notesClose  String?   @map("notes_close") @db.Text
+  // Snapshot saldo cabang PADA SAAT buka/tutup shift -- bukan hasil query
+  // live (kalau live, semua baris riwayat shift di cabang yang sama bakal
+  // kelihatan sama, percuma buat rekonsiliasi). Diisi sekali saat openShift/
+  // closeShift, tidak pernah diupdate lagi setelahnya.
+  openingSaldoSnapshot Json?     @map("opening_saldo_snapshot")
+  closingSaldoSnapshot Json?     @map("closing_saldo_snapshot")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 

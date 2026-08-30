@@ -127,6 +127,12 @@ export const posShiftService = {
       );
     }
 
+    // Snapshot saldo cabang PADA SAAT INI -- direkam sekali & disimpan
+    // permanen di baris shift, bukan di-query ulang tiap kali riwayat shift
+    // dibuka (kalau live, semua baris riwayat di cabang yang sama bakal
+    // kelihatan sama persis, percuma buat rekonsiliasi per shift).
+    const openingSaldo = await posBranchService.getBranchSaldo(payload.branchUuid, { onlyShowInShift: true });
+
     const shift = await posShiftRepository.create({
       companyUuid: branch.companyUuid,
       branchUuid: payload.branchUuid,
@@ -135,6 +141,7 @@ export const posShiftService = {
       openedAt: new Date(),
       totalSales: 0,
       notesOpen: payload.notesOpen?.trim() || null,
+      openingSaldoSnapshot: { data: openingSaldo.data, total_balance: openingSaldo.total_balance },
     });
 
     return mapShift(shift);
@@ -166,11 +173,14 @@ export const posShiftService = {
 
     const totalSales = toNumber(salesAgg._sum.totalAmount);
 
+    const closingSaldo = await posBranchService.getBranchSaldo(existing.branchUuid, { onlyShowInShift: true });
+
     const updated = await posShiftRepository.updateByUuid(shiftUuid, {
       status: 'closed',
       closedAt: now,
       totalSales,
       notesClose: payload.notesClose?.trim() || null,
+      closingSaldoSnapshot: { data: closingSaldo.data, total_balance: closingSaldo.total_balance },
     });
 
     return mapShift(updated);
