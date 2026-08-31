@@ -6,11 +6,15 @@ import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "../company";
 import { DEFAULT_ADMIN_EMAIL } from "../users";
+import { dateAtTimeDaysAgo } from "./date-helpers";
 
+// Tanggal RELATIF ke saat seeder dijalankan (bukan statis) -- dipertahankan
+// lebih awal dari tanggal sale dummy (lihat sales.ts, daysAgo 2) supaya
+// urutan kronologis (beli stok dulu, baru terjual) tetap masuk akal.
 const PURCHASES_DATA = [
   {
     purchaseNumber: "PO-2026-001",
-    purchaseDate: new Date("2026-03-05"),
+    purchaseDate: dateAtTimeDaysAgo(20, "09:00:00"),
     paymentStatus: "paid",
     paidAmount: 1250000,
     notes: "Pembelian stok awal",
@@ -21,7 +25,7 @@ const PURCHASES_DATA = [
   },
   {
     purchaseNumber: "PO-2026-002",
-    purchaseDate: new Date("2026-03-10"),
+    purchaseDate: dateAtTimeDaysAgo(15, "09:00:00"),
     paymentStatus: "partial",
     paidAmount: 500000,
     notes: "Pembelian mingguan",
@@ -32,7 +36,7 @@ const PURCHASES_DATA = [
   },
   {
     purchaseNumber: "PO-2026-003",
-    purchaseDate: new Date("2026-03-12"),
+    purchaseDate: dateAtTimeDaysAgo(13, "09:00:00"),
     paymentStatus: "pending",
     paidAmount: 0,
     notes: "Pembelian tambahan",
@@ -43,7 +47,7 @@ const PURCHASES_DATA = [
   },
   {
     purchaseNumber: "PO-2026-004",
-    purchaseDate: new Date("2026-03-15"),
+    purchaseDate: dateAtTimeDaysAgo(10, "09:00:00"),
     paymentStatus: "paid",
     paidAmount: 0,
     notes: "Belanja campur pasar (tanpa supplier)",

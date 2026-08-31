@@ -6,6 +6,12 @@ import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "../company";
 import { DEFAULT_ADMIN_EMAIL } from "../users";
+import { dateStringDaysAgo } from "./date-helpers";
+
+// Semua sale dummy di-tanggal-kan 2 hari yg lalu (relatif ke saat seeder
+// dijalankan, BUKAN tanggal statis) -- supaya selalu masuk filter default
+// "bulan berjalan" di Laporan, berapa pun lama sejak seeder ini ditulis.
+const DUMMY_SALE_DATE = dateStringDaysAgo(2);
 
 type ProductCandidate = {
   uuid: string;
@@ -38,8 +44,8 @@ type SaleSeed = {
 
 const SALES_DATA: SaleSeed[] = [
   {
-    saleNumber: "INV-20260420-001",
-    saleDate: "2026-04-20",
+    saleNumber: "INV-DUMMY-001",
+    saleDate: DUMMY_SALE_DATE,
     paymentCode: "CASH",
     customerIndex: 0,
     paymentStatus: "paid",
@@ -50,8 +56,8 @@ const SALES_DATA: SaleSeed[] = [
     ],
   },
   {
-    saleNumber: "INV-20260420-002",
-    saleDate: "2026-04-20",
+    saleNumber: "INV-DUMMY-002",
+    saleDate: DUMMY_SALE_DATE,
     paymentCode: "DANA",
     customerIndex: 1,
     paymentStatus: "paid",
@@ -62,8 +68,8 @@ const SALES_DATA: SaleSeed[] = [
     ],
   },
   {
-    saleNumber: "INV-20260420-003",
-    saleDate: "2026-04-20",
+    saleNumber: "INV-DUMMY-003",
+    saleDate: DUMMY_SALE_DATE,
     paymentCode: "BCA",
     customerIndex: 2,
     paymentStatus: "partial",
@@ -74,8 +80,8 @@ const SALES_DATA: SaleSeed[] = [
     ],
   },
   {
-    saleNumber: "INV-20260420-004",
-    saleDate: "2026-04-20",
+    saleNumber: "INV-DUMMY-004",
+    saleDate: DUMMY_SALE_DATE,
     paymentCode: "CASH",
     paymentStatus: "pending",
     notes: "Pelanggan bayar nanti",
@@ -85,8 +91,8 @@ const SALES_DATA: SaleSeed[] = [
     ],
   },
   {
-    saleNumber: "INV-20260420-005",
-    saleDate: "2026-04-20",
+    saleNumber: "INV-DUMMY-005",
+    saleDate: DUMMY_SALE_DATE,
     paymentCode: "GOPAY",
     customerIndex: 3,
     paymentStatus: "paid",

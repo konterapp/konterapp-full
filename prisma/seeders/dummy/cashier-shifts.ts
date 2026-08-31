@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import { getDefaultCompanyUuid } from "../company";
 import { DEFAULT_ADMIN_EMAIL } from "../users";
+import { dateAtTimeDaysAgo } from "./date-helpers";
 
 type ClosedShiftSeed = {
   marker: string;
@@ -15,26 +16,28 @@ type ClosedShiftSeed = {
   notesClose: string;
 };
 
+// Tanggal RELATIF ke saat seeder dijalankan (bukan statis) -- marker tetap
+// stabil (dipakai sbg kunci dedup), cuma tanggalnya yg dinamis.
 const CLOSED_SHIFTS: ClosedShiftSeed[] = [
   {
-    marker: "dummy-shift-2026-04-15-pagi",
-    openedAt: new Date("2026-04-15T08:00:00+07:00"),
-    closedAt: new Date("2026-04-15T16:00:00+07:00"),
+    marker: "dummy-shift-pagi-1",
+    openedAt: dateAtTimeDaysAgo(4, "08:00:00"),
+    closedAt: dateAtTimeDaysAgo(4, "16:00:00"),
     totalSales: 1350000,
     notesClose: "Shift pagi selesai normal.",
   },
   {
-    marker: "dummy-shift-2026-04-16-pagi",
-    openedAt: new Date("2026-04-16T08:00:00+07:00"),
-    closedAt: new Date("2026-04-16T16:00:00+07:00"),
+    marker: "dummy-shift-pagi-2",
+    openedAt: dateAtTimeDaysAgo(3, "08:00:00"),
+    closedAt: dateAtTimeDaysAgo(3, "16:00:00"),
     totalSales: 1180000,
     notesClose: "Shift pagi selesai normal.",
   },
 ];
 
 const OPEN_SHIFT = {
-  marker: "dummy-shift-open-2026-04-19",
-  openedAt: new Date("2026-04-19T08:00:00+07:00"),
+  marker: "dummy-shift-open-terkini",
+  openedAt: dateAtTimeDaysAgo(0, "08:00:00"),
   notesOpen: "Shift aktif dummy untuk uji fitur tutup shift.",
 };
 
