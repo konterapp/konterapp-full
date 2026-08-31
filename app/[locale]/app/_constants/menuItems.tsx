@@ -155,13 +155,6 @@ const coreMenuItems: MenuItem[] = [
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
     },
-    {
-        section: 'Master Data',
-        label: 'Jenis Transaksi PPOB',
-        href: '/app/pos/ppob-transaction-types',
-        icon: <Zap className="w-5 h-5" />,
-        permission: 'pos.ppob-transaction-type.index'
-    },
     // Inventori
     {
         section: 'Inventori',

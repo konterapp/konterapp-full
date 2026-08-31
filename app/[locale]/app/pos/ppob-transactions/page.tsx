@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Zap, Plus, Eye } from 'lucide-react';
+import { Zap, Plus, Eye, Settings } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { getPpobTransactions, PpobTransaction } from '@/lib/api/app/ppob-transaction';
@@ -217,15 +217,26 @@ export default function PpobTransactionsPage() {
           </h1>
           <p className="text-gray-600 mt-1">Transaksi pulsa, paket data, token listrik, dan tagihan lainnya</p>
         </div>
-        {hasPermission('pos.ppob-transaction.create') && (
-          <Link
-            href="/app/pos/ppob-transactions/create"
-            className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Buat Transaksi</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {hasPermission('pos.ppob-transaction-type.index') && (
+            <Link
+              href="/app/pos/ppob-transaction-types"
+              className="flex items-center space-x-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 px-4 py-2 transition-colors cursor-pointer font-semibold"
+            >
+              <Settings className="w-5 h-5" />
+              <span>Jenis Transaksi</span>
+            </Link>
+          )}
+          {hasPermission('pos.ppob-transaction.create') && (
+            <Link
+              href="/app/pos/ppob-transactions/create"
+              className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Buat Transaksi</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {error && (

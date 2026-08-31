@@ -20,9 +20,17 @@ const PROFIT_PRODUCT_NAME = "Laba PPOB";
 const PROFIT_CATEGORY_NAME = "Sistem";
 
 const TRANSACTION_TYPES_DATA: Array<{ name: string; cashDirection: "in" | "out"; sortOrder: number }> = [
-  { name: "Pulsa & Paket Data", cashDirection: "out", sortOrder: 0 },
-  { name: "Token Listrik PLN", cashDirection: "out", sortOrder: 1 },
-  { name: "Tagihan PDAM/BPJS", cashDirection: "out", sortOrder: 2 },
+  { name: "Pulsa", cashDirection: "out", sortOrder: 0 },
+  { name: "Paket Data", cashDirection: "out", sortOrder: 1 },
+  { name: "Token PLN", cashDirection: "out", sortOrder: 2 },
+  { name: "Top Up DANA", cashDirection: "out", sortOrder: 3 },
+  { name: "Top Up OVO", cashDirection: "out", sortOrder: 4 },
+  { name: "Top Up ShopeePay", cashDirection: "out", sortOrder: 5 },
+  { name: "Top Up Game", cashDirection: "out", sortOrder: 6 },
+  { name: "Bayar BPJS", cashDirection: "out", sortOrder: 7 },
+  { name: "Bayar PLN", cashDirection: "out", sortOrder: 8 },
+  { name: "Bayar PDAM", cashDirection: "out", sortOrder: 9 },
+  { name: "Lainnya", cashDirection: "out", sortOrder: 10 },
 ];
 
 async function ensureAdmin(prisma: PrismaClient) {
@@ -143,7 +151,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
   }> = [
     {
       number: "PPOB-DUMMY-001",
-      typeName: "Pulsa & Paket Data",
+      typeName: "Pulsa",
       accountReference: "081234567890",
       baseAmount: 9500,
       sellingAmount: 11000,
@@ -152,7 +160,7 @@ export async function seedPpobTransactions(prisma: PrismaClient) {
     },
     {
       number: "PPOB-DUMMY-002",
-      typeName: "Token Listrik PLN",
+      typeName: "Token PLN",
       accountReference: "5312890123456",
       baseAmount: 50000,
       sellingAmount: 52500,

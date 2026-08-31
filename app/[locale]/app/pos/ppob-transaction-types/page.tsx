@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Zap, Plus, Edit, Trash2 } from 'lucide-react';
+import { Zap, Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -140,6 +140,15 @@ export default function PpobTransactionTypesPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <Link
+          href="/app/pos/ppob-transactions"
+          className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span>Kembali ke Server Pulsa/PPOB</span>
+        </Link>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[#142D52]">Jenis Transaksi PPOB</h1>
