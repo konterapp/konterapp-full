@@ -25,7 +25,9 @@ const FEATURE_LABELS: Record<string, string> = {
   report: 'Laporan',
   saldo: 'Saldo',
   branch: 'Cabang/Lokasi',
-  ppob: 'PPOB',
+  'bank-agent-transaction': 'Agen Bank',
+  'ppob-transaction': 'Server Pulsa/PPOB',
+  'ppob-transaction-type': 'Jenis Transaksi PPOB',
 };
 
 const ACTION_LABELS: Record<string, string> = {

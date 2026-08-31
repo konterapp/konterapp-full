@@ -53,7 +53,7 @@ export const posBranchService = {
 
   /**
    * Untuk dropdown filter cabang di halaman-halaman yang tidak khusus
-   * mengelola cabang (transaksi, laporan, stock movement, produk, ppob) --
+   * mengelola cabang (transaksi, laporan, stock movement, produk) --
    * boleh diakses role apa pun (tidak perlu permission pos.branch.index),
    * tapi hasilnya difilter ke cabang yang di-assign ke user kalau role-nya
    * dibatasi (lihat CompanyUserBranch). User tanpa pembatasan (assignment

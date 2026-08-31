@@ -16,6 +16,9 @@ export const createSaldoAccountSchema = z.object({
   // Independen dari `type` -- akun apa pun (mis. DANA, BRI) bisa ditandai
   // boleh dipakai buat transaksi Agen Bank.
   isBankAgent: z.boolean().optional(),
+  // Sama polanya dgn isBankAgent -- akun apa pun bisa ditandai boleh
+  // dipakai sbg "server"/deposit PPOB (Server Pulsa).
+  isPpobServer: z.boolean().optional(),
   openingBalance: z.coerce.number().min(0, "Saldo awal tidak boleh negatif").optional(),
 });
 

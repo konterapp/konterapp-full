@@ -34,6 +34,9 @@ interface SaldoAccountSeed {
   /** Independen dari `type` -- boleh dipakai buat transaksi Agen Bank
    * meski akunnya juga metode bayar customer biasa. */
   isBankAgent?: boolean;
+  /** Sama polanya dgn isBankAgent -- boleh dipakai sbg deposit Server
+   * Pulsa/PPOB. */
+  isPpobServer?: boolean;
   groups: BalanceGroupSeed[];
 }
 
@@ -116,6 +119,7 @@ const SALDO_ACCOUNTS_DATA: SaldoAccountSeed[] = [
     // Contoh dummy fitur hide: saldo internal ini tidak relevan buat kasir
     // lihat saat buka/tutup shift, jadi disembunyikan dari ringkasan itu.
     showInShift: false,
+    isPpobServer: true,
     groups: [{ branchCodes: ["CB001"], openingBalance: 1000000 }],
   },
 ];
@@ -159,6 +163,7 @@ export async function seedSaldoAccounts(prisma: PrismaClient) {
           isActive: true,
           showInShift: data.showInShift ?? true,
           isBankAgent: data.isBankAgent ?? false,
+          isPpobServer: data.isPpobServer ?? false,
           sortOrder,
         },
       });

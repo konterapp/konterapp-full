@@ -4,8 +4,6 @@
   - Added the required column `company_uuid` to the `pos_branches` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_customers` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_payment_methods` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `company_uuid` to the `pos_ppob_products` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `company_uuid` to the `pos_ppob_transactions` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_product_categories` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_products` table without a default value. This is not possible if the table is not empty.
   - Added the required column `company_uuid` to the `pos_purchases` table without a default value. This is not possible if the table is not empty.
@@ -35,12 +33,6 @@ ALTER TABLE "app_pos_payment_methods" ADD COLUMN     "company_uuid" CHAR(36) NOT
 
 -- DropIndex
 DROP INDEX IF EXISTS "app_pos_payment_methods_code_key";
-
--- AlterTable
-ALTER TABLE "app_pos_ppob_products" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
-
--- AlterTable
-ALTER TABLE "app_pos_ppob_transactions" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
 
 -- AlterTable
 ALTER TABLE "app_pos_product_categories" ADD COLUMN     "company_uuid" CHAR(36) NOT NULL;
@@ -154,12 +146,6 @@ CREATE INDEX "app_pos_payment_methods_company_uuid_idx" ON "app_pos_payment_meth
 CREATE UNIQUE INDEX "app_pos_payment_methods_company_uuid_code_key" ON "app_pos_payment_methods"("company_uuid", "code");
 
 -- CreateIndex
-CREATE INDEX "app_pos_ppob_products_company_uuid_idx" ON "app_pos_ppob_products"("company_uuid");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_transactions_company_uuid_idx" ON "app_pos_ppob_transactions"("company_uuid");
-
--- CreateIndex
 CREATE INDEX "app_pos_product_categories_company_uuid_idx" ON "app_pos_product_categories"("company_uuid");
 
 -- CreateIndex
@@ -254,12 +240,6 @@ ALTER TABLE "app_pos_customers" ADD CONSTRAINT "app_pos_customers_company_uuid_f
 
 -- AddForeignKey
 ALTER TABLE "app_pos_sales" ADD CONSTRAINT "app_pos_sales_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "app_pos_ppob_products" ADD CONSTRAINT "app_pos_ppob_products_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- CreateTable
 CREATE TABLE "plans" (

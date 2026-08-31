@@ -14,6 +14,7 @@ import {
   ReceiptText,
   Wallet,
   Landmark,
+  Zap,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -56,6 +57,7 @@ interface ProfitLossReport {
     total_profit: number;
     margin_percentage: number;
     total_admin_fee: number;
+    total_ppob_admin_fee: number;
     total_expenses: number;
     net_profit: number;
   };
@@ -623,7 +625,7 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -637,6 +639,21 @@ export default function ReportsPage() {
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-2">Dipungut bank tiap transaksi Agen Bank -- sudah termasuk di Total Pengeluaran</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Biaya Admin PPOB</p>
+                <p className="text-xl font-bold mt-1 text-red-600">
+                  {profitLossReport.summary.total_ppob_admin_fee > 0 ? `- ${formatCurrency(profitLossReport.summary.total_ppob_admin_fee)}` : formatCurrency(0)}
+                </p>
+              </div>
+              <div className="p-3 bg-red-50 rounded-full">
+                <Zap className="w-5 h-5 text-red-600" />
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Dipungut server tiap transaksi Server Pulsa/PPOB -- sudah termasuk di Total Pengeluaran</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">

@@ -112,6 +112,7 @@ export const posSaldoRepository = {
     showInShift: boolean;
     sortOrder: number;
     isBankAgent: boolean;
+    isPpobServer: boolean;
   }, tx?: Prisma.TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccount.create({ data });

@@ -1,54 +1,44 @@
-export function mapPpobTransaction(transaction: any) {
+import type { PpobTransactionWithRelations } from './repository';
+
+export function mapPpobTransactionType(row: { uuid: string; name: string; cashDirection: string; isActive: boolean; sortOrder: number; createdAt: Date; updatedAt: Date }) {
   return {
-    uuid: transaction.uuid,
-    transaction_number: transaction.transactionNumber,
-    type: transaction.type,
-    product_code: transaction.productCode,
-    product_name: transaction.productName,
-    customer_number: transaction.customerNumber,
-    customer_name: transaction.customerName,
-    amount: Number(transaction.amount),
-    admin_fee: Number(transaction.adminFee),
-    selling_price: Number(transaction.sellingPrice),
-    profit: Number(transaction.profit),
-    provider: transaction.provider,
-    provider_label: transaction.provider === 'rajabiller' ? 'RajaBiller' : transaction.provider === 'digiflazz' ? 'Digiflazz' : transaction.provider,
-    status: transaction.status,
-    status_label:
-      transaction.status === 'success'
-        ? 'Sukses'
-        : transaction.status === 'failed'
-          ? 'Gagal'
-          : transaction.status === 'pending'
-            ? 'Pending'
-            : transaction.status,
-    provider_reference: transaction.providerReference,
-    provider_response: transaction.providerResponse,
-    notes: transaction.notes,
-    branch_uuid: transaction.branchUuid,
-    branch: transaction.branch
-      ? {
-          uuid: transaction.branch.uuid,
-          name: transaction.branch.name,
-        }
+    uuid: row.uuid,
+    name: row.name,
+    cash_direction: row.cashDirection,
+    is_active: row.isActive,
+    sort_order: row.sortOrder,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
+export function mapPpobTransaction(row: PpobTransactionWithRelations) {
+  return {
+    uuid: row.uuid,
+    transaction_number: row.transactionNumber,
+    cash_direction: row.cashDirection,
+    account_reference: row.accountReference,
+    base_amount: Number(row.baseAmount),
+    selling_amount: Number(row.sellingAmount),
+    admin_fee: Number(row.adminFee),
+    // Laba bersih transaksi ini = (jual - modal) dikurangi biaya admin server
+    // -- sengaja TIDAK dipaksa 0 kalau minus, biar kelihatan apa adanya.
+    net_profit: Number(row.sellingAmount) - Number(row.baseAmount) - Number(row.adminFee),
+    payment_method: row.paymentMethod
+      ? { uuid: row.paymentMethod.uuid, code: row.paymentMethod.code, name: row.paymentMethod.name, type: row.paymentMethod.type }
       : null,
-    payment_method_uuid: transaction.paymentMethodUuid,
-    payment_method: transaction.paymentMethod
-      ? {
-          uuid: transaction.paymentMethod.uuid,
-          name: transaction.paymentMethod.name,
-          type: transaction.paymentMethod.type,
-        }
+    paid_amount: Number(row.paidAmount),
+    change_amount: Number(row.changeAmount),
+    notes: row.notes,
+    branch: row.branch ? { uuid: row.branch.uuid, name: row.branch.name, code: row.branch.code } : null,
+    account: row.saldoAccount
+      ? { uuid: row.saldoAccount.uuid, code: row.saldoAccount.code, name: row.saldoAccount.name }
       : null,
-    created_by: transaction.createdBy,
-    creator: transaction.creator
-      ? {
-          id: transaction.creator.id,
-          name: transaction.creator.name,
-          email: transaction.creator.email,
-        }
+    transaction_type: row.transactionType
+      ? { uuid: row.transactionType.uuid, name: row.transactionType.name, cash_direction: row.transactionType.cashDirection }
       : null,
-    created_at: transaction.createdAt,
-    updated_at: transaction.updatedAt,
+    creator: row.creator ? { id: row.creator.id, name: row.creator.name } : null,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
   };
 }

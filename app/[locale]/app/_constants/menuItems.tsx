@@ -91,6 +91,13 @@ const coreMenuItems: MenuItem[] = [
     },
     {
         section: 'Operasional',
+        label: 'Server Pulsa/PPOB',
+        href: '/app/pos/ppob-transactions',
+        icon: <Zap className="w-5 h-5" />,
+        permission: 'pos.ppob-transaction.index'
+    },
+    {
+        section: 'Operasional',
         label: 'Transaksi',
         href: '/app/pos/transactions',
         icon: <Receipt className="w-5 h-5" />,
@@ -147,6 +154,13 @@ const coreMenuItems: MenuItem[] = [
         href: '/app/pos/branches',
         icon: <Building2 className="w-5 h-5" />,
         permission: 'pos.branch.index'
+    },
+    {
+        section: 'Master Data',
+        label: 'Jenis Transaksi PPOB',
+        href: '/app/pos/ppob-transaction-types',
+        icon: <Zap className="w-5 h-5" />,
+        permission: 'pos.ppob-transaction-type.index'
     },
     // Inventori
     {
@@ -256,24 +270,6 @@ const comingSoonMenuItems: MenuItem[] = [
         section: 'Segera',
         label: 'Audit Log',
         icon: <FileSearch className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-    {
-        section: 'Segera',
-        label: 'PPOB',
-        icon: <Zap className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-    {
-        section: 'Segera',
-        label: 'Riwayat PPOB',
-        icon: <History className="w-5 h-5" />,
-        isPlaceholder: true
-    },
-    {
-        section: 'Segera',
-        label: 'Produk PPOB',
-        icon: <Package className="w-5 h-5" />,
         isPlaceholder: true
     },
 ];

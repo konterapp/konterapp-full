@@ -73,7 +73,12 @@ export default function BankAgentTransactionForm() {
 
     getPaymentMethodOptions()
       .then((result) => {
-        if (result.status === 'success') setPaymentMethods(result.data || []);
+        if (result.status === 'success') {
+          const paymentItems = result.data || [];
+          setPaymentMethods(paymentItems);
+          const cashMethod = paymentItems.find((pm) => pm.type === 'cash');
+          if (cashMethod) setPaymentMethodUuid(cashMethod.uuid);
+        }
       })
       .catch(() => {});
   }, []);
@@ -247,12 +252,21 @@ export default function BankAgentTransactionForm() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Biaya Admin Bank (opsional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Biaya Admin Bank (kosongkan kalau tidak ada)</label>
             <RupiahInput value={adminFee} onChange={setAdminFee} />
+            <p className="mt-1 text-xs text-gray-500">
+              Biaya layanan yang dipotong bank dari saldo akun Agen Bank ini — ditanggung toko, bukan dibayar pelanggan.
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              Jangan diisi potongan yang memotong rekening/ATM pelanggan (mis. biaya transfer antar bank yang langsung terpotong dari rekening pelanggan) — itu bukan beban toko.
+            </p>
             {(feeNumber > 0 || adminFeeNumber > 0) && (
-              <p className={`mt-1 text-xs font-medium ${netProfit === 0 ? 'text-gray-400' : netProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                Laba Bersih: {formatCurrency(netProfit)}
-              </p>
+              <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50/70 px-3 py-2">
+                <p className="text-xs text-gray-500">Laba Bersih (komisi − biaya admin bank)</p>
+                <p className={`text-base font-bold ${netProfit === 0 ? 'text-gray-400' : netProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(netProfit)}
+                </p>
+              </div>
             )}
           </div>
 

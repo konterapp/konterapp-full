@@ -195,7 +195,11 @@ export default function BankAgentTransactionsPage() {
       key: 'admin_fee',
       label: 'Adm Bank',
       sortable: false,
-      render: (_, row) => <span className="text-sm text-gray-700">{row.admin_fee > 0 ? formatCurrency(row.admin_fee) : '-'}</span>,
+      render: (_, row) => (
+        <span className={`text-sm ${row.admin_fee > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+          {row.admin_fee > 0 ? `- ${formatCurrency(row.admin_fee)}` : '-'}
+        </span>
+      ),
     },
     {
       key: 'net_profit',

@@ -61,6 +61,13 @@ export const posReportRepository = {
     });
   },
 
+  sumPpobAdminFee(where: Prisma.AppPosPpobTransactionWhereInput) {
+    return prisma.appPosPpobTransaction.aggregate({
+      where,
+      _sum: { adminFee: true },
+    });
+  },
+
   findBranch(uuid: string) {
     return prisma.appPosBranch.findFirst({
       where: { uuid },

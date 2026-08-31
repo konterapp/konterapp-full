@@ -174,17 +174,17 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/pos/bank-agent-transactions/create',
     permission: 'pos.bank-agent-transaction.create',
   },
-  'pos.ppob.index': {
-    path: '/app/pos/ppob',
-    permission: 'pos.ppob.index',
+  'pos.ppob-transaction.index': {
+    path: '/app/pos/ppob-transactions',
+    permission: 'pos.ppob-transaction.index',
   },
-  'pos.ppob.transactions': {
-    path: '/app/pos/ppob/transactions',
-    permission: 'pos.ppob.index',
+  'pos.ppob-transaction.create': {
+    path: '/app/pos/ppob-transactions/create',
+    permission: 'pos.ppob-transaction.create',
   },
-  'pos.ppob.products': {
-    path: '/app/pos/ppob/products',
-    permission: 'pos.ppob.index',
+  'pos.ppob-transaction-type.index': {
+    path: '/app/pos/ppob-transaction-types',
+    permission: 'pos.ppob-transaction-type.index',
   },
   'pos.branch.index': {
     path: '/app/pos/branches',

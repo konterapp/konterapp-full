@@ -22,6 +22,7 @@ interface SaldoAccountFormData {
   show_in_shift: boolean;
   sort_order: string;
   is_bank_agent: boolean;
+  is_ppob_server: boolean;
   opening_balance: string;
 }
 
@@ -49,6 +50,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
     show_in_shift: true,
     sort_order: '',
     is_bank_agent: false,
+    is_ppob_server: false,
     opening_balance: '0',
   });
 
@@ -79,6 +81,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
           show_in_shift: result.data.show_in_shift ?? true,
           sort_order: String(result.data.sort_order ?? 0),
           is_bank_agent: result.data.is_bank_agent ?? false,
+          is_ppob_server: result.data.is_ppob_server ?? false,
           opening_balance: '0',
         });
       } else {
@@ -123,6 +126,7 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
         is_active: formData.is_active,
         show_in_shift: formData.show_in_shift,
         is_bank_agent: formData.is_bank_agent,
+        is_ppob_server: formData.is_ppob_server,
         // Kosongkan berarti "biarkan server yang atur" -- taruh di urutan
         // paling akhir (lihat posSaldoService.createAccount). Kalau diisi
         // manual, pakai nilai itu.
@@ -397,6 +401,20 @@ export default function SaldoAccountForm({ saldoUuid, mode }: SaldoAccountFormPr
               />
               <label htmlFor="is_bank_agent" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
                 Bisa dipakai untuk transaksi Agen Bank
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="is_ppob_server"
+                name="is_ppob_server"
+                checked={formData.is_ppob_server}
+                onChange={handleInputChange}
+                className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
+              />
+              <label htmlFor="is_ppob_server" className="ml-2 text-sm font-medium text-gray-700 cursor-pointer">
+                Bisa dipakai sebagai Server Pulsa/PPOB
               </label>
             </div>
           </div>

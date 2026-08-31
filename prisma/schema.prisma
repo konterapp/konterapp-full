@@ -32,9 +32,9 @@ model User {
   posStockMovements        AppPosStockMovement[]
   posSales                 AppPosSale[]
   posCashierShifts         AppPosCashierShift[]
-  posPpobTransactions      AppPosPpobTransaction[]
   posSaldoMutations        AppPosSaldoMutation[]
   posBankAgentTransactions AppPosBankAgentTransaction[]
+  posPpobTransactions      AppPosPpobTransaction[]
 
   @@map("users")
 }
@@ -128,13 +128,13 @@ model Company {
   sales                      AppPosSale[]
   cashierShifts              AppPosCashierShift[]
   cashierShiftSaldoSnapshots AppPosCashierShiftSaldoSnapshot[]
-  ppobProducts               AppPosPpobProduct[]
-  ppobTransactions           AppPosPpobTransaction[]
   saldoAccounts              AppPosSaldoAccount[]
   saldoAccountBalances       AppPosSaldoAccountBalance[]
   saldoBalanceBranches       AppPosSaldoAccountBalanceBranch[]
   saldoMutations             AppPosSaldoMutation[]
   bankAgentTransactions      AppPosBankAgentTransaction[]
+  ppobTransactionTypes       AppPosPpobTransactionType[]
+  ppobTransactions           AppPosPpobTransaction[]
 
   @@map("companies")
 }
@@ -405,11 +405,11 @@ model AppPosBranch {
   stockMovements        AppPosStockMovement[]
   sales                 AppPosSale[]
   cashierShifts         AppPosCashierShift[]
-  ppobTransactions      AppPosPpobTransaction[]
   saldoMutations        AppPosSaldoMutation[]
   saldoBalances         AppPosSaldoAccountBalanceBranch[]
   memberAccess          CompanyUserBranch[]
   bankAgentTransactions AppPosBankAgentTransaction[]
+  ppobTransactions      AppPosPpobTransaction[]
 
   @@unique([companyUuid, code])
   @@index([companyUuid])
@@ -684,6 +684,8 @@ model AppPosSale {
   // konvensi nomor) supaya bisa ditelusuri balik ke transaksi asalnya.
   // @unique krn 1 transaksi Agen Bank cuma menghasilkan 1 sale.
   bankAgentTransactionUuid String?  @unique @map("bank_agent_transaction_uuid") @db.Char(36)
+  // Sama polanya dgn bankAgentTransactionUuid, utk sale sintetis laba PPOB.
+  ppobTransactionUuid      String?  @unique @map("ppob_transaction_uuid") @db.Char(36)
 
   company              Company                     @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   branch               AppPosBranch                @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
@@ -691,6 +693,7 @@ model AppPosSale {
   paymentMethod        AppPosSaldoAccount          @relation(fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
   creator              User                        @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   bankAgentTransaction AppPosBankAgentTransaction? @relation(fields: [bankAgentTransactionUuid], references: [uuid], onDelete: Cascade)
+  ppobTransaction      AppPosPpobTransaction?      @relation(fields: [ppobTransactionUuid], references: [uuid], onDelete: Cascade)
   items                AppPosSaleItem[]
 
   @@index([companyUuid])
@@ -776,76 +779,72 @@ model AppPosCashierShiftSaldoSnapshot {
   @@map("app_pos_cashier_shift_saldo_snapshots")
 }
 
-model AppPosPpobProduct {
-  uuid                String   @id @default(uuid()) @db.Char(36)
-  companyUuid         String   @map("company_uuid") @db.Char(36)
-  provider            String   @db.VarChar(20)
-  providerProductCode String   @map("provider_product_code") @db.VarChar(100)
-  productName         String   @map("product_name") @db.VarChar(255)
-  brand               String?  @db.VarChar(100)
-  category            String   @db.VarChar(50)
-  type                String   @db.VarChar(20)
-  sellerName          String?  @map("seller_name") @db.VarChar(255)
-  basePrice           Decimal  @default(0) @map("base_price") @db.Decimal(15, 2)
-  adminFee            Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2)
-  sellingPrice        Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
-  digiflazzType       String?  @map("digiflazz_type") @db.VarChar(50)
-  buyerProductStatus  Boolean  @default(true) @map("buyer_product_status")
-  sellerProductStatus Boolean  @default(true) @map("seller_product_status")
-  unlimitedStock      Boolean  @default(false) @map("unlimited_stock")
-  stock               Int      @default(0)
-  multi               Boolean  @default(false)
-  startCutOff         String?  @map("start_cut_off") @db.VarChar(10)
-  endCutOff           String?  @map("end_cut_off") @db.VarChar(10)
-  desc                String?  @db.Text
-  isActive            Boolean  @default(true) @map("is_active")
-  providerMetadata    Json?    @map("provider_metadata")
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+// Jenis transaksi PPOB (Pulsa, Token Listrik, PDAM, dst) -- BEDA dari Agen
+// Bank yang jenisnya hardcode (deposit/withdrawal/transfer, fixed & sedikit).
+// PPOB sengaja dibikin master data dinamis krn jenisnya banyak & terus
+// berkembang per operator/provider, jadi tenant yang atur sendiri.
+model AppPosPpobTransactionType {
+  uuid          String   @id @default(uuid()) @db.Char(36)
+  companyUuid   String   @map("company_uuid") @db.Char(36)
+  name          String   @db.VarChar(100)
+  cashDirection String   @default("in") @map("cash_direction") @db.VarChar(10) // in, out
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  company      Company                  @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  transactions AppPosPpobTransaction[]
 
-  @@unique([provider, providerProductCode], name: "provider_product_unique")
+  @@unique([companyUuid, name])
   @@index([companyUuid])
-  @@index([category])
-  @@index([brand])
-  @@index([isActive])
-  @@map("app_pos_ppob_products")
+  @@map("app_pos_ppob_transaction_types")
 }
 
+// Transaksi Server Pulsa/PPOB -- modul terpisah dari Produk (sengaja bukan
+// AppPosProduct.kind='ppob'), mirip pola Agen Bank: reuse akun & ledger dari
+// domain Saldo (AppPosSaldoAccount.isPpobServer sbg "deposit" server PPOB).
+// Tanpa integrasi provider (Digiflazz dkk) di tahap ini -- nominal modal &
+// jual diinput manual. Nama ini sengaja dipakai ulang dari stub PPOB lama yg
+// sudah dihapus; nama AppPosPpobServerTransaction direservasi utk fitur
+// integrasi provider yang direncanakan menyusul.
 model AppPosPpobTransaction {
-  uuid              String   @id @default(uuid()) @db.Char(36)
-  companyUuid       String   @map("company_uuid") @db.Char(36)
-  branchUuid        String   @map("branch_uuid") @db.Char(36)
-  transactionNumber String   @unique @map("transaction_number") @db.VarChar(50)
-  type              String   @db.VarChar(20)
-  productCode       String   @map("product_code") @db.VarChar(100)
-  productName       String   @map("product_name") @db.VarChar(255)
-  customerNumber    String   @map("customer_number") @db.VarChar(100)
-  customerName      String?  @map("customer_name") @db.VarChar(255)
-  amount            Decimal  @default(0) @db.Decimal(15, 2)
-  adminFee          Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2)
-  sellingPrice      Decimal  @default(0) @map("selling_price") @db.Decimal(15, 2)
-  profit            Decimal  @default(0) @db.Decimal(15, 2)
-  paymentMethodUuid String?  @map("payment_method_uuid") @db.Char(36)
-  providerReference String?  @map("provider_reference") @db.VarChar(255)
-  provider          String   @db.VarChar(20)
-  status            String   @db.VarChar(20)
-  providerResponse  Json?    @map("provider_response")
-  notes             String?  @db.Text
-  createdBy         Int      @map("created_by")
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  uuid                    String   @id @default(uuid()) @db.Char(36)
+  companyUuid             String   @map("company_uuid") @db.Char(36)
+  branchUuid              String   @map("branch_uuid") @db.Char(36)
+  saldoAccountUuid        String   @map("saldo_account_uuid") @db.Char(36)
+  saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  transactionTypeUuid     String   @map("transaction_type_uuid") @db.Char(36)
+  transactionNumber       String   @unique @map("transaction_number") @db.VarChar(50)
+  // Snapshot dari AppPosPpobTransactionType.cashDirection saat transaksi
+  // dibuat -- supaya riwayat tetap benar walau tipe-nya diedit belakangan.
+  cashDirection           String   @map("cash_direction") @db.VarChar(10)
+  accountReference        String?  @map("account_reference") @db.VarChar(100) // no. HP/meter/ID pelanggan tujuan
+  baseAmount              Decimal  @map("base_amount") @db.Decimal(15, 2) // modal
+  sellingAmount           Decimal  @map("selling_amount") @db.Decimal(15, 2) // harga jual ke pelanggan
+  adminFee                Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2) // beban ke server/provider
+  paymentMethodUuid       String   @map("payment_method_uuid") @db.Char(36) // akun saldo yg kena mutasi kas
+  paidAmount              Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  changeAmount            Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
+  notes                   String?  @db.Text
+  createdBy               Int      @map("created_by")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
-  company       Company             @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  branch        AppPosBranch        @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  paymentMethod AppPosSaldoAccount? @relation(fields: [paymentMethodUuid], references: [uuid], onDelete: SetNull)
-  creator       User                @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  company             Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch              AppPosBranch              @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount        AppPosSaldoAccount        @relation("PpobTransactionAccount", fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  saldoAccountBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+  transactionType     AppPosPpobTransactionType @relation(fields: [transactionTypeUuid], references: [uuid], onDelete: Cascade)
+  paymentMethod       AppPosSaldoAccount        @relation("PpobTransactionPaymentMethod", fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
+  creator             User                      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  sale                AppPosSale?
 
   @@index([companyUuid])
   @@index([branchUuid])
-  @@index([status])
-  @@index([createdAt])
+  @@index([saldoAccountUuid])
+  @@index([paymentMethodUuid])
+  @@index([transactionTypeUuid])
   @@map("app_pos_ppob_transactions")
 }
 
@@ -863,6 +862,10 @@ model AppPosSaldoAccount {
   // Independen dari `type` -- akun apa pun (DANA, BRI, dst) bisa dipakai
   // buat transaksi Agen Bank, bukan cuma akun ber-"tipe" bank.
   isBankAgent     Boolean  @default(false) @map("is_bank_agent")
+  // Sama polanya dgn isBankAgent -- menandai akun ini boleh dipakai sbg
+  // "server"/deposit PPOB (Server Pulsa), reuse infrastruktur akun & balance
+  // saldo yang sama, bukan tabel akun terpisah.
+  isPpobServer    Boolean  @default(false) @map("is_ppob_server")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -870,9 +873,10 @@ model AppPosSaldoAccount {
   balances                             AppPosSaldoAccountBalance[]
   balanceBranches                      AppPosSaldoAccountBalanceBranch[]
   sales                                AppPosSale[]
-  ppobTransactions                     AppPosPpobTransaction[]
   bankAgentTransactions                AppPosBankAgentTransaction[]      @relation("BankAgentTransactionAccount")
   bankAgentTransactionsAsPaymentMethod AppPosBankAgentTransaction[]      @relation("BankAgentTransactionPaymentMethod")
+  ppobTransactions                     AppPosPpobTransaction[]           @relation("PpobTransactionAccount")
+  ppobTransactionsAsPaymentMethod      AppPosPpobTransaction[]           @relation("PpobTransactionPaymentMethod")
   cashierShiftSaldoSnapshots           AppPosCashierShiftSaldoSnapshot[]
 
   @@unique([companyUuid, code])
@@ -900,6 +904,7 @@ model AppPosSaldoAccountBalance {
   branchLinks                AppPosSaldoAccountBalanceBranch[]
   mutations                  AppPosSaldoMutation[]
   bankAgentTransactions      AppPosBankAgentTransaction[]
+  ppobTransactions           AppPosPpobTransaction[]
   cashierShiftSaldoSnapshots AppPosCashierShiftSaldoSnapshot[]
 
   @@index([companyUuid])
@@ -960,8 +965,9 @@ model AppPosSaldoMutation {
 // AppPosSaldoAccount yang ditandai is_bank_agent, bukan model saldo
 // terpisah). Jenis transaksi sengaja HARDCODE (bukan master data dinamis)
 // karena cuma 3 macam & stabil -- lihat BANK_AGENT_TRANSACTION_TYPES di
-// lib/modules/pos/bank-agent-transactions/admin.service.ts. PPOB TIDAK di
-// sini -- rencana ke depan lewat AppPosProduct (kind PPOB), bukan modul ini.
+// lib/modules/pos/bank-agent-transactions/admin.service.ts. PPOB (Server
+// Pulsa) TIDAK di sini -- modul terpisah, lihat AppPosPpobTransaction di
+// bawah (jenis transaksinya master data dinamis, bukan hardcode).
 model AppPosBankAgentTransaction {
   uuid                    String   @id @default(uuid()) @db.Char(36)
   companyUuid             String   @map("company_uuid") @db.Char(36)

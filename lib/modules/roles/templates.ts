@@ -48,6 +48,10 @@ export const TENANT_DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
       // Agen Bank: boleh lihat & buat transaksi (setor/tarik/transfer bank).
       "pos.bank-agent-transaction.index",
       "pos.bank-agent-transaction.create",
+      // Server Pulsa/PPOB: boleh lihat & buat transaksi, TAPI TIDAK kelola
+      // Jenis Transaksi (itu tetap urusan admin, sama pola dgn Saldo).
+      "pos.ppob-transaction.index",
+      "pos.ppob-transaction.create",
     ],
   },
 ];

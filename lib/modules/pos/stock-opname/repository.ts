@@ -6,7 +6,7 @@ type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export const posStockOpnameRepository = {
   listProducts() {
     return prisma.appPosProduct.findMany({
-      // Stok opname cuma relevan buat produk 'barang' -- digital/jasa/ppob
+      // Stok opname cuma relevan buat produk 'barang' -- digital/jasa
       // tidak punya stok fisik buat dihitung ulang.
       where: { isActive: true, kind: 'barang' },
       orderBy: { name: 'asc' },

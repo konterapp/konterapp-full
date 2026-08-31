@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const PRODUCT_KINDS = ["barang", "digital", "jasa", "ppob"] as const;
+export const PRODUCT_KINDS = ["barang", "digital", "jasa"] as const;
 export type ProductKind = (typeof PRODUCT_KINDS)[number];
 const productKindSchema = z.enum(PRODUCT_KINDS, { error: "Tipe produk tidak valid" });
 

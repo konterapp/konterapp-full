@@ -1,10 +1,9 @@
-export type ProductKind = 'barang' | 'digital' | 'jasa' | 'ppob';
+export type ProductKind = 'barang' | 'digital' | 'jasa';
 
 export const PRODUCT_KIND_OPTIONS: { value: ProductKind; label: string; tracksStock: boolean }[] = [
   { value: 'barang', label: 'Barang', tracksStock: true },
   { value: 'digital', label: 'Digital', tracksStock: false },
   { value: 'jasa', label: 'Jasa', tracksStock: false },
-  { value: 'ppob', label: 'PPOB', tracksStock: false },
 ];
 
 export interface ProductImageData {

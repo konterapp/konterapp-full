@@ -38,6 +38,7 @@ export function mapProfitLossReport(params: {
   totalTransactions: number;
   totalItemsSold: number;
   totalAdminFee: number;
+  totalPpobAdminFee: number;
   totalExpenses: number;
   netProfit: number;
   products: Array<any>;
@@ -53,6 +54,7 @@ export function mapProfitLossReport(params: {
     totalTransactions,
     totalItemsSold,
     totalAdminFee,
+    totalPpobAdminFee,
     totalExpenses,
     netProfit,
     products,
@@ -71,9 +73,10 @@ export function mapProfitLossReport(params: {
       margin_percentage: overallMargin,
       total_transactions: totalTransactions,
       total_items_sold: totalItemsSold,
-      // Total Pengeluaran -- skrg cuma biaya admin bank (blm ada modul
-      // Pengeluaran umum), lihat komentar di admin.service.ts.
+      // Total Pengeluaran -- skrg cuma biaya admin bank + biaya admin PPOB
+      // (blm ada modul Pengeluaran umum), lihat komentar di admin.service.ts.
       total_admin_fee: totalAdminFee,
+      total_ppob_admin_fee: totalPpobAdminFee,
       total_expenses: totalExpenses,
       net_profit: netProfit,
     },

@@ -68,11 +68,18 @@ export const posReportService = {
         lte: rangeEnd,
       },
     };
+    const ppobWhere: Prisma.AppPosPpobTransactionWhereInput = {
+      createdAt: {
+        gte: rangeStart,
+        lte: rangeEnd,
+      },
+    };
 
     if (branchUuid) {
       saleWhere.branchUuid = branchUuid;
       purchaseWhere.branchUuid = branchUuid;
       bankAgentWhere.branchUuid = branchUuid;
+      ppobWhere.branchUuid = branchUuid;
     }
 
     const totalTransactions = await posReportRepository.countSales(saleWhere);
@@ -142,13 +149,16 @@ export const posReportService = {
     const totalProfit = totalRevenue - totalCogs;
     const overallMargin = totalRevenue > 0 ? round2((totalProfit / totalRevenue) * 100) : 0;
 
-    // Total Pengeluaran -- baru berisi biaya admin bank (dihitung on-the-fly
-    // dari app_pos_bank_agent_transactions, pola CatatKonter), belum ada
-    // komponen lain krn modul Pengeluaran umum (listrik, gaji, dst) belum
-    // dibangun. Kalau nanti dibangun, tinggal ditambah ke totalExpenses ini.
+    // Total Pengeluaran -- baru berisi biaya admin bank + biaya admin PPOB
+    // (dihitung on-the-fly dari app_pos_bank_agent_transactions &
+    // app_pos_ppob_transactions, pola CatatKonter), belum ada komponen lain
+    // krn modul Pengeluaran umum (listrik, gaji, dst) belum dibangun. Kalau
+    // nanti dibangun, tinggal ditambah ke totalExpenses ini.
     const adminFeeAgg = await posReportRepository.sumBankAgentAdminFee(bankAgentWhere);
     const totalAdminFee = Number(adminFeeAgg._sum.adminFee || 0);
-    const totalExpenses = totalAdminFee;
+    const ppobAdminFeeAgg = await posReportRepository.sumPpobAdminFee(ppobWhere);
+    const totalPpobAdminFee = Number(ppobAdminFeeAgg._sum.adminFee || 0);
+    const totalExpenses = totalAdminFee + totalPpobAdminFee;
     const netProfit = round2(totalProfit - totalExpenses);
 
     const branchInfo = await resolveBranchInfo(branchUuid);
@@ -157,6 +167,7 @@ export const posReportService = {
       dateFrom,
       dateTo,
       totalAdminFee: round2(totalAdminFee),
+      totalPpobAdminFee: round2(totalPpobAdminFee),
       totalExpenses: round2(totalExpenses),
       netProfit,
       branchInfo,

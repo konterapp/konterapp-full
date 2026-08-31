@@ -42,6 +42,7 @@ export function mapSaldoAccount(account: any) {
     show_in_shift: account.showInShift,
     sort_order: account.sortOrder,
     is_bank_agent: account.isBankAgent,
+    is_ppob_server: account.isPpobServer,
     created_at: account.createdAt,
     updated_at: account.updatedAt,
   };

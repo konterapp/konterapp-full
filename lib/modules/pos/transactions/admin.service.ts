@@ -183,7 +183,7 @@ let subtotal = 0;
           : 'paid';
 
     const sale = await posTransactionRepository.runInTransaction(async (tx: Prisma.TransactionClient) => {
-      // Produk non-'barang' (digital/jasa/ppob) sengaja TIDAK punya baris
+      // Produk non-'barang' (digital/jasa) sengaja TIDAK punya baris
       // stok sama sekali (lihat AppPosProduct.kind) -- jangan ikut dicek/
       // dipotong stoknya, selalu boleh dijual selama harga & qty valid.
       const products = await tx.appPosProduct.findMany({

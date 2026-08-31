@@ -17,9 +17,9 @@ type ProductSeed = {
   min_stock: number;
   is_active: boolean;
   initial_stock: number;
-  // 'barang' (default) kalau tidak diisi -- produk 'digital'/'jasa'/'ppob'
-  // sengaja tidak dapat baris AppPosProductStock (lihat AppPosProduct.kind).
-  kind?: 'barang' | 'digital' | 'jasa' | 'ppob';
+  // 'barang' (default) kalau tidak diisi -- produk 'digital'/'jasa' sengaja
+  // tidak dapat baris AppPosProductStock (lihat AppPosProduct.kind).
+  kind?: 'barang' | 'digital' | 'jasa';
 };
 
 const PRODUCTS_DATA: ProductSeed[] = [
@@ -461,18 +461,6 @@ const PRODUCTS_DATA: ProductSeed[] = [
     is_active: true,
     initial_stock: 0,
     kind: 'jasa',
-  },
-  {
-    category_name: 'Pulsa & Paket Data',
-    name: 'Token Listrik PLN 50.000',
-    code: 'PPOB-PLN-50K',
-    description: 'Token listrik prabayar PLN nominal 50.000',
-    selling_price: 52500,
-    unit: 'pcs',
-    min_stock: 0,
-    is_active: true,
-    initial_stock: 0,
-    kind: 'ppob',
   },
 ];
 

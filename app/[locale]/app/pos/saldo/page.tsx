@@ -235,6 +235,9 @@ export default function SaldoPage() {
           {row.is_bank_agent && (
             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">Agen Bank</span>
           )}
+          {row.is_ppob_server && (
+            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">Server PPOB</span>
+          )}
         </div>
       ),
     },

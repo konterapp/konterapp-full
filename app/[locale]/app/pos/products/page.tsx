@@ -23,7 +23,7 @@ interface Product {
   selling_price: number;
   min_stock: number;
   unit: string;
-  kind: 'barang' | 'digital' | 'jasa' | 'ppob';
+  kind: 'barang' | 'digital' | 'jasa';
   is_active: boolean;
   image?: string | null;
   total_stock?: number;
@@ -35,7 +35,6 @@ const PRODUCT_KIND_BADGE: Record<Product['kind'], { label: string; className: st
   barang: { label: 'Barang', className: 'bg-gray-100 text-gray-700' },
   digital: { label: 'Digital', className: 'bg-blue-100 text-blue-700' },
   jasa: { label: 'Jasa', className: 'bg-purple-100 text-purple-700' },
-  ppob: { label: 'PPOB', className: 'bg-amber-100 text-amber-700' },
 };
 
 export default function ProductsPage() {

@@ -362,63 +362,6 @@ CREATE TABLE "app_pos_sale_items" (
     CONSTRAINT "app_pos_sale_items_pkey" PRIMARY KEY ("uuid")
 );
 
--- CreateTable
-CREATE TABLE "app_pos_ppob_products" (
-    "uuid" CHAR(36) NOT NULL,
-    "provider" VARCHAR(20) NOT NULL,
-    "provider_product_code" VARCHAR(100) NOT NULL,
-    "product_name" VARCHAR(255) NOT NULL,
-    "brand" VARCHAR(100),
-    "category" VARCHAR(50) NOT NULL,
-    "type" VARCHAR(20) NOT NULL,
-    "seller_name" VARCHAR(255),
-    "base_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "admin_fee" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "selling_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "digiflazz_type" VARCHAR(50),
-    "buyer_product_status" BOOLEAN NOT NULL DEFAULT true,
-    "seller_product_status" BOOLEAN NOT NULL DEFAULT true,
-    "unlimited_stock" BOOLEAN NOT NULL DEFAULT false,
-    "stock" INTEGER NOT NULL DEFAULT 0,
-    "multi" BOOLEAN NOT NULL DEFAULT false,
-    "start_cut_off" VARCHAR(10),
-    "end_cut_off" VARCHAR(10),
-    "desc" TEXT,
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
-    "provider_metadata" JSONB,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "app_pos_ppob_products_pkey" PRIMARY KEY ("uuid")
-);
-
--- CreateTable
-CREATE TABLE "app_pos_ppob_transactions" (
-    "uuid" CHAR(36) NOT NULL,
-    "branch_uuid" CHAR(36) NOT NULL,
-    "transaction_number" VARCHAR(50) NOT NULL,
-    "type" VARCHAR(20) NOT NULL,
-    "product_code" VARCHAR(100) NOT NULL,
-    "product_name" VARCHAR(255) NOT NULL,
-    "customer_number" VARCHAR(100) NOT NULL,
-    "customer_name" VARCHAR(255),
-    "amount" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "admin_fee" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "selling_price" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "profit" DECIMAL(15,2) NOT NULL DEFAULT 0,
-    "payment_method_uuid" CHAR(36),
-    "provider_reference" VARCHAR(255),
-    "provider" VARCHAR(20) NOT NULL,
-    "status" VARCHAR(20) NOT NULL,
-    "provider_response" JSONB,
-    "notes" TEXT,
-    "created_by" INTEGER NOT NULL,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "app_pos_ppob_transactions_pkey" PRIMARY KEY ("uuid")
-);
-
 -- CreateIndex
 CREATE UNIQUE INDEX "users_uuid_key" ON "users"("uuid");
 
@@ -506,30 +449,6 @@ CREATE INDEX "app_pos_sales_sale_date_idx" ON "app_pos_sales"("sale_date");
 -- CreateIndex
 CREATE INDEX "app_pos_sales_payment_status_idx" ON "app_pos_sales"("payment_status");
 
--- CreateIndex
-CREATE INDEX "app_pos_ppob_products_category_idx" ON "app_pos_ppob_products"("category");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_products_brand_idx" ON "app_pos_ppob_products"("brand");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_products_is_active_idx" ON "app_pos_ppob_products"("is_active");
-
--- CreateIndex
-CREATE UNIQUE INDEX "app_pos_ppob_products_provider_provider_product_code_key" ON "app_pos_ppob_products"("provider", "provider_product_code");
-
--- CreateIndex
-CREATE UNIQUE INDEX "app_pos_ppob_transactions_transaction_number_key" ON "app_pos_ppob_transactions"("transaction_number");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_transactions_branch_uuid_idx" ON "app_pos_ppob_transactions"("branch_uuid");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_transactions_status_idx" ON "app_pos_ppob_transactions"("status");
-
--- CreateIndex
-CREATE INDEX "app_pos_ppob_transactions_created_at_idx" ON "app_pos_ppob_transactions"("created_at");
-
 -- AddForeignKey
 ALTER TABLE "app_model_has_roles" ADD CONSTRAINT "app_model_has_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "app_roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -604,13 +523,4 @@ ALTER TABLE "app_pos_sale_items" ADD CONSTRAINT "app_pos_sale_items_sale_uuid_fk
 
 -- AddForeignKey
 ALTER TABLE "app_pos_sale_items" ADD CONSTRAINT "app_pos_sale_items_product_uuid_fkey" FOREIGN KEY ("product_uuid") REFERENCES "app_pos_products"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_branch_uuid_fkey" FOREIGN KEY ("branch_uuid") REFERENCES "app_pos_branches"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_payment_method_uuid_fkey" FOREIGN KEY ("payment_method_uuid") REFERENCES "app_pos_payment_methods"("uuid") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "app_pos_ppob_transactions" ADD CONSTRAINT "app_pos_ppob_transactions_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 

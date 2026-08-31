@@ -32,7 +32,7 @@ export const TENANT_MODELS = new Set<string>([
   "AppPosSaleItem",
   "AppPosCashierShift",
   "AppPosCashierShiftSaldoSnapshot",
-  "AppPosPpobProduct",
+  "AppPosPpobTransactionType",
   "AppPosPpobTransaction",
   "AppPosSaldoAccount",
   "AppPosSaldoAccountBalance",

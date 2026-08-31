@@ -93,7 +93,7 @@ export const posPurchaseRepository = {
   listActiveProducts() {
     return prisma.appPosProduct.findMany({
       // Cuma produk 'barang' yang punya alur stok fisik/pembelian --
-      // digital/jasa/ppob tidak dibeli-stok-in, dan produk sistem (mis.
+      // digital/jasa tidak dibeli-stok-in, dan produk sistem (mis.
       // "Komisi Agen Bank") memang bukan produk yang boleh dipilih manual.
       where: { isActive: true, kind: 'barang', isSystem: false },
       orderBy: { name: 'asc' },

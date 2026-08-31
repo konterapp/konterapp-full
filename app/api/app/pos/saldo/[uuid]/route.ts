@@ -27,6 +27,7 @@ export const PUT = withPermission(
       showInShift: rawBody.showInShift ?? rawBody.show_in_shift,
       sortOrder: rawBody.sortOrder ?? rawBody.sort_order,
       isBankAgent: rawBody.isBankAgent ?? rawBody.is_bank_agent,
+      isPpobServer: rawBody.isPpobServer ?? rawBody.is_ppob_server,
     };
 
     const result = validateSchema(updateSaldoAccountSchema, body);

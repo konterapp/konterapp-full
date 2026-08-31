@@ -1,104 +1,67 @@
 /**
- * Dummy seeder untuk transaksi PPOB.
- * Jalankan: npm run seed:dummy prisma/seeders/dummy/ppob-transactions.ts
+ * Dummy seeder untuk fitur Server Pulsa/PPOB -- beberapa contoh Jenis
+ * Transaksi (master data dinamis, BEDA dari Agen Bank yang hardcode) dan
+ * transaksi. Meniru pola mutasi kas + sale sintetis laba persis seperti
+ * logic service asli (lihat lib/modules/pos/ppob-transactions/admin.service.ts):
+ * - Akun Server PPOB (OrderKuota): bergerak sebesar base_amount (modal)
+ *   sesuai cash_direction jenis transaksinya.
+ * - Akun metode bayar (Cash): bergerak sebesar uang tunai yg fisik
+ *   diterima/diserahkan kasir (terpisah dari pergerakan akun server).
+ * - Laba (selling_amount - base_amount, GROSS -- belum dikurangi admin_fee)
+ *   dicatat sbg 1 baris app_pos_sale sintetis ke produk sistem "Laba PPOB".
+ * Jalankan: npm run seed:dummy:file prisma/seeders/dummy/ppob-transactions.ts
  */
-import { PrismaClient } from '@prisma/client';
-import { v7 as uuidv7 } from 'uuid';
-import { getDefaultCompanyUuid } from '../company';
-import { DEFAULT_ADMIN_EMAIL } from '../users';
+import { Prisma, PrismaClient } from "@prisma/client";
+import { v7 as uuidv7 } from "uuid";
+import { getDefaultCompanyUuid } from "../company";
+import { DEFAULT_ADMIN_EMAIL } from "../users";
 
-const TRANSACTIONS_DATA = [
-  {
-    transactionNumber: 'PPOB-20260320-001',
-    type: 'prepaid',
-    productCode: 'DF-PULSA-10K',
-    productName: 'Pulsa Telkomsel 10.000',
-    customerNumber: '081234567890',
-    amount: 10000,
-    adminFee: 1500,
-    sellingPrice: 11500,
-    profit: 800,
-    provider: 'digiflazz',
-    status: 'success',
-    providerReference: 'DF-REF-001',
-    notes: 'Dummy success transaksi PPOB',
-  },
-  {
-    transactionNumber: 'PPOB-20260320-002',
-    type: 'prepaid',
-    productCode: 'RB-DATA-5GB',
-    productName: 'Paket Data 5GB',
-    customerNumber: '081298765432',
-    amount: 32000,
-    adminFee: 2000,
-    sellingPrice: 35000,
-    profit: 1200,
-    provider: 'rajabiller',
-    status: 'pending',
-    providerReference: null,
-    notes: 'Dummy pending transaksi PPOB',
-  },
-  {
-    transactionNumber: 'PPOB-20260320-003',
-    type: 'postpaid',
-    productCode: 'DF-PLN-PASCA',
-    productName: 'PLN Pascabayar',
-    customerNumber: '543210987654',
-    amount: 250000,
-    adminFee: 3000,
-    sellingPrice: 253000,
-    profit: 1500,
-    provider: 'digiflazz',
-    status: 'failed',
-    providerReference: 'DF-REF-003',
-    notes: 'Dummy failed transaksi PPOB',
-  },
+const PROFIT_PRODUCT_NAME = "Laba PPOB";
+const PROFIT_CATEGORY_NAME = "Sistem";
+
+const TRANSACTION_TYPES_DATA: Array<{ name: string; cashDirection: "in" | "out"; sortOrder: number }> = [
+  { name: "Pulsa & Paket Data", cashDirection: "out", sortOrder: 0 },
+  { name: "Token Listrik PLN", cashDirection: "out", sortOrder: 1 },
+  { name: "Tagihan PDAM/BPJS", cashDirection: "out", sortOrder: 2 },
 ];
 
 async function ensureAdmin(prisma: PrismaClient) {
-  const admin = await prisma.user.findFirst({ where: { email: DEFAULT_ADMIN_EMAIL } });
-  if (!admin) {
-    console.log('⚠ Admin user not found, skipping ppob transactions seed');
-    return null;
+  return prisma.user.findFirst({ where: { email: DEFAULT_ADMIN_EMAIL } });
+}
+
+async function ensureProfitProduct(prisma: PrismaClient | Prisma.TransactionClient, companyUuid: string) {
+  const sku = `SYS-LABA-PPOB-${companyUuid}`;
+  const existing = await prisma.appPosProduct.findUnique({ where: { sku } });
+  if (existing) return existing;
+
+  let category = await prisma.appPosProductCategory.findFirst({
+    where: { companyUuid, name: PROFIT_CATEGORY_NAME },
+  });
+  if (!category) {
+    category = await prisma.appPosProductCategory.create({
+      data: {
+        uuid: uuidv7(),
+        companyUuid,
+        name: PROFIT_CATEGORY_NAME,
+        description: "Kategori internal untuk produk yang dibuat otomatis oleh sistem -- jangan dihapus.",
+      },
+    });
   }
-  return admin;
-}
 
-async function ensureBranch(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.appPosBranch.findFirst({ where: { companyUuid }, orderBy: { createdAt: 'asc' } });
-  if (existing) return existing;
-
-  return prisma.appPosBranch.create({
+  return prisma.appPosProduct.create({
     data: {
       uuid: uuidv7(),
       companyUuid,
-      code: 'CB001',
-      name: 'Konter Pusat',
-      address: 'Jl. Margonda Raya No. 1',
-      phone: '021-1234567',
-      email: 'pusat@konterapp.com',
+      categoryUuid: category.uuid,
+      name: PROFIT_PRODUCT_NAME,
+      sku,
+      purchasePrice: 0,
+      sellingPrice: 0,
+      wholesalePrice: 0,
+      minStock: 0,
+      unit: "pcs",
       isActive: true,
-      isMain: true,
-    },
-  });
-}
-
-async function ensureSaldoAccount(prisma: PrismaClient, companyUuid: string) {
-  const existing = await prisma.appPosSaldoAccount.findFirst({
-    where: { companyUuid, code: 'CASH' },
-  });
-  if (existing) return existing;
-
-  return prisma.appPosSaldoAccount.create({
-    data: {
-      uuid: uuidv7(),
-      companyUuid,
-      code: 'CASH',
-      name: 'Tunai',
-      type: 'cash',
-      description: 'Pembayaran tunai',
-      isPaymentMethod: true,
-      isActive: true,
+      isSystem: true,
     },
   });
 }
@@ -106,71 +69,240 @@ async function ensureSaldoAccount(prisma: PrismaClient, companyUuid: string) {
 export async function seedPpobTransactions(prisma: PrismaClient) {
   const companyUuid = await getDefaultCompanyUuid(prisma);
   const admin = await ensureAdmin(prisma);
-  if (!admin) return;
-
-  const branch = await ensureBranch(prisma, companyUuid);
-  const saldoAccount = await ensureSaldoAccount(prisma, companyUuid);
-
-  for (const item of TRANSACTIONS_DATA) {
-    await prisma.appPosPpobTransaction.upsert({
-      where: { transactionNumber: item.transactionNumber },
-      update: {
-        companyUuid,
-        branchUuid: branch.uuid,
-        type: item.type,
-        productCode: item.productCode,
-        productName: item.productName,
-        customerNumber: item.customerNumber,
-        amount: item.amount,
-        adminFee: item.adminFee,
-        sellingPrice: item.sellingPrice,
-        profit: item.profit,
-        paymentMethodUuid: saldoAccount.uuid,
-        providerReference: item.providerReference,
-        provider: item.provider,
-        status: item.status,
-        providerResponse: {
-          status: item.status.toUpperCase(),
-          message: item.notes,
-        },
-        notes: item.notes,
-        createdBy: admin.id,
-      },
-      create: {
-        uuid: uuidv7(),
-        companyUuid,
-        branchUuid: branch.uuid,
-        transactionNumber: item.transactionNumber,
-        type: item.type,
-        productCode: item.productCode,
-        productName: item.productName,
-        customerNumber: item.customerNumber,
-        amount: item.amount,
-        adminFee: item.adminFee,
-        sellingPrice: item.sellingPrice,
-        profit: item.profit,
-        paymentMethodUuid: saldoAccount.uuid,
-        providerReference: item.providerReference,
-        provider: item.provider,
-        status: item.status,
-        providerResponse: {
-          status: item.status.toUpperCase(),
-          message: item.notes,
-        },
-        notes: item.notes,
-        createdBy: admin.id,
-      },
-    });
+  if (!admin) {
+    console.log("⚠ Admin user not found, skipping ppob transactions seed");
+    return;
   }
 
-  console.log(`✓ ${TRANSACTIONS_DATA.length} ppob transactions dummy created`);
+  const branch = await prisma.appPosBranch.findFirst({ where: { companyUuid, code: "CB001" } });
+  if (!branch) {
+    console.log("⚠ Cabang CB001 tidak ditemukan, skipping ppob transactions seed");
+    return;
+  }
+
+  // (1) Jenis Transaksi -- idempoten, find-or-create per nama.
+  const typesByName = new Map<string, { uuid: string; cashDirection: string }>();
+  for (const data of TRANSACTION_TYPES_DATA) {
+    const existing = await prisma.appPosPpobTransactionType.findFirst({
+      where: { companyUuid, name: data.name },
+    });
+    const type =
+      existing ??
+      (await prisma.appPosPpobTransactionType.create({
+        data: {
+          uuid: uuidv7(),
+          companyUuid,
+          name: data.name,
+          cashDirection: data.cashDirection,
+          isActive: true,
+          sortOrder: data.sortOrder,
+        },
+      }));
+    typesByName.set(data.name, { uuid: type.uuid, cashDirection: type.cashDirection });
+  }
+  console.log(`✓ ${TRANSACTION_TYPES_DATA.length} jenis transaksi PPOB dummy dipastikan ada`);
+
+  const existingCount = await prisma.appPosPpobTransaction.count({ where: { companyUuid } });
+  if (existingCount > 0) {
+    console.log("✓ 0 ppob transactions dummy created (sudah ada)");
+    return;
+  }
+
+  // Reuse akun OrderKuota (Server PPOB) dan CASH (metode bayar) yang sudah
+  // ada -- BUKAN akun terpisah, sesuai desain "akun apa pun bisa dipakai".
+  const serverAccount = await prisma.appPosSaldoAccount.findUnique({
+    where: { companyUuid_code: { companyUuid, code: "ORDERKUOTA" } },
+  });
+  const cashAccount = await prisma.appPosSaldoAccount.findUnique({
+    where: { companyUuid_code: { companyUuid, code: "CASH" } },
+  });
+  if (!serverAccount || !cashAccount) {
+    console.log("⚠ Akun ORDERKUOTA/CASH tidak ditemukan, skipping ppob transactions seed");
+    return;
+  }
+
+  const serverBranchLink = await prisma.appPosSaldoAccountBalanceBranch.findFirst({
+    where: { saldoAccountUuid: serverAccount.uuid, branchUuid: branch.uuid },
+  });
+  const cashBranchLink = await prisma.appPosSaldoAccountBalanceBranch.findFirst({
+    where: { saldoAccountUuid: cashAccount.uuid, branchUuid: branch.uuid },
+  });
+  if (!serverBranchLink || !cashBranchLink) {
+    console.log("⚠ Grup balance ORDERKUOTA/CASH untuk CB001 tidak ditemukan, skipping ppob transactions seed");
+    return;
+  }
+
+  const samples: Array<{
+    number: string;
+    typeName: string;
+    accountReference: string;
+    baseAmount: number;
+    sellingAmount: number;
+    adminFee: number;
+    paidAmount: number;
+  }> = [
+    {
+      number: "PPOB-DUMMY-001",
+      typeName: "Pulsa & Paket Data",
+      accountReference: "081234567890",
+      baseAmount: 9500,
+      sellingAmount: 11000,
+      adminFee: 0,
+      paidAmount: 11000,
+    },
+    {
+      number: "PPOB-DUMMY-002",
+      typeName: "Token Listrik PLN",
+      accountReference: "5312890123456",
+      baseAmount: 50000,
+      sellingAmount: 52500,
+      // Contoh biaya admin server > 0 -- demonstrasi Laba Bersih bisa lebih
+      // kecil dari laba kotor (2.500), bukan cuma kasus adminFee=0.
+      adminFee: 1000,
+      paidAmount: 52500,
+    },
+  ];
+
+  let createdCount = 0;
+  for (const sample of samples) {
+    const type = typesByName.get(sample.typeName);
+    if (!type) continue;
+
+    await prisma.$transaction(async (tx) => {
+      const changeAmount = Math.max(sample.paidAmount - sample.sellingAmount, 0);
+
+      const transaction = await tx.appPosPpobTransaction.create({
+        data: {
+          uuid: uuidv7(),
+          companyUuid,
+          branchUuid: branch.uuid,
+          saldoAccountUuid: serverAccount.uuid,
+          saldoAccountBalanceUuid: serverBranchLink.saldoAccountBalanceUuid,
+          transactionTypeUuid: type.uuid,
+          transactionNumber: sample.number,
+          cashDirection: type.cashDirection,
+          accountReference: sample.accountReference,
+          baseAmount: sample.baseAmount,
+          sellingAmount: sample.sellingAmount,
+          adminFee: sample.adminFee,
+          paymentMethodUuid: cashAccount.uuid,
+          paidAmount: sample.paidAmount,
+          changeAmount,
+          notes: "Contoh transaksi dummy",
+          createdBy: admin.id,
+        },
+      });
+
+      // (1) Nominal modal -- akun Server PPOB (OrderKuota).
+      const serverBefore = await tx.appPosSaldoAccountBalance.findUniqueOrThrow({
+        where: { uuid: serverBranchLink.saldoAccountBalanceUuid },
+        select: { balance: true },
+      });
+      const serverAfter =
+        type.cashDirection === "in"
+          ? Number(serverBefore.balance) + sample.baseAmount
+          : Number(serverBefore.balance) - sample.baseAmount;
+      await tx.appPosSaldoAccountBalance.update({
+        where: { uuid: serverBranchLink.saldoAccountBalanceUuid },
+        data: { balance: serverAfter },
+      });
+      await tx.appPosSaldoMutation.create({
+        data: {
+          uuid: uuidv7(),
+          companyUuid,
+          saldoAccountBalanceUuid: serverBranchLink.saldoAccountBalanceUuid,
+          branchUuid: branch.uuid,
+          direction: type.cashDirection,
+          amount: sample.baseAmount,
+          balanceBefore: serverBefore.balance,
+          balanceAfter: serverAfter,
+          referenceType: "ppob_transaction",
+          referenceUuid: transaction.uuid,
+          notes: `${sample.typeName} (${transaction.transactionNumber})`,
+          createdBy: admin.id,
+        },
+      });
+
+      // (2) Uang fisik yg diterima kasir -- akun metode bayar (Cash).
+      const netCashIn = sample.paidAmount - changeAmount;
+      if (netCashIn > 0) {
+        const cashBefore = await tx.appPosSaldoAccountBalance.findUniqueOrThrow({
+          where: { uuid: cashBranchLink.saldoAccountBalanceUuid },
+          select: { balance: true },
+        });
+        const cashAfter = Number(cashBefore.balance) + netCashIn;
+        await tx.appPosSaldoAccountBalance.update({
+          where: { uuid: cashBranchLink.saldoAccountBalanceUuid },
+          data: { balance: cashAfter },
+        });
+        await tx.appPosSaldoMutation.create({
+          data: {
+            uuid: uuidv7(),
+            companyUuid,
+            saldoAccountBalanceUuid: cashBranchLink.saldoAccountBalanceUuid,
+            branchUuid: branch.uuid,
+            direction: "in",
+            amount: netCashIn,
+            balanceBefore: cashBefore.balance,
+            balanceAfter: cashAfter,
+            referenceType: "ppob_transaction",
+            referenceUuid: transaction.uuid,
+            notes: `${sample.typeName} (${transaction.transactionNumber})`,
+            createdBy: admin.id,
+          },
+        });
+      }
+
+      // (3) SELALU baris sale sintetis, nominalnya LABA KOTOR (jual - modal).
+      {
+        const grossProfit = sample.sellingAmount - sample.baseAmount;
+        const profitProduct = await ensureProfitProduct(tx, companyUuid);
+        const sale = await tx.appPosSale.create({
+          data: {
+            uuid: uuidv7(),
+            companyUuid,
+            saleNumber: `LBP-${transaction.transactionNumber}`,
+            branchUuid: branch.uuid,
+            paymentMethodUuid: cashAccount.uuid,
+            ppobTransactionUuid: transaction.uuid,
+            saleDate: new Date(),
+            subtotal: grossProfit,
+            discountAmount: 0,
+            totalAmount: grossProfit,
+            paidAmount: grossProfit,
+            changeAmount: 0,
+            paymentStatus: "paid",
+            notes: `Laba ${sample.typeName} (${transaction.transactionNumber})`,
+            createdBy: admin.id,
+          },
+        });
+        await tx.appPosSaleItem.create({
+          data: {
+            uuid: uuidv7(),
+            companyUuid,
+            saleUuid: sale.uuid,
+            productUuid: profitProduct.uuid,
+            quantity: 1,
+            unitPrice: grossProfit,
+            discount: 0,
+            subtotal: grossProfit,
+          },
+        });
+      }
+    });
+
+    createdCount += 1;
+  }
+
+  console.log(`✓ ${createdCount} ppob transactions dummy created`);
 }
 
+// Standalone runner
 if (require.main === module) {
   const prisma = new PrismaClient();
   seedPpobTransactions(prisma)
-    .catch((error) => {
-      console.error(error);
+    .catch((e) => {
+      console.error(e);
       process.exit(1);
     })
     .finally(() => prisma.$disconnect());
