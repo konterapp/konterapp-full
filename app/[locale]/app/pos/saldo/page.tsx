@@ -275,22 +275,121 @@ export default function SaldoPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- tabel ini punya 8 kolom, kalau
+  // dipaksa jadi tabel di HP ujungnya harus digeser-geser ke samping dan
+  // kolom Kode/Nama/Tipe tidak kelihatan sama sekali.
+  const renderSaldoCard = (row: SaldoAccount) => {
+    const index = accounts.findIndex((a) => a.uuid === row.uuid);
+    const canUpdate = hasPermission('pos.saldo.update');
+    const canDelete = hasPermission('pos.saldo.delete');
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama akun
+              yang panjang bikin overflow horizontal. */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+            <p className="truncate font-mono text-xs text-gray-500">{row.code}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${
+              row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {row.is_active ? 'Aktif' : 'Nonaktif'}
+          </span>
+        </div>
+
+        <p className="text-lg font-bold text-gray-900">{formatCurrency(row.balance)}</p>
+
+        <div className="flex flex-wrap gap-1.5">
+          {getTypeBadge(row.type)}
+          {row.is_bank_agent && (
+            <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-800">Agen Bank</span>
+          )}
+          {row.is_ppob_server && (
+            <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Server PPOB</span>
+          )}
+          {row.is_payment_method && (
+            <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-800">Metode Bayar</span>
+          )}
+        </div>
+
+        {/* Tombol aksi di mobile wajib berlabel teks & min-h-11 (44px):
+            di layar sentuh tidak ada hover, jadi tooltip ikon tidak terbaca. */}
+        <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+          <Link
+            href={`/app/pos/saldo/${row.uuid}`}
+            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] px-3 text-sm font-medium text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+          >
+            <Eye className="h-4 w-4" />
+            Detail
+          </Link>
+          {canUpdate && (
+            <Link
+              href={`/app/pos/saldo/${row.uuid}/edit`}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 cursor-pointer"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Link>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => handleDeleteClick(row)}
+              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 text-sm font-medium text-white transition-colors hover:bg-red-600 cursor-pointer"
+            >
+              <Trash2 className="h-4 w-4" />
+              Hapus
+            </button>
+          )}
+          {canUpdate && (
+            <div className="col-span-2 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleMove(row, 'up')}
+                disabled={index === 0}
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ArrowUp className="h-4 w-4" />
+                Naikkan
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMove(row, 'down')}
+                disabled={index === accounts.length - 1}
+                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ArrowDown className="h-4 w-4" />
+                Turunkan
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52] flex items-center gap-2">
-            <Wallet className="h-6 w-6" />
+      {/* Di mobile judul & tombol ditumpuk: dulu dipaksa sebaris sehingga label
+          tombol pecah jadi tiga baris dan menghimpit judul. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#142D52] flex items-center gap-2">
+            <Wallet className="h-6 w-6 shrink-0" />
             Saldo
           </h1>
-          <p className="text-gray-600 mt-1">Kelola akun uang konter (Cash, Dana, Gopay, BRI, dst) & cocokkan dengan transaksi</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola akun uang konter (Cash, Dana, Gopay, BRI, dst) & cocokkan dengan transaksi</p>
         </div>
         {hasPermission('pos.saldo.create') && (
           <Link
             href="/app/pos/saldo/create"
-            className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Akun Saldo</span>
           </Link>
         )}
@@ -322,6 +421,7 @@ export default function SaldoPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderSaldoCard}
       />
 
       <ConfirmModal
