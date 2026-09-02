@@ -40,6 +40,14 @@ DONE:
     - (done) hapus users dan backup
     - (done) menu saldo
     - (done) unit test setup
+    - (done) saldo shift (lihat plan-shift-saldo-snapshot.txt & plan-saldo-multi-cabang.txt)
+    - (done) buka/tutup shift saldo
+    - (done) tiap shift berapa max user
+    - (done) riwayat mutasi saldo tidak jelas (mis: beli 5k bayar 20k, tercatat masuk 20k)
+    - (done) hide saldo
+    - (done) saldo urutan
+    - (done) menu Shift Kasir detail saldo
+    - (done) kasir saat POS tombol "proses transaksi" tidak bisa di click
 - konterapp-full-3
   - (done) verifikasi email (registrasi, create)
   - (done) lupa password
@@ -52,15 +60,20 @@ DOING:
 - konterapp-full-1
     - (done) fix vuln push
     - (done) user by cabang
+    - (done) user login as
+    - Kasir Digital
 - konterapp-full-2
-    - saldo shift (lihat plan-shift-saldo-snapshot.txt & plan-saldo-multi-cabang.txt)
-    - buka/tutup shift saldo
+    - (done) edit nominal saldo
+    - (done) admin bank laba rugi
 - konterapp-full-3
     - (done) menu langganan & referral
 
-
 PENDING:
+- /app/pos/* ganti /app/* saja
+- db app_pos_* jadi app_* saja
+- pindah stok dari cabang a ke b
 - catatkonter
 - notif whatsapp
 - offline/online
 - apk android via Capacitor (bungkus web app ini) -> upload Play Store
+- skema 1 cabang banyak kasir, itu saldo gimana

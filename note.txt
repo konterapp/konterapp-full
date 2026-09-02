@@ -1,0 +1,10 @@
+zed ssh://didik@192.168.1.245/var/www/konterapp/konterapp-full
+npx prisma migrate reset --force && npm run seed:dummy
+
+
+
+1. admin_fee ("Biaya Admin Bank") — cuma field informatif, belum memengaruhi saldo/laporan apa pun (sudah saya sebut sebagai gap sebelumnya).
+2. Tidak ada halaman detail per transaksi — cuma ada List + Create. API GET /[uuid] ada, tapi tidak ada halaman frontend buat lihat detail 1 transaksi.
+3. Update & Delete belum diimplementasikan sama sekali — permission pos.bank-agent-transaction.update/.delete sudah ada di katalog (untuk jaga-jaga struktur), tapi tidak ada service/route/UI yang benar-benar menjalankannya. Kalau kasir salah input, sekarang tidak ada cara edit/batalkan transaksi Agen Bank lewat aplikasi.
+4. Tidak ada Riwayat gabungan lintas-modul — sempat kita eksplorasi lalu dibatalkan; solusinya sekarang cukup lewat menu "Transaksi" (karena sale sintetis Komisi selalu tercatat di situ), bukan menu Riwayat terpisah.
+5. Skema multi-laci/multi-kasir — baru diskusi konsep, belum diimplementasikan (memang belum diminta).
