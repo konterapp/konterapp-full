@@ -43,7 +43,7 @@ export default function ImpersonateButton() {
     <button
       onClick={handleStopImpersonating}
       disabled={isStopping}
-      className="cursor-pointer flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      className="cursor-pointer flex shrink-0 items-center gap-2 px-2.5 py-1.5 sm:px-4 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       title={`Sedang login sebagai ${user?.name}`}
     >
       <LogOut className="w-4 h-4" />
