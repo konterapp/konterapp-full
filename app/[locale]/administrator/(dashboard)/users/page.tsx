@@ -354,16 +354,104 @@ export default function UsersPage() {
       },
    ];
 
+   // Tampilan layar kecil: 1 user = 1 kartu. Sengaja BUKAN tabel yang digeser
+   // horizontal -- tabel ini 6 kolom (~77rem), tidak akan pernah nyaman di HP.
+   // Tombol aksi dikasih label teks (bukan tooltip hover seperti versi desktop,
+   // karena hover tidak ada di layar sentuh) & tinggi minimal 44px biar nyaman
+   // dipencet.
+   const renderUserCard = (row: User) => (
+      <div className="space-y-3">
+         <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#142D52]">
+               <UserIcon className="h-5 w-5 text-white" />
+            </div>
+            <div className="min-w-0 flex-1">
+               <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+               <p className="truncate text-xs text-gray-500">{row.email}</p>
+            </div>
+            <span
+               className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                  row.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+               }`}
+            >
+               {row.is_active ? 'Aktif' : 'Tidak Aktif'}
+            </span>
+         </div>
+
+         <div className="flex flex-wrap gap-1.5">
+            {row.roles?.map((role, idx) => (
+               <span key={idx} className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
+                  {role}
+               </span>
+            ))}
+            {row.companies?.map((c) => (
+               <span key={c.uuid} className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700">
+                  {c.name}{c.is_default ? ' ★' : ''}
+               </span>
+            ))}
+            <span
+               className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
+                  row.email_verified_at ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+               }`}
+            >
+               {row.email_verified_at ? 'Email terverifikasi' : 'Email belum verifikasi'}
+            </span>
+         </div>
+
+         <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+            {row.is_active && (
+               <button
+                  onClick={() => handleImpersonate(row)}
+                  disabled={isImpersonating}
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-3 text-xs font-medium text-white transition-colors hover:bg-blue-600 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+               >
+                  <LogIn className="h-4 w-4" />
+                  Login as
+               </button>
+            )}
+            <Link
+               href={`/administrator/users/${row.uuid}`}
+               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] px-3 text-xs font-medium text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+               <Edit className="h-4 w-4" />
+               Edit
+            </Link>
+            <button
+               onClick={() => handleToggleActive(row)}
+               className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors cursor-pointer ${
+                  row.is_active
+                     ? 'bg-green-500 text-white hover:bg-green-600'
+                     : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+               }`}
+            >
+               {row.is_active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+               {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+            </button>
+            <button
+               onClick={() => handleDeleteClick(row)}
+               /* User nonaktif tidak punya tombol "Login as", jadi tinggal 3 tombol --
+                  yang terakhir dilebarkan penuh biar grid tidak menggantung sebelah. */
+               className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 text-xs font-medium text-white transition-colors hover:bg-red-600 cursor-pointer ${
+                  row.is_active ? '' : 'col-span-2'
+               }`}
+            >
+               <Trash2 className="h-4 w-4" />
+               Hapus
+            </button>
+         </div>
+      </div>
+   );
+
    return (
-      <div className="space-y-6">
-         <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6">
+         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-               <h1 className="text-2xl font-bold text-[#142D52]">Manajemen Pengguna</h1>
-               <p className="text-gray-600 mt-1">Kelola data pengguna dan peran (role).</p>
+               <h1 className="text-xl font-bold text-[#142D52] sm:text-2xl">Manajemen Pengguna</h1>
+               <p className="mt-1 text-sm text-gray-600 sm:text-base">Kelola data pengguna dan peran (role).</p>
             </div>
             <Link
                href="/administrator/users/create"
-               className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+               className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#EBC170] px-4 py-2.5 font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer sm:w-auto sm:py-2"
             >
                <Plus className="w-5 h-5" />
                <span>Tambah User</span>
@@ -377,7 +465,7 @@ export default function UsersPage() {
          )}
 
          {/* Filter */}
-         <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 sm:p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Filter Role</label>
@@ -416,6 +504,7 @@ export default function UsersPage() {
             onSortChange={handleSortChange}
             isLoading={isLoading}
             getRowId={(row) => row.uuid}
+            renderMobileCard={renderUserCard}
          />
 
          <ConfirmModal

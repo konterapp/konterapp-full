@@ -27,6 +27,15 @@ export interface DataTableProps<T> {
    emptyIcon?: ReactNode;
    onRowClick?: (row: T) => void;
    getRowId?: (row: T) => string | number;
+   /**
+    * Kalau diisi, layar kecil menampilkan daftar KARTU (bukan tabel yang harus
+    * digeser horizontal) -- search, filter, loading, empty state & paginasi
+    * tetap dipakai bareng. Halaman yang TIDAK mengirim prop ini perilakunya
+    * sama persis seperti sebelumnya (tabel + scroll horizontal di mobile).
+    */
+   renderMobileCard?: (row: T) => ReactNode;
+   /** Batas layar peralihan kartu -> tabel. Default `lg` (1024px), samakan dengan breakpoint sidebar. */
+   mobileBreakpoint?: 'md' | 'lg';
    // Server-side pagination props
    serverSide?: boolean;
    currentPage?: number;
@@ -54,6 +63,8 @@ export default function DataTable<T extends Record<string, any>>({
    emptyIcon,
    onRowClick,
    getRowId = (row) => row.id,
+   renderMobileCard,
+   mobileBreakpoint = 'lg',
    serverSide = false,
    currentPage: externalCurrentPage,
    totalPages: externalTotalPages,
@@ -161,10 +172,17 @@ export default function DataTable<T extends Record<string, any>>({
          : <ArrowDown className="w-4 h-4 text-gray-700" />;
    };
 
+   // Class ditulis literal (bukan string dinamis) supaya tidak kena purge Tailwind.
+   const responsiveClasses = {
+      md: { cardsOnly: 'md:hidden', tableOnly: 'hidden md:block' },
+      lg: { cardsOnly: 'lg:hidden', tableOnly: 'hidden lg:block' },
+   }[mobileBreakpoint];
+   const hasMobileCards = Boolean(renderMobileCard);
+
    return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
          {/* Search and Filter */}
-         <div className="flex items-center space-x-4 mb-6">
+         <div className="flex items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex-1 relative">
                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                <input
@@ -184,10 +202,10 @@ export default function DataTable<T extends Record<string, any>>({
             {filterComponent && (
                <button
                   onClick={() => setShowFilter(!showFilter)}
-                  className={`flex items-center space-x-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${showFilter ? 'bg-gray-50' : ''}`}
+                  className={`flex shrink-0 items-center gap-2 px-3 sm:px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${showFilter ? 'bg-gray-50' : ''}`}
                >
                   <Filter className="w-5 h-5 text-gray-600" />
-                  <span>Filter</span>
+                  <span className="hidden sm:inline">Filter</span>
                </button>
             )}
          </div>
@@ -199,8 +217,50 @@ export default function DataTable<T extends Record<string, any>>({
             </div>
          )}
 
+         {/* Kartu (layar kecil) -- hanya kalau halaman menyediakan renderMobileCard */}
+         {hasMobileCards && (
+            <div className={responsiveClasses.cardsOnly}>
+               {isLoading ? (
+                  <div className="space-y-3">
+                     {Array.from({ length: Math.min(itemsPerPage, 5) }).map((_, index) => (
+                        <div key={`skeleton-card-${index}`} className="rounded-xl border border-gray-200 p-4">
+                           <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-gray-200" />
+                              <div className="min-w-0 flex-1 space-y-2">
+                                 <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200" />
+                                 <div className="h-3 w-3/4 animate-pulse rounded bg-gray-100" />
+                              </div>
+                           </div>
+                           <div className="mt-4 h-9 animate-pulse rounded-lg bg-gray-100" />
+                        </div>
+                     ))}
+                  </div>
+               ) : paginatedData.length > 0 ? (
+                  <div className="space-y-3">
+                     {paginatedData.map((row, index) => {
+                        const rowKey = getRowId?.(row) ?? row.uuid ?? row.id ?? index;
+                        return (
+                           <div
+                              key={rowKey}
+                              onClick={() => onRowClick?.(row)}
+                              className={`rounded-xl border border-gray-200 p-4 transition-colors ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
+                           >
+                              {renderMobileCard!(row)}
+                           </div>
+                        );
+                     })}
+                  </div>
+               ) : (
+                  <div className="py-10 text-center">
+                     {emptyIcon}
+                     <p className="mt-4 text-gray-500">{emptyMessage}</p>
+                  </div>
+               )}
+            </div>
+         )}
+
          {/* Table */}
-         <div className="overflow-x-auto">
+         <div className={`overflow-x-auto ${hasMobileCards ? responsiveClasses.tableOnly : ''}`}>
             <table className="w-full" style={{ tableLayout: 'auto', width: '100%' }}>
                <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -290,16 +350,16 @@ export default function DataTable<T extends Record<string, any>>({
 
          {/* Pagination */}
          {totalItems > 0 && (
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-               <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-600">
+            <div className="flex flex-col gap-3 pt-4 border-t border-gray-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-2">
+               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <div className="text-xs text-gray-600 sm:text-sm">
                      Menampilkan <span className="font-semibold">{startIndex + 1}</span> -{' '}
                      <span className="font-semibold">{Math.min(endIndex, totalItems)}</span> dari{' '}
                      <span className="font-semibold">{totalItems}</span> data
                   </div>
                   {serverSide && onItemsPerPageChange && (
                      <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600">Per halaman:</span>
+                        <span className="text-xs text-gray-600 sm:text-sm">Per halaman:</span>
                         <select
                            value={itemsPerPage}
                            onChange={(e) => {
@@ -316,7 +376,7 @@ export default function DataTable<T extends Record<string, any>>({
                      </div>
                   )}
                </div>
-               <div className="flex items-center space-x-2">
+               <div className="flex items-center justify-center space-x-2 sm:justify-end">
                   <button
                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                      disabled={currentPage === 1}
@@ -337,7 +397,7 @@ export default function DataTable<T extends Record<string, any>>({
                               <button
                                  key={page}
                                  onClick={() => setCurrentPage(page)}
-                                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${currentPage === page
+                                 className={`min-w-9 px-2.5 py-2 sm:px-3 sm:py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${currentPage === page
                                     ? 'bg-[#2a4061] text-white hover:bg-[#1e2f47]'
                                     : 'border border-gray-200 hover:bg-gray-100 hover:border-gray-300 text-gray-700'
                                     }`}
