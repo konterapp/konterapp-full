@@ -1,14 +1,18 @@
 export interface BankAgentTransactionType {
-  code: string;
-  label: string;
-  cash_direction: 'in' | 'out' | 'neutral';
+  uuid: string;
+  name: string;
+  cash_direction: 'in' | 'out';
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface BankAgentTransaction {
   uuid: string;
   transaction_number: string;
-  transaction_type: string;
-  cash_direction: 'in' | 'out' | 'neutral';
+  transaction_type: { uuid: string; name: string; cash_direction: 'in' | 'out' } | null;
+  cash_direction: 'in' | 'out';
   account_reference: string | null;
   base_amount: number;
   selling_amount: number;
@@ -29,6 +33,39 @@ export interface BankAgentTransaction {
 
 export async function getBankAgentTransactionTypes(): Promise<{ status: string; data: BankAgentTransactionType[] }> {
   const response = await fetch('/api/app/pos/bank-agent-transactions/types');
+  return response.json();
+}
+
+export async function createBankAgentTransactionType(data: {
+  name: string;
+  cash_direction: 'in' | 'out';
+  is_active?: boolean;
+  sort_order?: number;
+}): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: BankAgentTransactionType }> {
+  const response = await fetch('/api/app/pos/bank-agent-transactions/types', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function updateBankAgentTransactionType(
+  uuid: string,
+  data: { name?: string; cash_direction?: 'in' | 'out'; is_active?: boolean; sort_order?: number }
+): Promise<{ status: string; message?: string; errors?: Record<string, string[]>; data: BankAgentTransactionType }> {
+  const response = await fetch(`/api/app/pos/bank-agent-transactions/types/${uuid}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function deleteBankAgentTransactionType(uuid: string): Promise<{ status: string; message?: string }> {
+  const response = await fetch(`/api/app/pos/bank-agent-transactions/types/${uuid}`, {
+    method: 'DELETE',
+  });
   return response.json();
 }
 
@@ -59,7 +96,7 @@ export async function getBankAgentTransaction(uuid: string): Promise<{ status: s
 export async function createBankAgentTransaction(data: {
   branch_uuid: string;
   saldo_account_uuid: string;
-  transaction_type: string;
+  transaction_type_uuid: string;
   account_reference?: string;
   base_amount: number;
   selling_amount: number;

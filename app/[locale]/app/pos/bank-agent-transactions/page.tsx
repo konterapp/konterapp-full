@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Landmark, Plus, Eye } from 'lucide-react';
+import { Landmark, Plus, Eye, Settings } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { usePermissions } from '@/lib/hooks/usePermissions';
 import { getBankAgentTransactions, BankAgentTransaction } from '@/lib/api/app/bank-agent-transaction';
@@ -12,12 +12,6 @@ interface BranchOption {
   name: string;
   code?: string;
 }
-
-const TRANSACTION_TYPE_LABELS: Record<string, string> = {
-  deposit: 'Setor Tunai',
-  withdrawal: 'Tarik Tunai',
-  transfer: 'Transfer Saldo',
-};
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -162,8 +156,8 @@ export default function BankAgentTransactionsPage() {
       label: 'Jenis',
       sortable: false,
       render: (_, row) => (
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${row.cash_direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {TRANSACTION_TYPE_LABELS[row.transaction_type] || row.transaction_type}
+        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${row.cash_direction === 'in' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+          {row.transaction_type?.name || '-'}
         </span>
       ),
     },
@@ -223,15 +217,26 @@ export default function BankAgentTransactionsPage() {
           </h1>
           <p className="text-gray-600 mt-1">Transaksi setor/tarik tunai & transfer saldo (bank maupun e-wallet)</p>
         </div>
-        {hasPermission('pos.bank-agent-transaction.create') && (
-          <Link
-            href="/app/pos/bank-agent-transactions/create"
-            className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Buat Transaksi</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {hasPermission('pos.bank-agent-transaction-type.index') && (
+            <Link
+              href="/app/pos/bank-agent-transaction-types"
+              className="flex items-center space-x-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 px-4 py-2 transition-colors cursor-pointer font-semibold"
+            >
+              <Settings className="w-5 h-5" />
+              <span>Jenis Transaksi</span>
+            </Link>
+          )}
+          {hasPermission('pos.bank-agent-transaction.create') && (
+            <Link
+              href="/app/pos/bank-agent-transactions/create"
+              className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Buat Transaksi</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {error && (

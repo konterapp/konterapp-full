@@ -1,9 +1,9 @@
 /**
- * Dummy seeder untuk fitur Agen Bank -- beberapa contoh transaksi (jenis
- * transaksi hardcode, lihat BANK_AGENT_TRANSACTION_TYPES di
- * lib/modules/pos/bank-agent-transactions/admin.service.ts). Meniru pola
- * mutasi kas + sale sintetis komisi persis seperti logic service asli:
- * - Akun Agen Bank (BRI): bergerak sebesar base_amount sesuai cash_direction.
+ * Dummy seeder untuk fitur Agen Bank -- Jenis Transaksi (master data dinamis,
+ * lihat AppPosBankAgentTransactionType) + beberapa contoh transaksi. Meniru
+ * pola mutasi kas + sale sintetis komisi persis seperti logic service asli:
+ * - Akun Agen Bank (BRI): bergerak sebesar base_amount sesuai cash_direction
+ *   jenis transaksinya.
  * - Akun metode bayar (Cash): bergerak sebesar uang tunai yg fisik
  *   diterima/diserahkan kasir (terpisah dari pergerakan akun Agen Bank).
  * - Kalau ada komisi (fee > 0): dicatat sbg 1 baris app_pos_sale sintetis ke
@@ -18,6 +18,28 @@ import { DEFAULT_ADMIN_EMAIL } from "../users";
 
 const COMMISSION_PRODUCT_NAME = "Komisi Agen Bank";
 const COMMISSION_CATEGORY_NAME = "Sistem";
+
+// cashDirection = arah mutasi SALDO AKUN AGEN BANK (bukan arah kas toko) --
+// 'out' berarti kas toko MASUK (customer bayar tunai, umum: Setor Tunai,
+// bayar BPJS/listrik/dst), 'in' berarti kas toko KELUAR (kasir serahkan
+// tunai ke customer, mis. Tarik Tunai). Lihat komentar sama di schema.prisma.
+const TRANSACTION_TYPES_DATA: Array<{ name: string; cashDirection: "in" | "out"; sortOrder: number }> = [
+  { name: "Tarik Tunai", cashDirection: "in", sortOrder: 0 },
+  { name: "Setor Tunai", cashDirection: "out", sortOrder: 1 },
+  { name: "Transfer Antar Bank", cashDirection: "out", sortOrder: 2 },
+  { name: "Transfer Sesama BRI", cashDirection: "out", sortOrder: 3 },
+  { name: "Cek Saldo", cashDirection: "out", sortOrder: 4 },
+  { name: "Pembayaran BRIVA", cashDirection: "out", sortOrder: 5 },
+  { name: "Pembayaran BPJS", cashDirection: "out", sortOrder: 6 },
+  { name: "Pembayaran Listrik", cashDirection: "out", sortOrder: 7 },
+  { name: "Pembayaran Cicilan", cashDirection: "out", sortOrder: 8 },
+  { name: "Top Up BRIZZI", cashDirection: "out", sortOrder: 9 },
+  { name: "Registrasi Mobile Banking", cashDirection: "out", sortOrder: 10 },
+  { name: "Registrasi Internet Banking", cashDirection: "out", sortOrder: 11 },
+  { name: "Pembukaan Rekening", cashDirection: "out", sortOrder: 12 },
+  { name: "Isi Pulsa melalui BRILink", cashDirection: "out", sortOrder: 13 },
+  { name: "Lainnya", cashDirection: "out", sortOrder: 14 },
+];
 
 async function ensureAdmin(prisma: PrismaClient) {
   return prisma.user.findFirst({ where: { email: DEFAULT_ADMIN_EMAIL } });
@@ -68,6 +90,27 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
     return;
   }
 
+  // (1) Jenis Transaksi -- idempoten, find-or-create per nama.
+  const typesByName = new Map<string, { uuid: string; cashDirection: "in" | "out" }>();
+  for (const data of TRANSACTION_TYPES_DATA) {
+    const existing = await prisma.appPosBankAgentTransactionType.findFirst({
+      where: { companyUuid, name: data.name },
+    });
+    const type =
+      existing ??
+      (await prisma.appPosBankAgentTransactionType.create({
+        data: {
+          uuid: uuidv7(),
+          companyUuid,
+          name: data.name,
+          cashDirection: data.cashDirection,
+          sortOrder: data.sortOrder,
+        },
+      }));
+    typesByName.set(data.name, { uuid: type.uuid, cashDirection: type.cashDirection as "in" | "out" });
+  }
+  console.log(`✓ ${typesByName.size} jenis transaksi Agen Bank dummy tersedia`);
+
   const branch = await prisma.appPosBranch.findFirst({ where: { companyUuid, code: "CB001" } });
   if (!branch) {
     console.log("⚠ Cabang CB001 tidak ditemukan, skipping bank agent transactions seed");
@@ -108,9 +151,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
 
   const samples: Array<{
     number: string;
-    transactionType: "deposit" | "withdrawal";
-    label: string;
-    cashDirection: "in" | "out";
+    typeName: string;
     baseAmount: number;
     fee: number;
     adminFee: number;
@@ -122,9 +163,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
   }> = [
     {
       number: "BA-DUMMY-001",
-      transactionType: "deposit",
-      label: "Setor Tunai",
-      cashDirection: "out",
+      typeName: "Setor Tunai",
       baseAmount: 500000,
       fee: 5000,
       adminFee: 0,
@@ -137,13 +176,11 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
     },
     {
       number: "BA-DUMMY-002",
-      transactionType: "withdrawal",
-      label: "Tarik Tunai",
-      cashDirection: "in",
+      typeName: "Tarik Tunai",
       baseAmount: 300000,
-      fee: 5000,
       // Contoh biaya admin bank > 0 -- demonstrasi Laba Bersih bisa lebih
       // kecil dari komisi kotor (2.500), bukan cuma kasus adminFee=0.
+      fee: 5000,
       adminFee: 2500,
       feeReceivedVia: "deducted",
       sellingAmount: 305000,
@@ -156,6 +193,9 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
 
   let createdCount = 0;
   for (const sample of samples) {
+    const type = typesByName.get(sample.typeName);
+    if (!type) continue;
+
     await prisma.$transaction(async (tx) => {
       const transaction = await tx.appPosBankAgentTransaction.create({
         data: {
@@ -165,8 +205,8 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
           saldoAccountUuid: bankAccount.uuid,
           saldoAccountBalanceUuid: bankBranchLink.saldoAccountBalanceUuid,
           transactionNumber: sample.number,
-          transactionType: sample.transactionType,
-          cashDirection: sample.cashDirection,
+          transactionTypeUuid: type.uuid,
+          cashDirection: type.cashDirection,
           baseAmount: sample.baseAmount,
           sellingAmount: sample.sellingAmount,
           fee: sample.fee,
@@ -186,7 +226,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
         select: { balance: true },
       });
       const bankAfter =
-        sample.cashDirection === "in"
+        type.cashDirection === "in"
           ? Number(bankBefore.balance) + sample.baseAmount
           : Number(bankBefore.balance) - sample.baseAmount;
       await tx.appPosSaldoAccountBalance.update({
@@ -199,13 +239,13 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
           companyUuid,
           saldoAccountBalanceUuid: bankBranchLink.saldoAccountBalanceUuid,
           branchUuid: branch.uuid,
-          direction: sample.cashDirection,
+          direction: type.cashDirection,
           amount: sample.baseAmount,
           balanceBefore: bankBefore.balance,
           balanceAfter: bankAfter,
           referenceType: "bank_agent_transaction",
           referenceUuid: transaction.uuid,
-          notes: `${sample.label} (${transaction.transactionNumber})`,
+          notes: `${sample.typeName} (${transaction.transactionNumber})`,
           createdBy: admin.id,
         },
       });
@@ -264,7 +304,7 @@ export async function seedBankAgentTransactions(prisma: PrismaClient) {
             paidAmount: sample.fee,
             changeAmount: 0,
             paymentStatus: "paid",
-            notes: sample.fee > 0 ? `Komisi ${sample.label} (${transaction.transactionNumber})` : `${sample.label} (${transaction.transactionNumber})`,
+            notes: sample.fee > 0 ? `Komisi ${sample.typeName} (${transaction.transactionNumber})` : `${sample.typeName} (${transaction.transactionNumber})`,
             createdBy: admin.id,
           },
         });

@@ -133,6 +133,7 @@ model Company {
   saldoBalanceBranches       AppPosSaldoAccountBalanceBranch[]
   saldoMutations             AppPosSaldoMutation[]
   bankAgentTransactions      AppPosBankAgentTransaction[]
+  bankAgentTransactionTypes  AppPosBankAgentTransactionType[]
   ppobTransactionTypes       AppPosPpobTransactionType[]
   ppobTransactions           AppPosPpobTransaction[]
 
@@ -968,21 +969,49 @@ model AppPosSaldoMutation {
 // lib/modules/pos/bank-agent-transactions/admin.service.ts. PPOB (Server
 // Pulsa) TIDAK di sini -- modul terpisah, lihat AppPosPpobTransaction di
 // bawah (jenis transaksinya master data dinamis, bukan hardcode).
+// Jenis transaksi Agen Bank -- master data dinamis per company (dulu
+// hardcode 3 macam di admin.service.ts), pola & makna field persis sama
+// dengan AppPosPpobTransactionType: cashDirection = arah mutasi SALDO AKUN
+// AGEN BANK (bukan arah kas toko) -- 'out' berarti saldo akun berkurang
+// (kas toko MASUK, kasir terima tunai dari customer, mis. Setor Tunai),
+// 'in' berarti saldo akun bertambah (kas toko KELUAR, kasir serahkan tunai
+// ke customer, mis. Tarik Tunai). Form kelola jenis transaksi menampilkan
+// label kebalikannya ("Kas Masuk"/"Kas Keluar") supaya intuitif buat admin.
+model AppPosBankAgentTransactionType {
+  uuid          String   @id @default(uuid()) @db.Char(36)
+  companyUuid   String   @map("company_uuid") @db.Char(36)
+  name          String   @db.VarChar(100)
+  cashDirection String   @default("out") @map("cash_direction") @db.VarChar(10) // in, out
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company      Company                      @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  transactions AppPosBankAgentTransaction[]
+
+  @@unique([companyUuid, name])
+  @@index([companyUuid])
+  @@map("app_pos_bank_agent_transaction_types")
+}
+
 model AppPosBankAgentTransaction {
   uuid                    String   @id @default(uuid()) @db.Char(36)
   companyUuid             String   @map("company_uuid") @db.Char(36)
   branchUuid              String   @map("branch_uuid") @db.Char(36)
   saldoAccountUuid        String   @map("saldo_account_uuid") @db.Char(36)
   saldoAccountBalanceUuid String   @map("saldo_account_balance_uuid") @db.Char(36)
+  transactionTypeUuid     String   @map("transaction_type_uuid") @db.Char(36)
   transactionNumber       String   @unique @map("transaction_number") @db.VarChar(50)
-  transactionType         String   @map("transaction_type") @db.VarChar(20) // deposit, withdrawal, transfer
-  cashDirection           String   @map("cash_direction") @db.VarChar(10) // in, out (dari hardcode map, bukan input bebas)
+  // Snapshot dari AppPosBankAgentTransactionType.cashDirection saat transaksi
+  // dibuat -- supaya riwayat tetap benar walau tipe-nya diedit belakangan.
+  cashDirection           String   @map("cash_direction") @db.VarChar(10) // in, out
   accountReference        String?  @map("account_reference") @db.VarChar(100) // no. rekening tujuan/asal (opsional)
   baseAmount              Decimal  @map("base_amount") @db.Decimal(15, 2) // nominal setor/tarik/transfer
   sellingAmount           Decimal  @map("selling_amount") @db.Decimal(15, 2) // yang dibayar/diterima pelanggan
   fee                     Decimal  @default(0) @db.Decimal(15, 2) // komisi/laba
   adminFee                Decimal  @default(0) @map("admin_fee") @db.Decimal(15, 2) // beban ke bank
-  feeReceivedVia          String?  @map("fee_received_via") @db.VarChar(20) // deducted, cash, balance -- khusus dampak keluar (Tarik Tunai)
+  feeReceivedVia          String?  @map("fee_received_via") @db.VarChar(20) // deducted, cash, balance -- khusus dampak kas keluar
   paymentMethodUuid       String   @map("payment_method_uuid") @db.Char(36) // akun saldo yg kena mutasi kas (mis. Cash/BCA/QRIS)
   paidAmount              Decimal  @default(0) @map("paid_amount") @db.Decimal(15, 2)
   changeAmount            Decimal  @default(0) @map("change_amount") @db.Decimal(15, 2)
@@ -991,17 +1020,19 @@ model AppPosBankAgentTransaction {
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
-  company             Company                   @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
-  branch              AppPosBranch              @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
-  saldoAccount        AppPosSaldoAccount        @relation("BankAgentTransactionAccount", fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
-  saldoAccountBalance AppPosSaldoAccountBalance @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
-  paymentMethod       AppPosSaldoAccount        @relation("BankAgentTransactionPaymentMethod", fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
-  creator             User                      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  company             Company                        @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+  branch              AppPosBranch                   @relation(fields: [branchUuid], references: [uuid], onDelete: Cascade)
+  saldoAccount        AppPosSaldoAccount             @relation("BankAgentTransactionAccount", fields: [saldoAccountUuid], references: [uuid], onDelete: Cascade)
+  saldoAccountBalance AppPosSaldoAccountBalance      @relation(fields: [saldoAccountBalanceUuid], references: [uuid], onDelete: Cascade)
+  transactionType     AppPosBankAgentTransactionType @relation(fields: [transactionTypeUuid], references: [uuid], onDelete: Cascade)
+  paymentMethod       AppPosSaldoAccount             @relation("BankAgentTransactionPaymentMethod", fields: [paymentMethodUuid], references: [uuid], onDelete: Cascade)
+  creator             User                           @relation(fields: [createdBy], references: [id], onDelete: Cascade)
   sale                AppPosSale?
 
   @@index([companyUuid])
   @@index([branchUuid])
   @@index([saldoAccountUuid])
   @@index([paymentMethodUuid])
+  @@index([transactionTypeUuid])
   @@map("app_pos_bank_agent_transactions")
 }

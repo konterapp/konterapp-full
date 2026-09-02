@@ -5,12 +5,6 @@ import { Link } from '@/i18n/navigation';
 import { ArrowLeft, Calendar, Building2, Landmark, CreditCard, User, FileText } from 'lucide-react';
 import { getBankAgentTransaction, BankAgentTransaction } from '@/lib/api/app/bank-agent-transaction';
 
-const TRANSACTION_TYPE_LABELS: Record<string, string> = {
-  deposit: 'Setor Tunai',
-  withdrawal: 'Tarik Tunai',
-  transfer: 'Transfer Saldo',
-};
-
 const FEE_RECEIVED_VIA_LABELS: Record<string, string> = {
   deducted: 'Dipotong dari Tunai',
   cash: 'Tunai Terpisah',
@@ -104,7 +98,7 @@ export default function BankAgentTransactionDetailPage({ params }: { params: Pro
             transaction.cash_direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
-          {TRANSACTION_TYPE_LABELS[transaction.transaction_type] || transaction.transaction_type}
+          {transaction.transaction_type?.name || '-'}
         </span>
       </div>
 

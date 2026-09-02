@@ -1,10 +1,24 @@
 import type { BankAgentTransactionWithRelations } from './repository';
 
+export function mapBankAgentTransactionType(row: { uuid: string; name: string; cashDirection: string; isActive: boolean; sortOrder: number; createdAt: Date; updatedAt: Date }) {
+  return {
+    uuid: row.uuid,
+    name: row.name,
+    cash_direction: row.cashDirection,
+    is_active: row.isActive,
+    sort_order: row.sortOrder,
+    created_at: row.createdAt,
+    updated_at: row.updatedAt,
+  };
+}
+
 export function mapBankAgentTransaction(row: BankAgentTransactionWithRelations) {
   return {
     uuid: row.uuid,
     transaction_number: row.transactionNumber,
-    transaction_type: row.transactionType,
+    transaction_type: row.transactionType
+      ? { uuid: row.transactionType.uuid, name: row.transactionType.name, cash_direction: row.transactionType.cashDirection }
+      : null,
     cash_direction: row.cashDirection,
     account_reference: row.accountReference,
     base_amount: Number(row.baseAmount),

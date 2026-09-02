@@ -36,7 +36,7 @@ export const POST = withPermission(
       ...rawBody,
       branchUuid: rawBody.branchUuid ?? rawBody.branch_uuid,
       saldoAccountUuid: rawBody.saldoAccountUuid ?? rawBody.saldo_account_uuid,
-      transactionType: rawBody.transactionType ?? rawBody.transaction_type,
+      transactionTypeUuid: rawBody.transactionTypeUuid ?? rawBody.transaction_type_uuid,
       accountReference: rawBody.accountReference ?? rawBody.account_reference,
       baseAmount: rawBody.baseAmount ?? rawBody.base_amount,
       sellingAmount: rawBody.sellingAmount ?? rawBody.selling_amount,

@@ -74,13 +74,18 @@ export const PERMISSIONS = [
   "pos.branch.create",
   "pos.branch.update",
   "pos.branch.delete",
-  // POS - Agen Bank (setor/tarik tunai, transfer saldo -- akun bisa bank
-  // atau e-wallet). Reuse akun & ledger dari domain Saldo -- jenis transaksi
-  // hardcode, bukan master data.
+  // POS - Agen Bank (setor/tarik tunai, transfer saldo, bayar BPJS/listrik/dst
+  // -- akun bisa bank atau e-wallet). Reuse akun & ledger dari domain Saldo.
+  // Jenis transaksinya master data dinamis (sama pola dgn PPOB), jadi punya
+  // permission CRUD sendiri.
   "pos.bank-agent-transaction.index",
   "pos.bank-agent-transaction.create",
   "pos.bank-agent-transaction.update",
   "pos.bank-agent-transaction.delete",
+  "pos.bank-agent-transaction-type.index",
+  "pos.bank-agent-transaction-type.create",
+  "pos.bank-agent-transaction-type.update",
+  "pos.bank-agent-transaction-type.delete",
   // POS - Server Pulsa/PPOB. Sama polanya dgn Agen Bank (reuse akun & ledger
   // Saldo lewat is_ppob_server), BEDANYA jenis transaksinya master data
   // dinamis (banyak & terus berkembang per operator), jadi punya permission

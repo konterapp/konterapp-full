@@ -34,6 +34,7 @@ const UUID_MODELS = new Set<string>([
   "AppPosSaldoAccountBalance",
   "AppPosSaldoAccountBalanceBranch",
   "AppPosSaldoMutation",
+  "AppPosBankAgentTransactionType",
   "AppPosBankAgentTransaction",
 ]);
 

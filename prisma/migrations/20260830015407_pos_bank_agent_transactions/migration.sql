@@ -2,6 +2,30 @@
 -- boleh dipakai buat transaksi Agen Bank.
 ALTER TABLE "app_pos_saldo_accounts" ADD COLUMN     "is_bank_agent" BOOLEAN NOT NULL DEFAULT false;
 
+-- CreateTable: jenis transaksi Agen Bank -- master data dinamis per company
+-- (bukan hardcode), pola sama dengan app_pos_ppob_transaction_types.
+CREATE TABLE "app_pos_bank_agent_transaction_types" (
+    "uuid" CHAR(36) NOT NULL,
+    "company_uuid" CHAR(36) NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "cash_direction" VARCHAR(10) NOT NULL DEFAULT 'out',
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "app_pos_bank_agent_transaction_types_pkey" PRIMARY KEY ("uuid")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "app_pos_bank_agent_transaction_types_company_uuid_name_key" ON "app_pos_bank_agent_transaction_types"("company_uuid", "name");
+
+-- CreateIndex
+CREATE INDEX "app_pos_bank_agent_transaction_types_company_uuid_idx" ON "app_pos_bank_agent_transaction_types"("company_uuid");
+
+-- AddForeignKey
+ALTER TABLE "app_pos_bank_agent_transaction_types" ADD CONSTRAINT "app_pos_bank_agent_transaction_types_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
+
 -- CreateTable
 CREATE TABLE "app_pos_bank_agent_transactions" (
     "uuid" CHAR(36) NOT NULL,
@@ -9,8 +33,8 @@ CREATE TABLE "app_pos_bank_agent_transactions" (
     "branch_uuid" CHAR(36) NOT NULL,
     "saldo_account_uuid" CHAR(36) NOT NULL,
     "saldo_account_balance_uuid" CHAR(36) NOT NULL,
+    "transaction_type_uuid" CHAR(36) NOT NULL,
     "transaction_number" VARCHAR(50) NOT NULL,
-    "transaction_type" VARCHAR(20) NOT NULL,
     "cash_direction" VARCHAR(10) NOT NULL,
     "account_reference" VARCHAR(100),
     "base_amount" DECIMAL(15,2) NOT NULL,
@@ -43,6 +67,12 @@ CREATE INDEX "app_pos_bank_agent_transactions_saldo_account_uuid_idx" ON "app_po
 
 -- CreateIndex
 CREATE INDEX "app_pos_bank_agent_transactions_payment_method_uuid_idx" ON "app_pos_bank_agent_transactions"("payment_method_uuid");
+
+-- CreateIndex
+CREATE INDEX "app_pos_bank_agent_transactions_transaction_type_uuid_idx" ON "app_pos_bank_agent_transactions"("transaction_type_uuid");
+
+-- AddForeignKey
+ALTER TABLE "app_pos_bank_agent_transactions" ADD CONSTRAINT "app_pos_bank_agent_transactions_transaction_type_uuid_fkey" FOREIGN KEY ("transaction_type_uuid") REFERENCES "app_pos_bank_agent_transaction_types"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "app_pos_bank_agent_transactions" ADD CONSTRAINT "app_pos_bank_agent_transactions_company_uuid_fkey" FOREIGN KEY ("company_uuid") REFERENCES "companies"("uuid") ON DELETE CASCADE ON UPDATE CASCADE;

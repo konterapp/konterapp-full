@@ -3,18 +3,7 @@ import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { posBankAgentTransactionRepository } from './repository';
 import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
 import { appUserRepository } from '@/lib/modules/users/app.repository';
-import { mapBankAgentTransaction } from './bank-agent-transaction.mapper';
-
-// Jenis transaksi Agen Bank sengaja HARDCODE (bukan master data dinamis) --
-// cuma 3 macam & stabil, tidak perlu halaman kelola tersendiri. cashDirection
-// menentukan arah mutasi saldo akun terkait secara otomatis.
-export const BANK_AGENT_TRANSACTION_TYPES = {
-  deposit: { label: 'Setor Tunai', cashDirection: 'out' as const },
-  withdrawal: { label: 'Tarik Tunai', cashDirection: 'in' as const },
-  transfer: { label: 'Transfer Saldo', cashDirection: 'out' as const },
-};
-
-export type BankAgentTransactionTypeCode = keyof typeof BANK_AGENT_TRANSACTION_TYPES;
+import { mapBankAgentTransaction, mapBankAgentTransactionType } from './bank-agent-transaction.mapper';
 
 function generateTransactionNumber() {
   const date = new Date();
@@ -70,13 +59,69 @@ async function ensureCommissionProduct(tx: Prisma.TransactionClient, companyUuid
 }
 
 export const posBankAgentTransactionService = {
-  listTransactionTypes() {
-    return Object.entries(BANK_AGENT_TRANSACTION_TYPES).map(([code, data]) => ({
-      code,
-      label: data.label,
-      cash_direction: data.cashDirection,
-    }));
+  // ==================== Jenis Transaksi (master data dinamis) ====================
+
+  async listTransactionTypes(companyUuid: string) {
+    const types = await posBankAgentTransactionRepository.findTypeMany({
+      where: { companyUuid },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] as unknown as Prisma.AppPosBankAgentTransactionTypeOrderByWithRelationInput,
+    });
+    return types.map(mapBankAgentTransactionType);
   },
+
+  async createTransactionType(companyUuid: string, payload: { name: string; cashDirection: string; isActive?: boolean; sortOrder?: number }) {
+    const existing = await posBankAgentTransactionRepository.findTypeByName(companyUuid, payload.name);
+    if (existing) {
+      throw new ValidationApiError({ name: ['Nama jenis transaksi sudah digunakan'] });
+    }
+
+    const type = await posBankAgentTransactionRepository.createType({
+      companyUuid,
+      name: payload.name,
+      cashDirection: payload.cashDirection,
+      isActive: payload.isActive ?? true,
+      sortOrder: payload.sortOrder ?? 0,
+    });
+    return mapBankAgentTransactionType(type);
+  },
+
+  async updateTransactionType(uuid: string, companyUuid: string, payload: { name?: string; cashDirection?: string; isActive?: boolean; sortOrder?: number }) {
+    const existing = await posBankAgentTransactionRepository.findTypeByUuid(uuid);
+    if (!existing || existing.companyUuid !== companyUuid) {
+      throw new ApiError('Jenis transaksi tidak ditemukan', 404);
+    }
+
+    if (payload.name && payload.name !== existing.name) {
+      const nameExists = await posBankAgentTransactionRepository.findTypeByName(companyUuid, payload.name);
+      if (nameExists) {
+        throw new ValidationApiError({ name: ['Nama jenis transaksi sudah digunakan'] });
+      }
+    }
+
+    const type = await posBankAgentTransactionRepository.updateTypeByUuid(uuid, {
+      name: payload.name ?? existing.name,
+      cashDirection: payload.cashDirection ?? existing.cashDirection,
+      isActive: payload.isActive ?? existing.isActive,
+      sortOrder: payload.sortOrder ?? existing.sortOrder,
+    });
+    return mapBankAgentTransactionType(type);
+  },
+
+  async deleteTransactionType(uuid: string, companyUuid: string) {
+    const existing = await posBankAgentTransactionRepository.findTypeByUuid(uuid);
+    if (!existing || existing.companyUuid !== companyUuid) {
+      throw new ApiError('Jenis transaksi tidak ditemukan', 404);
+    }
+
+    const usageCount = await posBankAgentTransactionRepository.countTransactionsByType(uuid);
+    if (usageCount > 0) {
+      throw new ApiError('Jenis transaksi ini masih dipakai oleh transaksi yang sudah ada', 400);
+    }
+
+    await posBankAgentTransactionRepository.deleteTypeByUuid(uuid);
+  },
+
+  // ==================== Transaksi ====================
 
   async listTransactions(params: {
     page: number;
@@ -148,7 +193,7 @@ export const posBankAgentTransactionService = {
     payload: {
       branchUuid: string;
       saldoAccountUuid: string;
-      transactionType: string;
+      transactionTypeUuid: string;
       accountReference?: string | null;
       baseAmount: number;
       sellingAmount: number;
@@ -165,9 +210,12 @@ export const posBankAgentTransactionService = {
       throw new ApiError('Anda tidak punya akses ke cabang ini', 403);
     }
 
-    const typeInfo = BANK_AGENT_TRANSACTION_TYPES[payload.transactionType as BankAgentTransactionTypeCode];
-    if (!typeInfo) {
-      throw new ValidationApiError({ transactionType: ['Jenis transaksi tidak valid'] });
+    const type = await posBankAgentTransactionRepository.findTypeByUuid(payload.transactionTypeUuid);
+    if (!type || type.companyUuid !== companyUuid) {
+      throw new ValidationApiError({ transactionTypeUuid: ['Jenis transaksi tidak valid'] });
+    }
+    if (!type.isActive) {
+      throw new ValidationApiError({ transactionTypeUuid: ['Jenis transaksi ini sudah nonaktif'] });
     }
 
     // Akun saldo APA PUN bisa dipakai buat Agen Bank selama ditandai
@@ -189,7 +237,9 @@ export const posBankAgentTransactionService = {
       throw new ValidationApiError({ saldoAccountUuid: ['Akun ini belum dikonfigurasi untuk cabang ini'] });
     }
 
-    const cashDirection = typeInfo.cashDirection;
+    // Kolom DB bertipe string bebas (VarChar), tapi nilainya dijamin 'in'/'out'
+    // oleh createBankAgentTransactionTypeSchema saat jenis transaksi dibuat/diedit.
+    const cashDirection = type.cashDirection as 'in' | 'out';
 
     if (cashDirection === 'out') {
       const balanceRow = await posSaldoRepository.findBalanceByUuid(branchLink.saldoAccountBalanceUuid);
@@ -224,17 +274,22 @@ export const posBankAgentTransactionService = {
     // sebelum ada write apa pun.
     const cashMutations: Array<{ direction: 'in' | 'out'; amount: number; notes: string }> = [];
 
-    if (payload.transactionType === 'withdrawal') {
-      // Customer transfer masuk ke akun Agen Bank (sudah ditangani di atas),
-      // kasir GANTI menyerahkan tunai ke customer -- kas toko berkurang,
-      // formulanya tergantung cara komisi direalisasikan.
+    if (cashDirection === 'in') {
+      // Jenis dgn arah kas KELUAR (mis. Tarik Tunai): customer transfer masuk
+      // ke akun Agen Bank (sudah ditangani di atas), kasir GANTI menyerahkan
+      // tunai ke customer -- kas toko berkurang, formulanya tergantung cara
+      // komisi direalisasikan. Berlaku utk SEMUA jenis ber-cashDirection 'in',
+      // bukan cuma yg bernama "Tarik Tunai" (nama bebas diedit admin).
       if (fee > 0) {
         const via = payload.feeReceivedVia;
+        if (!via) {
+          throw new ValidationApiError({ feeReceivedVia: ['Wajib dipilih kalau ada komisi'] });
+        }
         if (via === 'cash') {
-          cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${typeInfo.label} (${transactionNumber})` });
-          cashMutations.push({ direction: 'in', amount: fee, notes: `Komisi ${typeInfo.label} (${transactionNumber})` });
+          cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${type.name} (${transactionNumber})` });
+          cashMutations.push({ direction: 'in', amount: fee, notes: `Komisi ${type.name} (${transactionNumber})` });
         } else if (via === 'balance') {
-          cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${typeInfo.label} (${transactionNumber})` });
+          cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${type.name} (${transactionNumber})` });
         } else {
           // deducted (default kalau valid) -- komisi otomatis nempel di
           // laci karena tunai yang diserahkan lebih sedikit.
@@ -242,18 +297,19 @@ export const posBankAgentTransactionService = {
           if (cashOut < 0) {
             throw new ValidationApiError({ fee: ['Komisi tidak boleh lebih besar dari nominal'] });
           }
-          cashMutations.push({ direction: 'out', amount: cashOut, notes: `${typeInfo.label} (${transactionNumber})` });
+          cashMutations.push({ direction: 'out', amount: cashOut, notes: `${type.name} (${transactionNumber})` });
         }
       } else {
-        cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${typeInfo.label} (${transactionNumber})` });
+        cashMutations.push({ direction: 'out', amount: payload.baseAmount, notes: `${type.name} (${transactionNumber})` });
       }
     } else {
-      // Setor Tunai & Transfer Saldo: customer bayar ke kasir, kas toko
-      // bertambah -- sama seperti netCashIn di penjualan produk biasa
-      // (bayar dikurangi kembalian, bukan nominal bayar mentah).
+      // Jenis dgn arah kas MASUK (mis. Setor Tunai, Transfer Antar Bank,
+      // Pembayaran BPJS, dst): customer bayar ke kasir, kas toko bertambah --
+      // sama seperti netCashIn di penjualan produk biasa (bayar dikurangi
+      // kembalian, bukan nominal bayar mentah).
       const netCashIn = paidAmount - changeAmount;
       if (netCashIn > 0) {
-        cashMutations.push({ direction: 'in', amount: netCashIn, notes: `${typeInfo.label} (${transactionNumber})` });
+        cashMutations.push({ direction: 'in', amount: netCashIn, notes: `${type.name} (${transactionNumber})` });
       }
     }
 
@@ -264,7 +320,7 @@ export const posBankAgentTransactionService = {
         saldoAccountUuid: payload.saldoAccountUuid,
         saldoAccountBalanceUuid: branchLink.saldoAccountBalanceUuid,
         transactionNumber,
-        transactionType: payload.transactionType,
+        transactionTypeUuid: payload.transactionTypeUuid,
         cashDirection,
         accountReference: payload.accountReference || null,
         baseAmount: payload.baseAmount,
@@ -288,7 +344,7 @@ export const posBankAgentTransactionService = {
         amount: payload.baseAmount,
         referenceType: 'bank_agent_transaction',
         referenceUuid: created.uuid,
-        notes: `${typeInfo.label} (${created.transactionNumber})`,
+        notes: `${type.name} (${created.transactionNumber})`,
         createdBy: userId,
       });
 
@@ -338,7 +394,7 @@ export const posBankAgentTransactionService = {
             paidAmount: fee,
             changeAmount: 0,
             paymentStatus: 'paid',
-            notes: fee > 0 ? `Komisi ${typeInfo.label} (${created.transactionNumber})` : `${typeInfo.label} (${created.transactionNumber})`,
+            notes: fee > 0 ? `Komisi ${type.name} (${created.transactionNumber})` : `${type.name} (${created.transactionNumber})`,
             createdBy: userId,
           },
         });
