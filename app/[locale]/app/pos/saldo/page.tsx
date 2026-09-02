@@ -284,24 +284,27 @@ export default function SaldoPage() {
     const canDelete = hasPermission('pos.saldo.delete');
 
     return (
-      <div className="space-y-3">
-        <div className="flex items-start gap-3">
-          {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama akun
-              yang panjang bikin overflow horizontal. */}
+      <div className="space-y-2.5">
+        {/* Identitas & saldo disatukan dalam satu baris supaya kartu tidak
+            memanjang -- di HP satu layar idealnya memuat beberapa akun.
+            min-w-0 wajib: tanpa itu flex child menolak menyusut & nama akun
+            yang panjang bikin overflow horizontal. */}
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
             <p className="truncate font-mono text-xs text-gray-500">{row.code}</p>
           </div>
-          <span
-            className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${
-              row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}
-          >
-            {row.is_active ? 'Aktif' : 'Nonaktif'}
-          </span>
+          <div className="shrink-0 text-right">
+            <p className="text-base font-bold text-gray-900">{formatCurrency(row.balance)}</p>
+            <span
+              className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                row.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {row.is_active ? 'Aktif' : 'Nonaktif'}
+            </span>
+          </div>
         </div>
-
-        <p className="text-lg font-bold text-gray-900">{formatCurrency(row.balance)}</p>
 
         <div className="flex flex-wrap gap-1.5">
           {getTypeBadge(row.type)}
@@ -316,22 +319,23 @@ export default function SaldoPage() {
           )}
         </div>
 
-        {/* Tombol aksi di mobile wajib berlabel teks & min-h-11 (44px):
-            di layar sentuh tidak ada hover, jadi tooltip ikon tidak terbaca. */}
-        <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+        {/* Semua aksi dalam SATU baris: sebelumnya tiga baris tombol besar
+            membuat satu kartu hampir sepenuh layar. Aksi utama tetap berlabel
+            teks (di layar sentuh tidak ada hover, jadi tooltip ikon percuma);
+            tombol urutan cukup ikon panah yang sudah jelas maknanya, tapi
+            tetap 44px agar nyaman ditekan. */}
+        <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
           <Link
             href={`/app/pos/saldo/${row.uuid}`}
-            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] px-3 text-sm font-medium text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
           >
-            <Eye className="h-4 w-4" />
             Detail
           </Link>
           {canUpdate && (
             <Link
               href={`/app/pos/saldo/${row.uuid}/edit`}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-blue-500 px-3 text-sm font-medium text-white transition-colors hover:bg-blue-600 cursor-pointer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-blue-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600 cursor-pointer"
             >
-              <Pencil className="h-4 w-4" />
               Edit
             </Link>
           )}
@@ -339,33 +343,32 @@ export default function SaldoPage() {
             <button
               type="button"
               onClick={() => handleDeleteClick(row)}
-              className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 text-sm font-medium text-white transition-colors hover:bg-red-600 cursor-pointer"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
             >
-              <Trash2 className="h-4 w-4" />
               Hapus
             </button>
           )}
           {canUpdate && (
-            <div className="col-span-2 grid grid-cols-2 gap-2">
+            <>
               <button
                 type="button"
                 onClick={() => handleMove(row, 'up')}
                 disabled={index === 0}
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                aria-label={`Naikkan urutan ${row.name}`}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ArrowUp className="h-4 w-4" />
-                Naikkan
               </button>
               <button
                 type="button"
                 onClick={() => handleMove(row, 'down')}
                 disabled={index === accounts.length - 1}
-                className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                aria-label={`Turunkan urutan ${row.name}`}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ArrowDown className="h-4 w-4" />
-                Turunkan
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
