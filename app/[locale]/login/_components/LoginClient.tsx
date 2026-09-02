@@ -113,35 +113,57 @@ export default function LoginClient() {
     }
   };
 
+  // min-h-dvh (bukan min-h-screen/100vh): 100vh di browser HP tidak menghitung
+  // address bar, jadi tinggi halaman meleset & bagian bawah bisa tertutup.
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-dvh flex bg-[#142D52] lg:bg-white">
       {/* Left Column - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 lg:px-16 py-12">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden mb-8">
-            <Link href="/" className="text-2xl font-bold text-[#142D52]">KonterApp</Link>
+      <div className="flex w-full flex-col lg:w-1/2 lg:items-center lg:justify-center lg:px-16 lg:py-12">
+        {/* Header brand khusus mobile. Panel banner navy di kanan itu
+            `hidden lg:flex`, jadi tanpa ini pengguna HP membuka halaman
+            berupa formulir putih polos tanpa identitas brand sama sekali. */}
+        <div className="relative overflow-hidden px-5 pb-16 pt-7 text-white lg:hidden">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#EBC170]/20 blur-3xl" />
+          <div className="relative">
+            <Link href="/" className="text-xl font-bold text-white">KonterApp</Link>
+            <h1 className="mt-5 text-2xl font-bold leading-tight">Selamat Datang Kembali</h1>
+            <p className="mt-1.5 text-sm leading-snug text-gray-300">
+              Masuk untuk mulai bertransaksi dan kelola pembukuan.
+            </p>
           </div>
+        </div>
 
-          <div className="mb-8">
+        {/* Formulir: di HP tampil sebagai sheet putih yang naik menimpa header
+            navy; di desktop kembali jadi kolom biasa tanpa sheet. */}
+        <div className="relative z-10 -mt-10 flex-1 rounded-t-3xl bg-white px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-8 shadow-[0_-8px_24px_rgba(11,30,58,0.15)] lg:mt-0 lg:flex-none lg:rounded-none lg:p-0 lg:shadow-none">
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-8 hidden lg:block">
             <h1 className="text-3xl font-bold text-[#142D52] mb-3">Selamat Datang Kembali</h1>
             <p className="text-gray-600">
               Masuk ke akun Anda untuk mulai bertransaksi dan kelola pembukuan.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* space-y lebih rapat di HP: dgn header + 2 field + captcha + 2
+              tombol, jarak 24px bikin tombol "Masuk Sekarang" terdorong ke
+              luar layar. */}
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
+              {/* text-base: cegah Safari iOS auto-zoom saat input difokus.
+                  inputMode/autoComplete: keyboard email & isi otomatis dari
+                  password manager di HP. */}
               <input
                 type="email"
                 id="email"
+                inputMode="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
+                className="w-full px-4 py-3 text-base bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
                 placeholder="nama@email.com"
               />
             </div>
@@ -159,16 +181,19 @@ export default function LoginClient() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 pr-12 text-base bg-gray-50 border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#142D52] focus:border-transparent transition-all"
                   placeholder="••••••••"
                 />
+                {/* Area tap dibuat setinggi input & selebar 48px -- sebelumnya
+                    hanya seluas ikon (~20px), terlalu kecil untuk jari. */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-gray-500 hover:text-gray-700 cursor-pointer"
                   aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -177,8 +202,8 @@ export default function LoginClient() {
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+                <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {error}
@@ -203,14 +228,14 @@ export default function LoginClient() {
             )}
 
             {/* reCAPTCHA Placeholder */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
               <label className="flex items-center cursor-pointer select-none">
                 <div className="relative flex items-center">
                   <input
                     type="checkbox"
                     checked={recaptchaChecked}
                     onChange={(e) => setRecaptchaChecked(e.target.checked)}
-                    className="peer h-6 w-6 cursor-pointer appearance-none rounded border border-gray-300 transition-all checked:border-[#142D52] checked:bg-[#142D52]"
+                    className="peer h-5 w-5 cursor-pointer appearance-none rounded border border-gray-300 transition-all checked:border-[#142D52] checked:bg-[#142D52]"
                   />
                   <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity peer-checked:opacity-100">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -225,7 +250,7 @@ export default function LoginClient() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 px-4 rounded-lg font-bold text-white bg-[#142D52] hover:bg-[#0B1E3A] focus:ring-4 focus:ring-[#142D52]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-[#142D52]/30"
+              className="w-full py-3.5 px-4 rounded-lg font-bold text-white bg-[#142D52] hover:bg-[#0B1E3A] focus:ring-4 focus:ring-[#142D52]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-[#142D52]/30"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -262,11 +287,14 @@ export default function LoginClient() {
 
             <p className="text-center text-sm text-gray-600">
               Belum punya akun?{' '}
-              <Link href="/register" className="font-bold text-[#EBC170] hover:text-[#d6af63] transition-colors">
+              {/* Emas #EBC170 di atas putih kontrasnya ~1.9:1 -- praktis tak
+                  terbaca di HP. Disamakan dgn link "Lupa Password?". */}
+              <Link href="/register" className="font-bold text-[#142D52] hover:text-[#0B1E3A] underline underline-offset-2 transition-colors">
                 Daftar Gratis
               </Link>
             </p>
           </form>
+        </div>
         </div>
       </div>
 
