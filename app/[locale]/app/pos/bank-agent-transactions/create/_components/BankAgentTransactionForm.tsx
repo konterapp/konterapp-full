@@ -51,6 +51,10 @@ export default function BankAgentTransactionForm() {
   const [paidAmount, setPaidAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [typeSearch, setTypeSearch] = useState('');
+  // Khusus mobile: daftar jenis transaksi menciut setelah dipilih supaya
+  // form di bawahnya langsung terjangkau tanpa menggulir belasan pilihan.
+  // Di desktop (>=lg) daftar ini selalu tampil sebagai panel kiri.
+  const [isTypeListOpen, setIsTypeListOpen] = useState(true);
 
   useEffect(() => {
     fetch('/api/app/pos/branches/options')
@@ -170,11 +174,39 @@ export default function BankAgentTransactionForm() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 h-full flex flex-col">
               <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi <span className="text-red-500">*</span></label>
-              <p className="text-xs text-gray-400 mb-3">Klik salah satu untuk memilih.</p>
+              <p
+                className={`text-xs text-gray-400 mb-3 ${
+                  selectedType && !isTypeListOpen ? 'hidden lg:block' : ''
+                }`}
+              >
+                Klik salah satu untuk memilih.
+              </p>
               {types.length === 0 ? (
                 <p className="text-xs text-gray-400">Belum ada jenis transaksi -- tambah dulu lewat tombol &quot;Jenis Transaksi&quot; di halaman daftar Agen Bank.</p>
               ) : (
                 <>
+                  {/* Ringkasan pilihan -- hanya mobile, menggantikan daftar
+                      panjang begitu satu jenis dipilih. */}
+                  {selectedType && !isTypeListOpen && (
+                    <div className="lg:hidden flex items-center justify-between gap-3 rounded-lg border border-[#EBC170] bg-[#FDF6E9] px-3 py-2">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
+                        {selectedType.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeListOpen(true)}
+                        className="inline-flex min-h-11 shrink-0 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 cursor-pointer"
+                      >
+                        Ganti
+                      </button>
+                    </div>
+                  )}
+
+                  <div
+                    className={`min-h-0 flex-1 flex-col ${
+                      selectedType && !isTypeListOpen ? 'hidden lg:flex' : 'flex'
+                    }`}
+                  >
                   <div className="relative mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -185,7 +217,7 @@ export default function BankAgentTransactionForm() {
                       className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white"
                     />
                   </div>
-                  <div className="space-y-2 flex-1 min-h-40 overflow-y-auto pr-1">
+                  <div className="space-y-2 flex-1 min-h-40 max-h-72 lg:max-h-none overflow-y-auto pr-1">
                     {filteredTypes.length === 0 ? (
                       <p className="text-xs text-gray-400 py-2">Tidak ada jenis transaksi yang cocok.</p>
                     ) : (
@@ -195,7 +227,10 @@ export default function BankAgentTransactionForm() {
                           <button
                             key={type.uuid}
                             type="button"
-                            onClick={() => setTransactionTypeUuid(type.uuid)}
+                            onClick={() => {
+                              setTransactionTypeUuid(type.uuid);
+                              setIsTypeListOpen(false);
+                            }}
                             className={`w-full px-4 py-3 text-sm font-medium border rounded-lg text-left transition-colors cursor-pointer ${
                               isSelected
                                 ? 'border-[#EBC170] bg-[#FDF6E9] text-gray-900 ring-2 ring-[#EBC170]/40'
@@ -207,6 +242,7 @@ export default function BankAgentTransactionForm() {
                         );
                       })
                     )}
+                  </div>
                   </div>
                 </>
               )}
