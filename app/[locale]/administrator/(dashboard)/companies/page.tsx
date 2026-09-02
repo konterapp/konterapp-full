@@ -7,6 +7,28 @@ import DataTable, { Column } from '@/components/ui/DataTable';
 import { getCompaniesList, toggleCompanyActive, Company } from '@/lib/api/administrator/company';
 import { useToast } from '@/components/toast/ToastContainer';
 
+const SUBSCRIPTION_BADGE_CLASS: Record<string, string> = {
+   trial: 'bg-blue-100 text-blue-700',
+   active: 'bg-green-100 text-green-700',
+   expired: 'bg-red-100 text-red-700',
+   canceled: 'bg-gray-100 text-gray-600',
+};
+
+function formatExpiry(expiresAt: string | null | undefined) {
+   if (!expiresAt) return 'Selamanya';
+   return new Date(expiresAt).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+   });
+}
+
+function subscriptionStatusLabel(subscription: NonNullable<Company['subscription']>) {
+   return subscription.status === 'active' && !subscription.expires_at
+      ? 'Aktif Gratis'
+      : subscription.status;
+}
+
 export default function CompaniesPage() {
    const toast = useToast();
    const [companies, setCompanies] = useState<Company[]>([]);
@@ -94,33 +116,34 @@ export default function CompaniesPage() {
          key: 'actions',
          label: 'Actions',
          sortable: false,
-         width: '10rem',
+         width: '13rem',
          className: 'whitespace-nowrap',
+         // Label tombol sengaja TIDAK disembunyikan di balik tooltip hover:
+         // di layar sentuh hover tidak ada, jadi tombol icon-only bikin user
+         // menebak-nebak fungsinya.
          render: (_, row) => (
             <div className="flex items-center gap-2">
                <Link
                   href={`/administrator/companies/${row.uuid}/edit`}
-                  className="relative group inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#EBC170] text-gray-900 hover:bg-[#d4ab5f] rounded-lg transition-colors text-xs font-medium cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#EBC170] px-3 py-2 text-xs font-medium text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
                >
-                  <Edit className="w-3.5 h-3.5" />
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Edit</span>
+                  <Edit className="h-3.5 w-3.5" />
+                  <span>Edit</span>
                </Link>
                <button
                   onClick={() => handleToggleActive(row)}
-                  className={`relative group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
                      row.is_active
-                        ? 'bg-green-500 hover:bg-green-600 text-white'
-                        : 'bg-gray-300 hover:bg-gray-400 text-gray-700'
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
                   }`}
                >
                   {row.is_active ? (
-                     <ToggleRight className="w-3.5 h-3.5" />
+                     <ToggleRight className="h-3.5 w-3.5" />
                   ) : (
-                     <ToggleLeft className="w-3.5 h-3.5" />
+                     <ToggleLeft className="h-3.5 w-3.5" />
                   )}
-                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                     {row.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                  </span>
+                  <span>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</span>
                </button>
             </div>
          ),
@@ -188,46 +211,107 @@ export default function CompaniesPage() {
             if (!row.subscription) {
                return <span className="text-sm text-gray-400">-</span>;
             }
-            const badgeClass: Record<string, string> = {
-               trial: 'bg-blue-100 text-blue-700',
-               active: 'bg-green-100 text-green-700',
-               expired: 'bg-red-100 text-red-700',
-               canceled: 'bg-gray-100 text-gray-600',
-            };
-            const expiresAt = row.subscription.expires_at
-              ? new Date(row.subscription.expires_at).toLocaleDateString('id-ID', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : 'Selamanya';
             return (
                <div className="text-sm">
                   <div className="flex items-center gap-1.5">
                      <span className="font-medium text-gray-900">{row.subscription.plan.name}</span>
-                     <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${badgeClass[row.subscription.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                        {row.subscription.status === 'active' && !row.subscription.expires_at
-                          ? 'Aktif Gratis'
-                          : row.subscription.status}
+                     <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${SUBSCRIPTION_BADGE_CLASS[row.subscription.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        {subscriptionStatusLabel(row.subscription)}
                      </span>
                   </div>
-                  <p className="text-xs text-gray-500">s.d. {expiresAt}</p>
+                  <p className="text-xs text-gray-500">s.d. {formatExpiry(row.subscription.expires_at)}</p>
                </div>
             );
          },
       },
    ];
 
+   // Kartu untuk layar kecil (dipakai DataTable di bawah breakpoint `lg`).
+   // Pembungkus kartu, skeleton, empty state & paginasi disediakan DataTable --
+   // di sini cukup isinya. Susunannya sengaja disamakan dgn halaman
+   // /administrator/users: identitas -> badge sekunder -> aksi berlabel.
+   const renderCompanyCard = (row: Company) => (
+      <div className="space-y-3">
+         <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0B1E3A]/5 text-[#0B1E3A]">
+               <Building2 className="h-5 w-5" />
+            </div>
+            {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama
+                perusahaan yang panjang bikin overflow horizontal. */}
+            <div className="min-w-0 flex-1">
+               <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+               <p className="truncate font-mono text-xs text-gray-500">{row.code}</p>
+            </div>
+            <span
+               className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                  row.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+               }`}
+            >
+               {row.is_active ? 'Aktif' : 'Tidak Aktif'}
+            </span>
+         </div>
+
+         <div className="flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+               {row.users_count ?? 0} user
+            </span>
+            <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">
+               {row.branches_count ?? 0} cabang
+            </span>
+            {row.subscription && (
+               <span
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${
+                     SUBSCRIPTION_BADGE_CLASS[row.subscription.status] ?? 'bg-gray-100 text-gray-600'
+                  }`}
+               >
+                  {row.subscription.plan.name} &middot; {subscriptionStatusLabel(row.subscription)}
+               </span>
+            )}
+         </div>
+
+         {row.subscription && (
+            <p className="text-xs text-gray-500">
+               Berlaku s.d. {formatExpiry(row.subscription.expires_at)}
+            </p>
+         )}
+
+         <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-3">
+            <Link
+               href={`/administrator/companies/${row.uuid}/edit`}
+               className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] px-3 text-sm font-medium text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+               <Edit className="h-4 w-4" />
+               <span>Edit</span>
+            </Link>
+            <button
+               onClick={() => handleToggleActive(row)}
+               className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors cursor-pointer ${
+                  row.is_active
+                     ? 'bg-green-500 text-white hover:bg-green-600'
+                     : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+               }`}
+            >
+               {row.is_active ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+               <span>{row.is_active ? 'Nonaktifkan' : 'Aktifkan'}</span>
+            </button>
+         </div>
+      </div>
+   );
+
    return (
       <div className="space-y-6">
-         <div className="flex items-center justify-between">
+         {/* Di HP judul + tombol tidak muat sebaris -- di-stack, tombolnya
+             melebar penuh biar jadi target tap yang enak. */}
+         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-               <h1 className="text-2xl font-bold text-[#142D52]">Manajemen Perusahaan</h1>
-               <p className="text-gray-600 mt-1">Kelola tenant/perusahaan yang berlangganan KonterApp.</p>
+               <h1 className="text-xl font-bold text-[#142D52] sm:text-2xl">Manajemen Perusahaan</h1>
+               <p className="mt-1 text-sm text-gray-600 sm:text-base">
+                  Kelola tenant/perusahaan yang berlangganan KonterApp.
+               </p>
             </div>
             <Link
                href="/administrator/companies/create"
-               className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+               className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#EBC170] px-4 py-2.5 font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] sm:w-auto sm:py-2 cursor-pointer"
             >
                <Plus className="w-5 h-5" />
                <span>Tambah Perusahaan</span>
@@ -260,6 +344,7 @@ export default function CompaniesPage() {
             onSortChange={handleSortChange}
             isLoading={isLoading}
             getRowId={(row) => row.uuid}
+            renderMobileCard={renderCompanyCard}
          />
       </div>
    );

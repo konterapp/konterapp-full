@@ -25,14 +25,19 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
 
   return (
     <AdministratorProvider>
-      <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
+      {/* h-dvh (bukan h-screen/100vh): di browser HP, 100vh tidak menghitung
+          address bar, jadi dgn overflow-hidden bagian bawah konten bisa
+          kepotong & tidak bisa discroll. */}
+      <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
         <Sidebar />
         <div
           className="flex-1 flex flex-col overflow-hidden transition-all duration-300 relative z-30"
           style={{ marginLeft: isMobile ? 0 : `${currentWidth}px` }}
         >
           <Navbar />
-          <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:p-6">
+            {children}
+          </main>
         </div>
       </div>
     </AdministratorProvider>

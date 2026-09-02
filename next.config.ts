@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: version,
   },
   allowedDevOrigins: ['konterapp-wsl.linkinvite.id'],
+  // Khusus development: paksa asset /_next/* tidak boleh di-cache. Dev server
+  // diakses dari HP lewat Cloudflare Tunnel, dan chunk JS di dev pakai path
+  // yang TIDAK content-hashed -- kalau Cloudflare/browser menyimpannya, HP
+  // bisa dapat HTML baru + JS lama sekaligus, yang muncul sebagai hydration
+  // mismatch & tampilan yang tidak ikut berubah walau kode sudah diedit.
+  async headers() {
+    if (process.env.NODE_ENV === 'production') return [];
+    return [
+      {
+        source: '/_next/:path*',
+        headers: [{ key: 'Cache-Control', value: 'no-store, must-revalidate' }],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {

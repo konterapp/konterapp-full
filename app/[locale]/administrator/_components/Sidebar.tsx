@@ -109,8 +109,14 @@ export default function Sidebar() {
       />
     )}
     <aside
-      className={`fixed left-0 top-0 h-full z-50 ${isResizing ? '' : 'transition-all duration-300'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
-      style={{ width: currentWidth, backgroundColor: '#0B1E3A' }}
+      className={`fixed left-0 top-0 h-dvh z-50 ${isResizing ? '' : 'transition-all duration-300'} ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      // Di mobile lebarnya TIDAK ikut sidebarWidth desktop (bisa sampai 400px
+      // & tersimpan di localStorage) -- di HP 360px itu bikin drawer lebih
+      // lebar dari layar. Dibatasi 85% lebar layar, maksimum 320px.
+      style={{
+        width: isMobile ? 'min(85vw, 320px)' : currentWidth,
+        backgroundColor: '#0B1E3A',
+      }}
     >
       <div className="flex flex-col h-full">
         {/* Logo Section */}
@@ -187,7 +193,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Logout Section */}
-        <div className="p-4 border-t border-white/10 relative group/logout">
+        <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-white/10 relative group/logout">
           <button
             onClick={handleLogout}
             className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 w-full text-white/80 hover:bg-white/10 hover:text-white cursor-pointer ${effectiveCollapsed ? 'justify-center' : ''
