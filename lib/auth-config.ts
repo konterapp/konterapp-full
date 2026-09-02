@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { SESSION_COOKIE_SECURE } from "./auth-cookie";
 import { getUserRoles, getUserPermissions } from "./permissions";
 import { resolveUserActiveCompany, UserCompanySummary } from "./company-access";
 import { findOrCreateGoogleUser } from "./modules/auth/provisioning";
@@ -101,6 +102,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   trustHost: true,
+  // Secara default NextAuth menyimpulkan sendiri pemakaian cookie `__Secure-`
+  // dari protokol request (https -> pakai prefix). Sesi di app ini juga ditulis
+  // manual oleh /api/auth/login dkk memakai `lib/auth-cookie.ts` yang berpatokan
+  // pada NODE_ENV. Kalau dibiarkan, dev server yang diakses lewat HTTPS
+  // (Cloudflare Tunnel) menulis cookie `authjs.session-token` tapi `auth()`
+  // mencarinya sebagai `__Secure-authjs.session-token` -- semua route yang
+  // dibungkus withAuth balas "Unauthenticated" padahal user sudah login.
+  // Karena itu nilainya dikunci ke sumber yang sama.
+  useSecureCookies: SESSION_COOKIE_SECURE,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
