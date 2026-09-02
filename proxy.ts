@@ -4,6 +4,7 @@ import { routing } from '@/i18n/routing';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { ADMINISTRATOR_COOKIE_NAME, verifyAdministratorSession } from '@/lib/administrator-auth';
+import { SESSION_COOKIE_NAME } from '@/lib/auth-cookie';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -19,8 +20,7 @@ export default async function middleware(req: NextRequest) {
   const isAppRoute = pathname.match(/^(\/[a-z]{2})?\/app(\/|$)/);
 
   if (isAppRoute) {
-    const isSecure = req.nextUrl.protocol === 'https:' || process.env.NODE_ENV === 'production';
-    const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+    const cookieName = SESSION_COOKIE_NAME;
     const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
     if (!token) {
       const loginUrl = new URL('/login', req.url);
@@ -37,8 +37,7 @@ export default async function middleware(req: NextRequest) {
   // Halaman onboarding hanya untuk user yang sudah login
   const isOnboardingRoute = pathname.match(/^(\/[a-z]{2})?\/onboarding\/?$/);
   if (isOnboardingRoute) {
-    const isSecure = req.nextUrl.protocol === 'https:' || process.env.NODE_ENV === 'production';
-    const cookieName = isSecure ? '__Secure-authjs.session-token' : 'authjs.session-token';
+    const cookieName = SESSION_COOKIE_NAME;
     const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
     if (!token) {
       const loginUrl = new URL('/login', req.url);

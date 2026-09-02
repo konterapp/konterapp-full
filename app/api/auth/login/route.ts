@@ -8,6 +8,7 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { resolveUserActiveCompany } from "@/lib/company-access";
+import { SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE } from "@/lib/auth-cookie";
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,10 +55,8 @@ export async function POST(req: NextRequest) {
     const companies = companyContext.companies;
 
     // Create session token manually
-    const isSecure = process.env.NODE_ENV === "production";
-    const cookieName = isSecure
-      ? "__Secure-authjs.session-token"
-      : "authjs.session-token";
+    const isSecure = SESSION_COOKIE_SECURE;
+    const cookieName = SESSION_COOKIE_NAME;
     const token = await encode({
       token: {
         id: String(user.id),

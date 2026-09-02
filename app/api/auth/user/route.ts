@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 import { resolveUserActiveCompany } from "@/lib/company-access";
 import { billingRepository } from "@/lib/modules/billing/repository";
 import { formatSubscription } from "@/lib/modules/billing/billing.mapper";
+import { SESSION_COOKIE_NAME } from "@/lib/auth-cookie";
 
 type AuthTokenShape = {
   id?: string;
@@ -15,8 +16,7 @@ type AuthTokenShape = {
 };
 
 export async function GET(req: NextRequest) {
-  const isSecure = req.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
-  const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
+  const cookieName = SESSION_COOKIE_NAME;
   const token = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
   if (!token?.id) {
     return errorResponse("Unauthenticated", 401);

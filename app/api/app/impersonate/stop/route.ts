@@ -4,11 +4,12 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode, decode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { resolveUserActiveCompany } from "@/lib/company-access";
+import { SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE } from "@/lib/auth-cookie";
 
 export async function POST() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("authjs.session-token")?.value;
+    const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
     if (!sessionToken) {
       return errorResponse("Unauthenticated", 401);
@@ -18,7 +19,7 @@ export async function POST() {
     const decoded = await decode({
       token: sessionToken,
       secret: process.env.AUTH_SECRET!,
-      salt: "authjs.session-token",
+      salt: SESSION_COOKIE_NAME,
     });
 
     if (decoded?.impersonatedByAdministratorId) {
@@ -26,7 +27,7 @@ export async function POST() {
       // lain) -- tidak ada sesi User sebelumnya untuk di-restore. Sesi
       // administrator_session tetap utuh di cookie terpisah, jadi cukup
       // hapus cookie tenant ini supaya kembali "keluar" dari sesi User.
-      cookieStore.delete("authjs.session-token");
+      cookieStore.delete(SESSION_COOKIE_NAME);
       return successResponse("Berhasil kembali ke panel administrator", {
         redirect_to: "/administrator",
       });
@@ -70,11 +71,11 @@ export async function POST() {
         companies,
       },
       secret: process.env.AUTH_SECRET!,
-      salt: "authjs.session-token",
+      salt: SESSION_COOKIE_NAME,
     });
 
-    const isSecure = process.env.NODE_ENV === "production";
-    cookieStore.set("authjs.session-token", token, {
+    const isSecure = SESSION_COOKIE_SECURE;
+    cookieStore.set(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",

@@ -5,6 +5,7 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { cookies } from "next/headers";
 import { resolveUserActiveCompany } from "@/lib/company-access";
+import { SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE } from "@/lib/auth-cookie";
 
 export const POST = withAuth(async (req, context) => {
   try {
@@ -64,12 +65,12 @@ export const POST = withAuth(async (req, context) => {
         impersonatorId: String(context.userId),
       },
       secret: process.env.AUTH_SECRET!,
-      salt: "authjs.session-token",
+      salt: SESSION_COOKIE_NAME,
     });
 
     const cookieStore = await cookies();
-    const isSecure = process.env.NODE_ENV === "production";
-    cookieStore.set("authjs.session-token", token, {
+    const isSecure = SESSION_COOKIE_SECURE;
+    cookieStore.set(SESSION_COOKIE_NAME, token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax",

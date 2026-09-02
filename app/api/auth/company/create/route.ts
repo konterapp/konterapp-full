@@ -9,6 +9,7 @@ import { getUserRoles, getUserPermissions } from "@/lib/permissions";
 import { encode } from "next-auth/jwt";
 import { getToken } from "next-auth/jwt";
 import { cookies } from "next/headers";
+import { SESSION_COOKIE_NAME, SESSION_COOKIE_SECURE } from "@/lib/auth-cookie";
 
 export const POST = withSession(async (req: NextRequest, context) => {
   const body = await req.json().catch(() => null);
@@ -34,8 +35,8 @@ export const POST = withSession(async (req: NextRequest, context) => {
   const permissions = await getUserPermissions(context.userId, company.uuid);
 
   // Refresh session token supaya membawa company context yang baru
-  const isSecure = req.nextUrl.protocol === "https:" || process.env.NODE_ENV === "production";
-  const cookieName = isSecure ? "__Secure-authjs.session-token" : "authjs.session-token";
+  const isSecure = SESSION_COOKIE_SECURE;
+  const cookieName = SESSION_COOKIE_NAME;
   const currentToken = await getToken({ req, secret: process.env.AUTH_SECRET, salt: cookieName, cookieName });
   const token = await encode({
     token: {
