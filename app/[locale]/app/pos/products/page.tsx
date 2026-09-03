@@ -326,7 +326,7 @@ export default function ProductsPage() {
         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
           {row.image ? (
             <Image
-              src={`${process.env.NEXT_PUBLIC_APP_URL}${row.image}`}
+              src={row.image}
               alt={row.name}
               width={40}
               height={40}

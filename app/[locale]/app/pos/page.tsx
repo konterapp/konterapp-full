@@ -664,7 +664,7 @@ export default function KasirPage() {
                           <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
                             {product.image ? (
                               <Image
-                                src={`${process.env.NEXT_PUBLIC_APP_URL}${product.image}`}
+                                src={product.image}
                                 alt={product.name}
                                 width={40}
                                 height={40}
@@ -748,8 +748,8 @@ export default function KasirPage() {
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const urls = item.product_images.length > 0
-                                  ? item.product_images.map(img => `${process.env.NEXT_PUBLIC_APP_URL}${img.url}`)
-                                  : item.product_image ? [`${process.env.NEXT_PUBLIC_APP_URL}${item.product_image}`] : [];
+                                  ? item.product_images.map(img => img.url)
+                                  : item.product_image ? [item.product_image] : [];
                                 if (urls.length > 0) {
                                   setImageGallery({ images: urls, name: item.product_name, index: 0 });
                                 }
@@ -757,7 +757,7 @@ export default function KasirPage() {
                             >
                               {item.product_image ? (
                                 <Image
-                                  src={`${process.env.NEXT_PUBLIC_APP_URL}${item.product_image}`}
+                                  src={item.product_image}
                                   alt={item.product_name}
                                   width={36}
                                   height={36}
