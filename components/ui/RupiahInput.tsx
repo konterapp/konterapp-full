@@ -31,7 +31,11 @@ function formatDisplay(value: string): string {
 }
 
 const SIZE_INPUT_CLASSES: Record<'default' | 'compact', string> = {
-  default: 'py-2 pl-9 pr-4 text-sm',
+  // Di layar kecil field dibuat lebih tinggi & 16px: lebih nyaman ditekan
+  // jari, sekaligus mencegah Safari iOS auto-zoom saat field difokus (itu
+  // terjadi kalau font-size < 16px). Mulai sm ukurannya kembali seperti
+  // semula sehingga tampilan desktop tidak berubah.
+  default: 'py-3 sm:py-2 pl-9 pr-4 text-base sm:text-sm',
   compact: 'py-1.5 pl-7 pr-1.5 text-sm',
 };
 

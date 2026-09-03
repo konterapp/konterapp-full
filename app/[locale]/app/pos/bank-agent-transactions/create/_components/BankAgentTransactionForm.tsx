@@ -26,6 +26,26 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 };
 
+// Field di layar kecil dibuat lebih tinggi & 16px supaya nyaman ditekan jari
+// dan Safari iOS tidak auto-zoom saat difokus. Mulai sm kembali ke ukuran
+// semula sehingga tampilan desktop tidak berubah.
+const FIELD_BASE =
+  'w-full px-3 py-3 sm:py-2 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white';
+
+function fieldClass(hasError?: boolean) {
+  return `${FIELD_BASE} ${hasError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`;
+}
+
+// Pemisah antar kelompok isian -- membantu form panjang ini terbaca sebagai
+// beberapa langkah pendek, bukan satu daftar field yang menerus.
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="md:col-span-2 -mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+      {children}
+    </p>
+  );
+}
+
 export default function BankAgentTransactionForm() {
   const router = useRouter();
   const toast = useToast();
@@ -252,14 +272,15 @@ export default function BankAgentTransactionForm() {
 
           {/* Kanan: detail transaksi & pembayaran */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <SectionTitle>Transaksi</SectionTitle>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Cabang <span className="text-red-500">*</span></label>
                   <select
                     value={branchUuid}
                     onChange={(e) => setBranchUuid(e.target.value)}
-                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.branchUuid ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
+                    className={fieldClass(!!fieldErrors.branchUuid)}
                   >
                     <option value="">Pilih Cabang</option>
                     {branches.map((branch) => (
@@ -274,7 +295,7 @@ export default function BankAgentTransactionForm() {
                   <select
                     value={accountUuid}
                     onChange={(e) => setAccountUuid(e.target.value)}
-                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.saldoAccountUuid ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
+                    className={fieldClass(!!fieldErrors.saldoAccountUuid)}
                   >
                     <option value="">Pilih Akun</option>
                     {accountOptions.map((account) => (
@@ -293,7 +314,7 @@ export default function BankAgentTransactionForm() {
                     type="text"
                     value={accountReference}
                     onChange={(e) => setAccountReference(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white"
+                    className={fieldClass()}
                     placeholder="Nomor rekening customer"
                   />
                 </div>
@@ -308,6 +329,7 @@ export default function BankAgentTransactionForm() {
                   {fieldErrors.baseAmount && <div className="mt-1 text-sm text-red-600">{fieldErrors.baseAmount[0]}</div>}
                 </div>
 
+                <SectionTitle>Komisi &amp; Biaya</SectionTitle>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Komisi</label>
                   <RupiahInput value={fee} onChange={setFee} />
@@ -357,7 +379,7 @@ export default function BankAgentTransactionForm() {
                     <select
                       value={feeReceivedVia}
                       onChange={(e) => setFeeReceivedVia(e.target.value)}
-                      className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.feeReceivedVia ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
+                      className={fieldClass(!!fieldErrors.feeReceivedVia)}
                     >
                       <option value="">Pilih</option>
                       <option value="deducted">Dipotong dari Tunai</option>
@@ -368,6 +390,7 @@ export default function BankAgentTransactionForm() {
                   </div>
                 )}
 
+                <SectionTitle>Pembayaran</SectionTitle>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Metode Pembayaran <span className="text-red-500">*</span>
@@ -375,7 +398,7 @@ export default function BankAgentTransactionForm() {
                   <select
                     value={paymentMethodUuid}
                     onChange={(e) => setPaymentMethodUuid(e.target.value)}
-                    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${fieldErrors.paymentMethodUuid ? 'border-red-500' : 'border-gray-200 focus:ring-[#EBC170]'}`}
+                    className={fieldClass(!!fieldErrors.paymentMethodUuid)}
                   >
                     <option value="">Pilih Metode Pembayaran</option>
                     {paymentMethods.map((pm) => (
@@ -405,16 +428,22 @@ export default function BankAgentTransactionForm() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] bg-white resize-none"
+                  className={`${fieldClass()} resize-none`}
                   placeholder="Opsional"
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-                <Link href="/app/pos/bank-agent-transactions">
+              {/* Di mobile baris aksi menempel di dasar layar (sticky) supaya
+                  tombol Simpan selalu terjangkau tanpa menggulir ke ujung form
+                  yang panjang -- pola yang biasa dipakai aplikasi HP. Mulai sm
+                  kembali jadi baris biasa rata kanan seperti semula. */}
+              <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-gray-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mb-0 sm:justify-end sm:space-x-3 sm:rounded-none sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
+                <Link href="/app/pos/bank-agent-transactions" className="shrink-0">
                   <Button type="button" variant="light" icon={X}>Batal</Button>
                 </Link>
-                <Button type="submit" variant="warning" icon={Save} isLoading={isLoading}>Simpan</Button>
+                <div className="flex-1 sm:flex-none">
+                  <Button type="submit" variant="warning" icon={Save} isLoading={isLoading} className="w-full sm:w-auto">Simpan</Button>
+                </div>
               </div>
             </div>
           </div>
