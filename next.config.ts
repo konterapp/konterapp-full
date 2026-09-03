@@ -9,7 +9,19 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
   },
-  allowedDevOrigins: ['konterapp-wsl.linkinvite.id', 'konterapp.linkinvite.id'],
+  // IP LAN ikut didaftarkan supaya bisa dites langsung dari HP di Wi-Fi yang
+  // sama tanpa lewat Cloudflare Tunnel -- jalur itu punya cache edge sendiri
+  // yang bisa menyajikan chunk lama.
+  allowedDevOrigins: [
+    'konterapp-wsl.linkinvite.id',
+    'konterapp.linkinvite.id',
+    '192.168.1.111',
+    '192.168.1.245',
+  ],
+  // Matikan indikator dev Next.js (lingkaran "N" mengambang di kiri bawah).
+  // Di layar HP ia menutupi konten & tombol di sudut itu. Hanya tampil saat
+  // development, jadi tidak berpengaruh ke production.
+  devIndicators: false,
   async headers() {
     if (process.env.NODE_ENV === 'production') return [];
     return [
