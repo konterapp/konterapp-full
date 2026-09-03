@@ -66,8 +66,15 @@ export default function Sidebar() {
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  // Versi aplikasi sengaja baru diisi sesudah mount -- lihat alasannya di
+  // bagian render label versi di bawah.
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    setAppVersion(process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0');
+  }, []);
 
   useEffect(() => {
     const mql = window.matchMedia('(max-width: 1023px)');
@@ -469,19 +476,25 @@ export default function Sidebar() {
         </div>
 
         {/* App Version.
-            suppressHydrationWarning khusus di sini: nilainya berasal dari
-            NEXT_PUBLIC_APP_VERSION yang dibaca `next.config.ts` dari
-            package.json saat dev server start. Kalau versi di package.json
-            dinaikkan sementara dev server masih jalan (sering terjadi karena
-            tiap commit menaikkan versi), proses server memakai nilai lama
-            sedangkan bundle klien sudah nilai baru -- React melaporkannya
-            sebagai hydration mismatch padahal tidak ada yang salah. Di
-            production keduanya berasal dari satu build, jadi selalu sama.
-            Cakupannya sengaja hanya span versi ini, bukan pohon di atasnya. */}
-        {!effectiveCollapsed && (
+            Nilainya berasal dari NEXT_PUBLIC_APP_VERSION yang dibaca
+            `next.config.ts` dari package.json saat dev server start, lalu
+            ditanam sebagai konstanta build. Di repo ini versi dinaikkan pada
+            hampir setiap commit dan ada beberapa sesi yang bekerja bersamaan,
+            jadi package.json kerap berubah selagi dev server masih jalan:
+            proses server memegang nilai lama sementara bundle klien sudah
+            nilai baru, dan React melaporkannya sebagai hydration mismatch.
+
+            `suppressHydrationWarning` sudah dicoba dan TIDAK menolong, karena
+            isi span-nya dua node teks terpisah (literal "v" dan nilai versi)
+            sedangkan suppression hanya andal untuk satu anak teks tunggal.
+            Karena itu versinya baru diisi sesudah mount: HTML dari server
+            tidak memuat teks versi sama sekali, sehingga tidak ada yang bisa
+            berselisih. Label ini cuma hiasan di kaki sidebar, jadi muncul
+            sepersekian detik lebih lambat tidak jadi masalah. */}
+        {!effectiveCollapsed && appVersion && (
           <div className="px-3 pb-2 text-center">
-            <span className="text-sm font-semibold text-white/40 tracking-wide" suppressHydrationWarning>
-              v{process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'}
+            <span className="text-sm font-semibold text-white/40 tracking-wide">
+              {`v${appVersion}`}
             </span>
           </div>
         )}
