@@ -83,18 +83,28 @@ export default function BankAgentTransactionDetailPage({ params }: { params: Pro
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/app/pos/bank-agent-transactions" className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100">
+      {/* Di mobile judul, nomor transaksi, dan badge jenis dipaksa sebaris
+          sehingga judul maupun badge sama-sama pecah jadi dua baris dan saling
+          berhimpitan. Sekarang badge turun ke baris sendiri di bawah nomor
+          transaksi; mulai sm kembali ke satu baris rata kanan seperti semula. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-2 sm:items-center sm:space-x-4">
+          <Link
+            href="/app/pos/bank-agent-transactions"
+            aria-label="Kembali ke Agen Bank"
+            className="-ml-2 inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-gray-100 sm:ml-0"
+          >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-[#142D52]">Detail Transaksi Agen Bank</h1>
-            <p className="mt-1 text-gray-600">{transaction.transaction_number}</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Detail Transaksi Agen Bank</h1>
+            <p className="mt-0.5 sm:mt-1 truncate font-mono text-sm sm:font-sans sm:text-base text-gray-600">
+              {transaction.transaction_number}
+            </p>
           </div>
         </div>
         <span
-          className={`rounded-full px-3 py-1 text-sm font-semibold ${
+          className={`self-start whitespace-nowrap rounded-full px-3 py-1 text-sm font-semibold sm:self-auto ${
             transaction.cash_direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
