@@ -113,6 +113,66 @@ export default function PpobTransactionsPage() {
     [branchUuid, branches]
   );
 
+  // Tampilan kartu untuk layar kecil -- tabelnya 9 kolom, di HP itu jadi
+  // scroll horizontal panjang dan kolom Laba Bersih (yang paling dicari)
+  // justru paling kanan alias tidak kelihatan tanpa menggeser.
+  const renderTransactionCard = (row: PpobTransaction) => (
+    <div className="space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nomor
+            transaksi yang panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-mono text-sm font-semibold text-gray-900">{row.transaction_number}</p>
+          <p className="truncate text-xs text-gray-400">{formatDateTime(row.created_at)}</p>
+        </div>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${
+            row.cash_direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {row.transaction_type?.name || '-'}
+        </span>
+      </div>
+
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] text-gray-500">Jual</p>
+          <p className="truncate text-base font-bold text-gray-900">{formatCurrency(row.selling_amount)}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[11px] text-gray-500">Laba bersih</p>
+          <p
+            className={`text-base font-bold ${
+              row.net_profit === 0 ? 'text-gray-400' : row.net_profit > 0 ? 'text-green-600' : 'text-red-600'
+            }`}
+          >
+            {row.net_profit === 0 ? '-' : formatCurrency(row.net_profit)}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+        <span className="text-gray-600">Modal {formatCurrency(row.base_amount)}</span>
+        {row.admin_fee > 0 && <span className="text-red-600">Adm PPOB -{formatCurrency(row.admin_fee)}</span>}
+      </div>
+
+      <p className="truncate text-xs text-gray-500">
+        {row.branch?.name || '-'} &middot; {row.account?.name || '-'}
+      </p>
+
+      {/* Aksi berlabel teks & 44px: di layar sentuh tidak ada hover, jadi
+          ikon mata bertooltip seperti versi tabel tidak akan terbaca. */}
+      <div className="border-t border-gray-100 pt-2.5">
+        <Link
+          href={`/app/pos/ppob-transactions/${row.uuid}`}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#EBC170] text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+        >
+          Lihat Detail
+        </Link>
+      </div>
+    </div>
+  );
+
   const columns: Column<PpobTransaction>[] = [
     {
       key: 'no',
@@ -209,30 +269,33 @@ export default function PpobTransactionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52] flex items-center gap-2">
-            <Zap className="h-6 w-6" />
+      {/* Di mobile judul & tombol ditumpuk: dipaksa sebaris membuat judul
+          terhimpit jadi dua baris dan tombol "Buat Transaksi" terpotong di
+          tepi kanan layar. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#142D52] flex items-center gap-2">
+            <Zap className="h-6 w-6 shrink-0" />
             Server Pulsa/PPOB
           </h1>
-          <p className="text-gray-600 mt-1">Transaksi pulsa, paket data, token listrik, dan tagihan lainnya</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Transaksi pulsa, paket data, token listrik, dan tagihan lainnya</p>
         </div>
         <div className="flex items-center gap-2">
           {hasPermission('pos.ppob-transaction-type.index') && (
             <Link
               href="/app/pos/ppob-transaction-types"
-              className="flex items-center space-x-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 px-4 py-2 transition-colors cursor-pointer font-semibold"
+              className="flex min-h-11 flex-1 sm:flex-none shrink-0 items-center justify-center gap-2 whitespace-nowrap bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 px-4 py-2 transition-colors cursor-pointer font-semibold"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5 shrink-0" />
               <span>Jenis Transaksi</span>
             </Link>
           )}
           {hasPermission('pos.ppob-transaction.create') && (
             <Link
               href="/app/pos/ppob-transactions/create"
-              className="flex items-center space-x-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
+              className="flex min-h-11 flex-1 sm:flex-none shrink-0 items-center justify-center gap-2 whitespace-nowrap bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] px-4 py-2 transition-colors cursor-pointer font-semibold"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-5 h-5 shrink-0" />
               <span>Buat Transaksi</span>
             </Link>
           )}
@@ -264,6 +327,7 @@ export default function PpobTransactionsPage() {
         onSortChange={() => {}}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderTransactionCard}
       />
     </div>
   );
