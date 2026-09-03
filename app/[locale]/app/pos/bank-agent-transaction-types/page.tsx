@@ -138,28 +138,91 @@ export default function BankAgentTransactionTypesPage() {
     },
   ];
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href="/app/pos/bank-agent-transactions"
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+  // Tampilan kartu untuk layar kecil -- sebagai tabel, kolom Arah Kas &
+  // Status terpotong di HP dan tombol aksinya cuma ikon bertooltip yang tidak
+  // pernah muncul di layar sentuh.
+  const renderTypeCard = (row: BankAgentTransactionType) => (
+    <div className="space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama jenis
+            yang panjang bikin overflow horizontal. */}
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">{row.name}</p>
+        <span
+          className={`shrink-0 whitespace-nowrap rounded-full px-2 py-1 text-xs font-semibold ${
+            row.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+          }`}
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Kembali ke Agen Bank</span>
-        </Link>
+          {row.is_active ? 'Aktif' : 'Nonaktif'}
+        </span>
       </div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Jenis Transaksi Agen Bank</h1>
-          <p className="text-gray-600 mt-1">Kelola jenis transaksi Agen Bank (setor/tarik tunai, transfer, bayar BPJS/listrik, dst).</p>
+
+      <span
+        className={`inline-block rounded-full px-2 py-1 text-xs font-semibold ${
+          row.cash_direction === 'in' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+        }`}
+      >
+        {row.cash_direction === 'in' ? 'Kas Keluar' : 'Kas Masuk'}
+      </span>
+
+      {(hasPermission('pos.bank-agent-transaction-type.update') ||
+        hasPermission('pos.bank-agent-transaction-type.delete')) && (
+        <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+          {hasPermission('pos.bank-agent-transaction-type.update') && (
+            <Link
+              href={`/app/pos/bank-agent-transaction-types/${row.uuid}/edit`}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+              Edit
+            </Link>
+          )}
+          {hasPermission('pos.bank-agent-transaction-type.delete') && (
+            <button
+              type="button"
+              onClick={() => handleDeleteClick(row)}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+            >
+              Hapus
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* Desktop: tautan kembali berteks di atas judul, seperti semula. */}
+      <Link
+        href="/app/pos/bank-agent-transactions"
+        className="hidden sm:inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Kembali ke Agen Bank</span>
+      </Link>
+
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya keduanya dipaksa sebaris
+          sehingga judul pecah dua baris, deskripsinya menyempit jadi kolom
+          kurus, dan label tombol pecah jadi tiga baris. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-1 sm:block">
+          <Link
+            href="/app/pos/bank-agent-transactions"
+            aria-label="Kembali ke Agen Bank"
+            className="sm:hidden -ml-2 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100 cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Jenis Transaksi Agen Bank</h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola jenis transaksi Agen Bank (setor/tarik tunai, transfer, bayar BPJS/listrik, dst).</p>
+          </div>
         </div>
         {hasPermission('pos.bank-agent-transaction-type.create') && (
           <Link
             href="/app/pos/bank-agent-transaction-types/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Jenis Transaksi</span>
           </Link>
         )}
@@ -178,6 +241,7 @@ export default function BankAgentTransactionTypesPage() {
         emptyIcon={<Landmark className="w-16 h-16 text-gray-300 mx-auto" />}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderTypeCard}
       />
 
       <ConfirmModal
