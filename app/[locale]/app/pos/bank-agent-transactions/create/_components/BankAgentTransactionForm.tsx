@@ -7,6 +7,7 @@ import { Save, X, Search } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import RupiahInput from '@/components/ui/RupiahInput';
+import Select2 from '@/components/ui/Select2';
 import { useToast } from '@/components/toast/ToastContainer';
 import { getAllSaldoAccounts, getPaymentMethodOptions, SaldoAccount, PaymentMethodOption } from '@/lib/api/app/saldo';
 import { getBankAgentTransactionTypes, createBankAgentTransaction, BankAgentTransactionType } from '@/lib/api/app/bank-agent-transaction';
@@ -71,10 +72,6 @@ export default function BankAgentTransactionForm() {
   const [paidAmount, setPaidAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [typeSearch, setTypeSearch] = useState('');
-  // Khusus mobile: daftar jenis transaksi menciut setelah dipilih supaya
-  // form di bawahnya langsung terjangkau tanpa menggulir belasan pilihan.
-  // Di desktop (>=lg) daftar ini selalu tampil sebagai panel kiri.
-  const [isTypeListOpen, setIsTypeListOpen] = useState(true);
 
   useEffect(() => {
     fetch('/api/app/pos/branches/options')
@@ -110,6 +107,9 @@ export default function BankAgentTransactionForm() {
 
   const accountOptions = accounts.filter((a) => a.is_bank_agent);
   const filteredTypes = types.filter((t) => t.name.toLowerCase().includes(typeSearch.trim().toLowerCase()));
+  // Select2 (dipakai versi mobile) memakai kontrak { id, label }; pencariannya
+  // ditangani komponen itu sendiri, jadi tidak lewat `typeSearch`.
+  const typeOptions = types.map((t) => ({ id: t.uuid, label: t.name }));
   const selectedType = types.find((t) => t.uuid === transactionTypeUuid);
   const isWithdrawal = selectedType?.cash_direction === 'in';
   const selectedPaymentMethod = paymentMethods.find((pm) => pm.uuid === paymentMethodUuid);
@@ -192,39 +192,31 @@ export default function BankAgentTransactionForm() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 h-full flex flex-col">
               <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Transaksi <span className="text-red-500">*</span></label>
-              <p
-                className={`text-xs text-gray-400 mb-3 ${
-                  selectedType && !isTypeListOpen ? 'hidden lg:block' : ''
-                }`}
-              >
-                Klik salah satu untuk memilih.
-              </p>
               {types.length === 0 ? (
                 <p className="text-xs text-gray-400">Belum ada jenis transaksi -- tambah dulu lewat tombol &quot;Jenis Transaksi&quot; di halaman daftar Agen Bank.</p>
               ) : (
                 <>
-                  {/* Ringkasan pilihan -- hanya mobile, menggantikan daftar
-                      panjang begitu satu jenis dipilih. */}
-                  {selectedType && !isTypeListOpen && (
-                    <div className="lg:hidden flex items-center justify-between gap-3 rounded-lg border border-[#EBC170] bg-[#FDF6E9] px-3 py-2">
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900">
-                        {selectedType.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setIsTypeListOpen(true)}
-                        className="inline-flex min-h-11 shrink-0 items-center rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50 cursor-pointer"
-                      >
-                        Ganti
-                      </button>
-                    </div>
-                  )}
+                  {/* Mobile: dropdown Select2. Sebagai daftar terbuka, jenis
+                      transaksi memakan hampir satu layar penuh di HP padahal
+                      pemakainya cuma perlu memilih satu, sehingga field
+                      berikutnya (Cabang, Akun Agen Bank) terdorong jauh ke
+                      bawah. Mulai lg daftar terbuka tetap dipakai: panel kiri
+                      punya ruangnya sendiri dan memilih tanpa klik-buka lebih
+                      cepat buat kasir. */}
+                  <div className="lg:hidden">
+                    <Select2
+                      name="transaction_type_uuid"
+                      value={transactionTypeUuid}
+                      options={typeOptions}
+                      onChange={(e) => setTransactionTypeUuid(e.target.value)}
+                      placeholder="Pilih jenis transaksi"
+                      searchable
+                      hasError={!!fieldErrors.transactionTypeUuid}
+                    />
+                  </div>
 
-                  <div
-                    className={`min-h-0 flex-1 flex-col ${
-                      selectedType && !isTypeListOpen ? 'hidden lg:flex' : 'flex'
-                    }`}
-                  >
+                  <div className="hidden min-h-0 flex-1 lg:flex lg:flex-col">
+                  <p className="text-xs text-gray-400 mb-3">Klik salah satu untuk memilih.</p>
                   <div className="relative mb-3">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -245,10 +237,7 @@ export default function BankAgentTransactionForm() {
                           <button
                             key={type.uuid}
                             type="button"
-                            onClick={() => {
-                              setTransactionTypeUuid(type.uuid);
-                              setIsTypeListOpen(false);
-                            }}
+                            onClick={() => setTransactionTypeUuid(type.uuid)}
                             className={`w-full px-4 py-3 text-sm font-medium border rounded-lg text-left transition-colors cursor-pointer ${
                               isSelected
                                 ? 'border-[#EBC170] bg-[#FDF6E9] text-gray-900 ring-2 ring-[#EBC170]/40'
