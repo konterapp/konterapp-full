@@ -98,6 +98,9 @@ export default function KasirPage() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [imageGallery, setImageGallery] = useState<{ images: string[]; name: string; index: number } | null>(null);
   const [lastSale, setLastSale] = useState<Sale | null>(null);
+  // Di layar kecil panel pembayaran tidak muat berdampingan dengan keranjang,
+  // jadi dipindah ke bottom sheet yang dibuka dari bar total.
+  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
 
   const loadShiftState = useCallback(async () => {
     setIsShiftLoading(true);
@@ -273,6 +276,18 @@ export default function KasirPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
+  // Dipakai baris keranjang versi tabel (desktop) & versi kartu (mobile),
+  // supaya penyusunan URL galeri tidak ditulis dua kali.
+  const openImageGallery = (item: CartItem) => {
+    const urls = item.product_images.length > 0
+      ? item.product_images.map(img => img.url)
+      : item.product_image ? [item.product_image] : [];
+    if (urls.length > 0) {
+      setImageGallery({ images: urls, name: item.product_name, index: 0 });
+    }
+  };
+  const hasItemImage = (item: CartItem) => item.product_images.length > 0 || Boolean(item.product_image);
+
   const canProcess = Boolean(activeShift) && cart.length > 0 && selectedBranch && selectedPaymentMethod && totalAmount > 0;
 
   const selectedOpenShiftBranch = branches.find((branch) => branch.uuid === openShiftForm.branch_uuid);
@@ -342,6 +357,7 @@ export default function KasirPage() {
       });
       if (response.status === 'success' && response.data) {
         setLastSale(response.data);
+        setShowPaymentSheet(false);
         setShowReceipt(true);
       } else {
         const message = (response as { message?: string }).message;
@@ -454,37 +470,165 @@ export default function KasirPage() {
     }
   }, [scanNotification]);
 
+  // Isi panel pembayaran dipakai dua kali: sebagai kolom kanan di desktop dan
+  // sebagai bottom sheet di HP. Disimpan dalam variabel supaya tidak ada dua
+  // salinan JSX yang gampang jadi tidak sinkron.
+  const paymentPanelBody = (
+    <>
+      {/* Customer & Payment method */}
+      <div className="px-4 py-3 space-y-3 border-b border-gray-200">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Pelanggan</label>
+          <CustomerSelect selectedCustomer={selectedCustomer} onSelect={setSelectedCustomer} />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1.5">Metode Pembayaran</label>
+          <div className="flex flex-wrap gap-1.5">
+            {paymentMethods.map(pm => (
+              <button
+                key={pm.uuid}
+                type="button"
+                onClick={() => setSelectedPaymentMethod(pm.uuid)}
+                className={`min-h-10 lg:min-h-0 px-3 py-2 lg:py-1.5 text-sm lg:text-xs rounded-lg border transition-all cursor-pointer ${
+                  selectedPaymentMethod === pm.uuid
+                    ? 'border-[#142D52] bg-[#142D52] text-white font-semibold'
+                    : 'border-gray-200 bg-white hover:border-gray-300 text-gray-600'
+                }`}
+              >
+                {pm.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="px-4 py-3 space-y-2 border-b border-gray-200">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Subtotal</span>
+          <span className="text-gray-700 font-medium">{formatCurrency(cartSubtotal)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-500">Diskon</span>
+          <RupiahInput
+            showPrefix={false}
+            value={discountAmount ? String(discountAmount) : ''}
+            onChange={(v) => setDiscountAmount(Number(v) || 0)}
+            placeholder="0"
+            className="w-32 lg:w-28 text-right px-2 py-2 lg:py-1 text-base lg:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
+          />
+        </div>
+        <div className="flex justify-between items-baseline pt-2 border-t border-gray-200">
+          <span className="text-sm font-bold text-[#142D52]">Total</span>
+          <span className="text-xl font-bold text-[#142D52]">{formatCurrency(totalAmount)}</span>
+        </div>
+      </div>
+
+      {/* Bayar */}
+      <div className="px-4 py-3 space-y-2 border-b border-gray-200">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Bayar</label>
+          <RupiahInput
+            showPrefix={false}
+            value={paidAmount ? String(paidAmount) : ''}
+            onChange={(v) => setPaidAmount(Number(v) || 0)}
+            placeholder="0"
+            className="w-full px-3 py-2.5 text-lg font-bold text-right border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
+          />
+        </div>
+        {totalAmount > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => setPaidAmount(totalAmount)} className="min-h-10 lg:min-h-0 px-3 py-2 lg:py-1.5 text-sm lg:text-xs bg-[#EBC170]/10 border border-[#EBC170]/30 text-[#142D52] hover:bg-[#EBC170]/20 rounded-lg transition-colors cursor-pointer font-medium">
+              Uang Pas
+            </button>
+            {[20000, 50000, 100000, 200000].map(amount => (
+              amount >= totalAmount && (
+                <button key={amount} type="button" onClick={() => setPaidAmount(amount)} className="min-h-10 lg:min-h-0 px-3 py-2 lg:py-1.5 text-sm lg:text-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-gray-600">
+                  {formatCurrency(amount)}
+                </button>
+              )
+            ))}
+          </div>
+        )}
+        {totalAmount > 0 && (
+          <div className={`flex justify-between text-sm p-2.5 rounded-lg font-medium ${changeAmount >= 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+            <span>{changeAmount >= 0 ? 'Kembalian' : 'Sisa Piutang'}</span>
+            <span className="font-bold">{formatCurrency(changeAmount >= 0 ? changeAmount : outstandingAmount)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Notes */}
+      <div className="px-4 py-3">
+        <label className="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Catatan transaksi (opsional)"
+          rows={2}
+          className="w-full px-3 py-2 text-base lg:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] resize-none"
+        />
+      </div>
+    </>
+  );
+
+  const processButton = (
+    <button
+      type="button"
+      onClick={handleProcess}
+      disabled={!canProcess || isProcessing}
+      className="w-full min-h-12 py-3 bg-[#142D52] text-white rounded-lg font-bold text-sm hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {isProcessing ? 'Memproses...' : `Proses Transaksi${cart.length > 0 ? ` (${cart.length})` : ''}`}
+    </button>
+  );
+
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col -m-6">
+    // -m-4 lg:-m-6 harus mengikuti padding <main> di DashboardWrapper (p-4 lg:p-6);
+    // kalau tidak sama, halaman melebihi lebar layar & muncul scroll horizontal di HP.
+    // Tingginya 100dvh (bukan 100vh) supaya address bar HP ikut diperhitungkan,
+    // dikurangi 3.5rem = tinggi Navbar (h-14).
+    <div className="h-[calc(100dvh-3.5rem)] flex flex-col -m-4 lg:-m-6">
       {/* Header */}
-      <div className="bg-white px-5 py-2.5 flex items-center justify-between border-b border-gray-200">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 bg-[#142D52] rounded-lg flex items-center justify-center">
+      <div className="bg-white px-3 py-2 lg:px-5 lg:py-2.5 flex items-center justify-between gap-2 border-b border-gray-200">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="w-8 h-8 shrink-0 bg-[#142D52] rounded-lg flex items-center justify-center">
             <ShoppingCart className="w-4 h-4 text-[#EBC170]" />
           </div>
-          <h1 className="text-base font-bold text-[#142D52]">Kasir</h1>
-          {activeShift && (
-            <span className="text-[11px] font-medium px-2 py-1 rounded-full bg-green-100 text-green-700">
-              Shift aktif
-            </span>
-          )}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold text-[#142D52]">Kasir</h1>
+              {activeShift && (
+                <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  Shift aktif
+                </span>
+              )}
+            </div>
+            {/* Di HP select cabang disembunyikan (memang selalu disabled), jadi
+                cabang shift aktif ditampilkan sebagai teks supaya kasir tetap
+                tahu sedang bertransaksi di cabang mana. */}
+            {activeShift?.branch?.name && (
+              <p className="lg:hidden truncate text-[11px] text-gray-500">{activeShift.branch.name}</p>
+            )}
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex shrink-0 items-center gap-2">
           {activeShift && (
             <button
               type="button"
               onClick={() => setShowCloseShiftModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+              className="inline-flex min-h-10 items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
-              Tutup Shift
+              <span className="hidden sm:inline">Tutup Shift</span>
+              <span className="sm:hidden">Tutup</span>
             </button>
           )}
           <select
             value={selectedBranch}
             onChange={(e) => { setSelectedBranch(e.target.value); setCart([]); }}
             disabled
-            className="px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="hidden lg:block px-3 py-1.5 text-sm bg-white text-gray-700 border border-gray-200 rounded-lg focus:outline-none disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
           >
             <option value="">{activeShift ? 'Cabang Shift Aktif' : 'Pilih Cabang Shift'}</option>
             {branches.map(branch => (
@@ -507,7 +651,10 @@ export default function KasirPage() {
           <div className="text-sm text-gray-500">Memuat status shift kasir...</div>
         </div>
       ) : !activeShift && recentlyClosedShift ? (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
+        // overflow-y-auto + wrapper min-h-full: parent memakai overflow-hidden,
+        // tanpa ini kartu yang lebih tinggi dari layar HP terpotong & tak bisa discroll.
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+          <div className="min-h-full flex items-center justify-center">
           <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl p-5 space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-green-700">Shift Berhasil Ditutup</h2>
@@ -528,22 +675,24 @@ export default function KasirPage() {
               <button
                 type="button"
                 onClick={() => setRecentlyClosedShift(null)}
-                className="w-full px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold cursor-pointer"
+                className="w-full min-h-11 px-4 py-2 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold cursor-pointer"
               >
                 Buka Shift Baru
               </button>
               <Link
                 href="/app/pos/shifts"
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-center font-medium"
+                className="w-full min-h-11 flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-center font-medium"
               >
                 Lihat Riwayat Shift
               </Link>
             </div>
           </div>
+          </div>
         </div>
       ) : !activeShift ? (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 p-4">
-          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+          <div className="min-h-full flex items-center justify-center">
+          <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-6 space-y-5">
             <div className="text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#EBC170]/20">
                 <ShoppingCart className="h-7 w-7 text-[#c99a3f]" />
@@ -560,7 +709,7 @@ export default function KasirPage() {
                 <select
                   value={openShiftForm.branch_uuid}
                   onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, branch_uuid: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#EBC170] cursor-pointer"
                 >
                   <option value="">Pilih Cabang</option>
                   {branches.map((branch) => (
@@ -596,7 +745,7 @@ export default function KasirPage() {
                   value={openShiftForm.notes_open}
                   onChange={(e) => setOpenShiftForm((prev) => ({ ...prev, notes_open: e.target.value }))}
                   placeholder="Catatan buka shift"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+                  className="w-full min-h-11 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
                 />
               </div>
             </div>
@@ -605,43 +754,46 @@ export default function KasirPage() {
               type="button"
               onClick={handleOpenShift}
               disabled={isSubmittingShift || isSelectedBranchFull}
-              className="w-full px-4 py-2.5 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full min-h-12 px-4 py-2.5 rounded-lg bg-[#EBC170] hover:bg-[#d4ab5f] text-gray-900 font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSubmittingShift ? 'Membuka Shift...' : 'Buka Shift'}
             </button>
+          </div>
           </div>
         </div>
       ) : (
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Products + Cart (scrollable together) */}
-        <div className="flex-1 flex flex-col overflow-hidden border-r border-gray-200">
+        <div className="flex-1 flex flex-col overflow-hidden lg:border-r lg:border-gray-200">
           {/* Search */}
-          <div className="px-4 py-2.5 border-b border-gray-200 bg-white relative">
+          <div className="px-3 py-2.5 lg:px-4 border-b border-gray-200 bg-white relative">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                {/* text-base (16px) di HP mencegah Safari/Chrome iOS auto-zoom saat
+                    input difokus, yang bikin layout kasir "melompat". */}
                 <input
                   type="text"
-                  placeholder={selectedBranch ? 'Cari produk (nama, kode produk, barcode)...' : 'Pilih cabang terlebih dahulu...'}
+                  placeholder={selectedBranch ? 'Cari produk / scan barcode...' : 'Pilih cabang terlebih dahulu...'}
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
                   disabled={!selectedBranch}
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-full min-h-11 pl-9 pr-3 py-2 text-base lg:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] disabled:bg-gray-50 disabled:cursor-not-allowed"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setShowCameraScanner(true)}
                 disabled={!selectedBranch}
-                className="px-3 py-2 bg-[#142D52] text-white rounded-lg hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 min-h-11 min-w-11 flex items-center justify-center px-3 py-2 bg-[#142D52] text-white rounded-lg hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Scan barcode dengan kamera"
               >
-                <Camera className="w-4 h-4" />
+                <Camera className="w-5 h-5 lg:w-4 lg:h-4" />
               </button>
             </div>
 
             {selectedBranch && (productSearch.trim().length > 0 || isSearching) && (
-              <div className="absolute left-4 right-4 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-80 overflow-y-auto">
+              <div className="absolute left-3 right-3 lg:left-4 lg:right-4 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 max-h-[60vh] lg:max-h-80 overflow-y-auto">
                 {isSearching ? (
                   <div className="p-3 text-xs text-gray-500">Mencari produk...</div>
                 ) : productResults.length > 0 ? (
@@ -657,7 +809,7 @@ export default function KasirPage() {
                             setProductSearch('');
                           }}
                           disabled={stock <= 0}
-                          className={`w-full px-3 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          className={`w-full min-h-14 px-3 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${
                             stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
@@ -681,7 +833,7 @@ export default function KasirPage() {
                             <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
                             <p className="text-xs text-gray-500">{product.sku}</p>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right shrink-0">
                             <p className="text-xs font-semibold text-[#142D52]">{formatCurrency(Number(product.selling_price))}</p>
                             {product.kind === 'barang' ? (
                               <p className={`text-[10px] ${stock <= (product.min_stock || 0) ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
@@ -703,8 +855,8 @@ export default function KasirPage() {
           </div>
 
           {/* Cart (full height under search) */}
-          <div className="flex-1 border-t border-gray-200 bg-white flex flex-col shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
-            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+          <div className="flex-1 min-h-0 border-t border-gray-200 bg-white flex flex-col shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+            <div className="px-3 lg:px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center space-x-2">
                 <ShoppingCart className="w-4 h-4 text-[#142D52]" />
                 <span className="text-sm font-semibold text-[#142D52]">
@@ -715,14 +867,91 @@ export default function KasirPage() {
               <button
                 type="button"
                 onClick={clearCart}
-                className="text-[11px] text-red-500 hover:text-red-700 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="min-h-9 px-2 -mr-2 text-xs lg:text-[11px] text-red-500 hover:text-red-700 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={cart.length === 0}
               >
                 Kosongkan
               </button>
             </div>
             <div className="overflow-y-auto flex-1">
-              <table className="w-full">
+              {/* Mobile: kartu per item. Tabel 4 kolom (produk/qty/subtotal/hapus)
+                  tidak muat di layar HP -- stepper qty-nya mengecil sampai sulit
+                  ditekan dan baris subtotal terpotong. */}
+              <div className="lg:hidden divide-y divide-gray-100">
+                {cart.length === 0 ? (
+                  <div className="py-12 text-center text-sm text-gray-400">Keranjang masih kosong</div>
+                ) : (
+                  cart.map(item => (
+                    <div key={item.id} className="p-3">
+                      <div className="flex gap-3">
+                        <div
+                          className={`w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${hasItemImage(item) ? 'cursor-pointer' : ''}`}
+                          onClick={() => openImageGallery(item)}
+                        >
+                          {item.product_image ? (
+                            <Image
+                              src={item.product_image}
+                              alt={item.product_name}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-5 h-5 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">{item.product_name}</p>
+                          <p className="text-xs text-gray-400">{formatCurrency(item.unit_price)} / pcs</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          aria-label={`Hapus ${item.product_name}`}
+                          className="-mt-1 -mr-1 h-10 w-10 shrink-0 flex items-center justify-center rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                      <div className="mt-2.5 flex items-center justify-between gap-3">
+                        <div className="flex items-center bg-gray-100 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            aria-label="Kurangi jumlah"
+                            className="h-10 w-10 flex items-center justify-center rounded-l-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-4 h-4 text-gray-600" />
+                          </button>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            className="w-12 h-10 text-center text-base font-semibold bg-transparent border-0 focus:outline-none"
+                            min="1"
+                            max={item.available_stock}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            aria-label="Tambah jumlah"
+                            className="h-10 w-10 flex items-center justify-center rounded-r-lg hover:bg-gray-200 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </div>
+                        <p className="text-base font-bold text-[#142D52]">{formatCurrency(item.subtotal)}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <table className="hidden lg:table w-full">
                 <thead className="sticky top-0 bg-white">
                   <tr className="border-b border-gray-100 text-xs text-gray-500">
                     <th className="text-left py-2 px-4 font-medium">Produk</th>
@@ -744,15 +973,10 @@ export default function KasirPage() {
                         <td className="py-2 px-4">
                           <div className="flex items-center gap-2.5">
                             <div
-                              className={`w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${item.product_images.length > 0 || item.product_image ? 'cursor-pointer hover:ring-2 hover:ring-[#EBC170] transition-all' : ''}`}
+                              className={`w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 ${hasItemImage(item) ? 'cursor-pointer hover:ring-2 hover:ring-[#EBC170] transition-all' : ''}`}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const urls = item.product_images.length > 0
-                                  ? item.product_images.map(img => img.url)
-                                  : item.product_image ? [item.product_image] : [];
-                                if (urls.length > 0) {
-                                  setImageGallery({ images: urls, name: item.product_name, index: 0 });
-                                }
+                                openImageGallery(item);
                               }}
                             >
                               {item.product_image ? (
@@ -823,8 +1047,8 @@ export default function KasirPage() {
           </div>
         </div>
 
-        {/* Right: Payment panel */}
-        <div className="w-[340px] flex flex-col bg-white">
+        {/* Right: Payment panel (desktop saja -- di HP dipindah ke bottom sheet) */}
+        <div className="hidden lg:flex w-[340px] flex-col bg-white">
           {/* Payment header */}
           <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-[#142D52]">Pembayaran</h2>
@@ -832,121 +1056,73 @@ export default function KasirPage() {
 
           {/* Payment section */}
           <div className="flex-1 overflow-y-auto">
-            {/* Customer & Payment method */}
-            <div className="px-4 py-3 space-y-3 border-b border-gray-200">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Pelanggan</label>
-                <CustomerSelect selectedCustomer={selectedCustomer} onSelect={setSelectedCustomer} />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Metode Pembayaran</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {paymentMethods.map(pm => (
-                    <button
-                      key={pm.uuid}
-                      type="button"
-                      onClick={() => setSelectedPaymentMethod(pm.uuid)}
-                      className={`px-3 py-1.5 text-xs rounded-lg border transition-all cursor-pointer ${
-                        selectedPaymentMethod === pm.uuid
-                          ? 'border-[#142D52] bg-[#142D52] text-white font-semibold'
-                          : 'border-gray-200 bg-white hover:border-gray-300 text-gray-600'
-                      }`}
-                    >
-                      {pm.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Summary */}
-            <div className="px-4 py-3 space-y-2 border-b border-gray-200">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="text-gray-700 font-medium">{formatCurrency(cartSubtotal)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500">Diskon</span>
-                <RupiahInput
-                  showPrefix={false}
-                  value={discountAmount ? String(discountAmount) : ''}
-                  onChange={(v) => setDiscountAmount(Number(v) || 0)}
-                  placeholder="0"
-                  className="w-28 text-right px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
-                />
-              </div>
-              <div className="flex justify-between items-baseline pt-2 border-t border-gray-200">
-                <span className="text-sm font-bold text-[#142D52]">Total</span>
-                <span className="text-xl font-bold text-[#142D52]">{formatCurrency(totalAmount)}</span>
-              </div>
-            </div>
-
-            {/* Bayar */}
-            <div className="px-4 py-3 space-y-2 border-b border-gray-200">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Bayar</label>
-                <RupiahInput
-                  showPrefix={false}
-                  value={paidAmount ? String(paidAmount) : ''}
-                  onChange={(v) => setPaidAmount(Number(v) || 0)}
-                  placeholder="0"
-                  className="w-full px-3 py-2.5 text-lg font-bold text-right border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170]"
-                />
-              </div>
-              {totalAmount > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <button type="button" onClick={() => setPaidAmount(totalAmount)} className="px-3 py-1.5 text-xs bg-[#EBC170]/10 border border-[#EBC170]/30 text-[#142D52] hover:bg-[#EBC170]/20 rounded-lg transition-colors cursor-pointer font-medium">
-                    Uang Pas
-                  </button>
-                  {[20000, 50000, 100000, 200000].map(amount => (
-                    amount >= totalAmount && (
-                      <button key={amount} type="button" onClick={() => setPaidAmount(amount)} className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-gray-600">
-                        {formatCurrency(amount)}
-                      </button>
-                    )
-                  ))}
-                </div>
-              )}
-              {totalAmount > 0 && (
-                <div className={`flex justify-between text-sm p-2.5 rounded-lg font-medium ${changeAmount >= 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                  <span>{changeAmount >= 0 ? 'Kembalian' : 'Sisa Piutang'}</span>
-                  <span className="font-bold">{formatCurrency(changeAmount >= 0 ? changeAmount : outstandingAmount)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div className="px-4 py-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Catatan</label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Catatan transaksi (opsional)"
-                rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] resize-none"
-              />
-            </div>
+            {paymentPanelBody}
           </div>
 
           {/* Process button (sticky bottom) */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-            <button
-              type="button"
-              onClick={handleProcess}
-              disabled={!canProcess || isProcessing}
-              className="w-full py-3 bg-[#142D52] text-white rounded-lg font-bold text-sm hover:bg-[#1a3a6a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isProcessing ? 'Memproses...' : `Proses Transaksi${cart.length > 0 ? ` (${cart.length})` : ''}`}
-            </button>
+            {processButton}
           </div>
         </div>
       </div>
       )}
 
+      {/* Bar total + tombol Bayar (mobile). Sengaja di luar area scroll supaya
+          selalu terlihat, dan pb-safe agar tidak tertutup home indicator iOS. */}
+      {activeShift && (
+        <div className="lg:hidden shrink-0 border-t border-gray-200 bg-white px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-2px_10px_rgba(0,0,0,0.08)]">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-gray-500">{cart.length} item</p>
+              <p className="truncate text-lg font-bold text-[#142D52]">{formatCurrency(totalAmount)}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowPaymentSheet(true)}
+              disabled={cart.length === 0}
+              className="min-h-12 shrink-0 rounded-lg bg-[#142D52] px-6 text-sm font-bold text-white transition-colors hover:bg-[#1a3a6a] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              Bayar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom sheet pembayaran (mobile) */}
+      {showPaymentSheet && activeShift && (
+        <div className="lg:hidden fixed inset-0 z-40 flex flex-col justify-end bg-black/50">
+          <div
+            className="absolute inset-0"
+            onClick={() => setShowPaymentSheet(false)}
+          />
+          <div className="relative flex max-h-[92dvh] flex-col rounded-t-2xl bg-white shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3">
+              <h2 className="text-base font-semibold text-[#142D52]">Pembayaran</h2>
+              <button
+                type="button"
+                onClick={() => setShowPaymentSheet(false)}
+                aria-label="Tutup pembayaran"
+                className="-mr-1.5 flex h-10 w-10 items-center justify-center rounded-lg hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {paymentPanelBody}
+            </div>
+
+            <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              {processButton}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCloseShiftModal && activeShift && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-xl border border-gray-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="w-full max-w-lg max-h-[90dvh] flex flex-col bg-white rounded-2xl shadow-xl border border-gray-200">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50">
                   <LogOut className="h-5 w-5 text-red-500" />
@@ -965,7 +1141,7 @@ export default function KasirPage() {
               </button>
             </div>
 
-            <div className="px-5 py-4 space-y-4 overflow-y-auto">
+            <div className="px-4 sm:px-5 py-4 space-y-4 overflow-y-auto">
               <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
                 <p className="text-xs text-gray-500">Total Penjualan Berjalan</p>
                 <p className="mt-1 text-xl font-bold text-[#142D52]">{formatCurrency(activeShift.current_total_sales || 0)}</p>
@@ -987,17 +1163,17 @@ export default function KasirPage() {
                   rows={3}
                   value={closeShiftForm.notes_close}
                   onChange={(e) => setCloseShiftForm((prev) => ({ ...prev, notes_close: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] resize-none"
+                  className="w-full px-3 py-2 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] resize-none"
                   placeholder="Opsional"
                 />
               </div>
             </div>
 
-            <div className="px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
+            <div className="px-4 sm:px-5 py-4 border-t border-gray-100 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowCloseShiftModal(false)}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointer"
               >
                 Batal
               </button>
@@ -1005,7 +1181,7 @@ export default function KasirPage() {
                 type="button"
                 onClick={handleCloseShift}
                 disabled={isSubmittingCloseShift}
-                className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="min-h-11 flex-1 sm:flex-none px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isSubmittingCloseShift ? 'Menutup...' : 'Tutup Shift'}
               </button>
@@ -1060,7 +1236,7 @@ export default function KasirPage() {
           </div>
 
           {/* Main image area */}
-          <div className="flex-1 flex items-center justify-center relative min-h-0 px-16" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-1 flex items-center justify-center relative min-h-0 px-14 sm:px-16" onClick={(e) => e.stopPropagation()}>
             {/* Prev button */}
             {imageGallery.images.length > 1 && (
               <button
@@ -1097,7 +1273,7 @@ export default function KasirPage() {
 
           {/* Thumbnail strip */}
           {imageGallery.images.length > 1 && (
-            <div className="flex items-center justify-center gap-2 px-5 py-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto px-5 py-3 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
               {imageGallery.images.map((url, i) => (
                 <button
                   key={i}

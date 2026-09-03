@@ -59,18 +59,20 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
   const outstandingAmount = Math.max(Number(sale.total_amount || 0) - Number(sale.paid_amount || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      {/* max-h pakai dvh supaya di HP tinggi address bar ikut dihitung dan
+          baris tombol (Cetak / Transaksi Baru) tidak terdorong keluar layar. */}
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90dvh] overflow-y-auto">
         {/* Header - hide on print */}
-        <div className="flex items-center justify-between p-4 border-b print:hidden">
+        <div className="sticky top-0 flex items-center justify-between bg-white p-4 border-b print:hidden">
           <h2 className="text-lg font-semibold text-gray-900">Struk Transaksi</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded transition-colors cursor-pointer">
+          <button onClick={onClose} aria-label="Tutup struk" className="-mr-1.5 flex h-10 w-10 items-center justify-center hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         {/* Receipt Content */}
-        <div className="p-6" id="receipt-content">
+        <div className="p-4 sm:p-6" id="receipt-content">
           <div className="text-center mb-4">
             <h3 className="text-lg font-bold">KONTERAPP</h3>
             {sale.branch && <p className="text-sm text-gray-600">{sale.branch.name}</p>}
@@ -162,11 +164,11 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
         </div>
 
         {/* Actions - hide on print */}
-        <div className="flex space-x-3 p-4 border-t print:hidden">
+        <div className="sticky bottom-0 flex gap-3 bg-white p-4 border-t print:hidden">
           <button
             type="button"
             onClick={handlePrint}
-            className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+            className="flex-1 min-h-11 flex items-center justify-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium cursor-pointer"
           >
             <Printer className="w-4 h-4" />
             <span>Cetak</span>
@@ -174,7 +176,7 @@ export default function ReceiptModal({ isOpen, sale, onClose, onNewTransaction }
           <button
             type="button"
             onClick={onNewTransaction}
-            className="flex-1 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex-1 min-h-11 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
             Transaksi Baru
           </button>
