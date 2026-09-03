@@ -39,7 +39,11 @@ export default function DashboardWrapper({ children }: DashboardWrapperProps) {
 
   return (
     <UserProvider>
-      <div className="flex h-screen overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
+      {/* h-dvh (bukan h-screen/100vh): di browser HP, 100vh tidak menghitung
+          address bar, jadi dgn overflow-hidden bagian bawah konten bisa
+          kepotong & tidak bisa discroll -- termasuk baris aksi sticky seperti
+          tombol Simpan pada form. Shell administrator sudah memakai ini. */}
+      <div className="flex h-dvh overflow-hidden" style={{ backgroundColor: '#f5f5f5' }}>
         <Sidebar />
         {/* Lebar sidebar dilewatkan sebagai CSS variable dan margin-nya baru
             dipakai mulai breakpoint lg -- sama seperti Sidebar yang memang
