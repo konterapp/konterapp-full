@@ -180,8 +180,6 @@ export default function BankAgentTransactionForm() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Buat Transaksi Agen Bank</h1>
-
       {error && <Alert variant="error" message={error} className="mb-4" />}
 
       <form onSubmit={handleSubmit}>
@@ -433,11 +431,11 @@ export default function BankAgentTransactionForm() {
                 />
               </div>
 
-              {/* Di mobile baris aksi menempel di dasar layar (sticky) supaya
-                  tombol Simpan selalu terjangkau tanpa menggulir ke ujung form
-                  yang panjang -- pola yang biasa dipakai aplikasi HP. Mulai sm
-                  kembali jadi baris biasa rata kanan seperti semula. */}
-              <div className="sticky bottom-0 z-10 -mx-4 -mb-4 flex items-center gap-3 border-t border-gray-200 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mb-0 sm:justify-end sm:space-x-3 sm:rounded-none sm:bg-transparent sm:px-0 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
+              {/* Sengaja TIDAK sticky: kalau tombol ini menempel di dasar
+                  layar, form terlihat seolah sudah berakhir padahal isiannya
+                  masih berlanjut ke bawah. Dibiarkan di aliran normal supaya
+                  posisinya sekaligus menandai ujung form. */}
+              <div className="flex items-center gap-3 border-t border-gray-200 pt-4 sm:justify-end sm:space-x-3">
                 <Link href="/app/pos/bank-agent-transactions" className="shrink-0">
                   <Button type="button" variant="light" icon={X}>Batal</Button>
                 </Link>
