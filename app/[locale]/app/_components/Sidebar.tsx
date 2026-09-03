@@ -468,10 +468,19 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* App Version */}
+        {/* App Version.
+            suppressHydrationWarning khusus di sini: nilainya berasal dari
+            NEXT_PUBLIC_APP_VERSION yang dibaca `next.config.ts` dari
+            package.json saat dev server start. Kalau versi di package.json
+            dinaikkan sementara dev server masih jalan (sering terjadi karena
+            tiap commit menaikkan versi), proses server memakai nilai lama
+            sedangkan bundle klien sudah nilai baru -- React melaporkannya
+            sebagai hydration mismatch padahal tidak ada yang salah. Di
+            production keduanya berasal dari satu build, jadi selalu sama.
+            Cakupannya sengaja hanya span versi ini, bukan pohon di atasnya. */}
         {!effectiveCollapsed && (
           <div className="px-3 pb-2 text-center">
-            <span className="text-sm font-semibold text-white/40 tracking-wide">
+            <span className="text-sm font-semibold text-white/40 tracking-wide" suppressHydrationWarning>
               v{process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'}
             </span>
           </div>
