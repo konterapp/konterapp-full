@@ -25,7 +25,11 @@ export default function FloatingWhatsApp() {
   };
 
   return (
-    <div className="fixed bottom-2 right-2 z-50 flex items-center gap-2">
+    // Disembunyikan di layar HP: tombol mengambang ini menutupi sudut kanan
+    // bawah, yang di mobile justru dipakai konten & baris aksi sticky (mis.
+    // tombol Simpan pada form). Akses ke CS tetap ada lewat ikon headset di
+    // navbar, yang memang selalu tampil termasuk di mobile.
+    <div className="fixed bottom-2 right-2 z-50 hidden sm:flex items-center gap-2">
       {showLabel && (
         <span className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-full pl-3 pr-1.5 py-1.5 shadow-md">
           Butuh Bantuan?
