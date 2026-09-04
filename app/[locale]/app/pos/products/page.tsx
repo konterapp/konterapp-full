@@ -249,6 +249,101 @@ export default function ProductsPage() {
     }).format(value);
   };
 
+  // Tampilan kartu untuk layar kecil -- tabelnya 9 kolom, di HP itu jadi scroll
+  // horizontal panjang dan Harga, Stok, serta Status (tiga hal yang paling
+  // dicari) ada di ujung kanan alias tidak terlihat tanpa menggeser.
+  const renderProductCard = (row: Product) => {
+    const badge = PRODUCT_KIND_BADGE[row.kind] || PRODUCT_KIND_BADGE.barang;
+    const totalStock = row.total_stock || 0;
+    const isLowStock = row.kind === 'barang' && totalStock <= row.min_stock;
+    const canEdit = hasPermission('pos.product.update');
+    const canDelete = hasPermission('pos.product.delete');
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={selectedProductUuids.has(row.uuid)}
+            onChange={() => handleToggleProductSelection(row.uuid)}
+            className="mt-1 h-5 w-5 shrink-0 rounded border-gray-300 text-[#142D52] focus:ring-[#EBC170] cursor-pointer"
+            aria-label={`Pilih produk ${row.name}`}
+          />
+          <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+            {row.image ? (
+              <Image
+                src={row.image}
+                alt={row.name}
+                width={48}
+                height={48}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Package className="h-6 w-6 text-gray-300" />
+              </div>
+            )}
+          </div>
+          {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama produk
+              yang panjang bikin overflow horizontal. */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+            <p className="truncate text-xs text-gray-500">{row.sku}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+              row.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+            }`}
+          >
+            {row.is_active ? 'Aktif' : 'Non-aktif'}
+          </span>
+        </div>
+
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-gray-900">{formatCurrency(row.selling_price)}</p>
+            <p className="truncate text-xs text-gray-500">{row.category?.name || '-'}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>
+              {badge.label}
+            </span>
+            <p className={`mt-1 text-xs font-medium ${isLowStock ? 'text-red-600' : 'text-gray-600'}`}>
+              {row.kind === 'barang' ? `Stok ${totalStock}${isLowStock ? ' (Low)' : ''}` : 'Tanpa stok'}
+            </p>
+          </div>
+        </div>
+
+        {/* Aksi berlabel teks & 44px: di layar sentuh tidak ada hover, jadi ikon
+            bertooltip seperti versi tabel tidak akan terbaca. */}
+        {(canEdit || canDelete) && (
+          <div className="flex gap-2 border-t border-gray-100 pt-3">
+            {canEdit && (
+              <Link
+                href={`/app/pos/products/${row.uuid}/edit`}
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+              >
+                <Edit className="h-4 w-4" />
+                Edit
+              </Link>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(row)}
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 cursor-pointer"
+              >
+                <Trash2 className="h-4 w-4" />
+                Hapus
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const columns: Column<Product>[] = [
     {
       key: 'select',
@@ -426,17 +521,19 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Produk</h1>
-          <p className="text-gray-600 mt-1">Kelola produk untuk sistem POS.</p>
+      {/* Mobile: judul & tombol ditumpuk, karena dipaksa sebaris membuat judul
+          pecah dua baris dan label tombol pecah jadi tiga baris. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Produk</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola produk untuk sistem POS.</p>
         </div>
         {hasPermission('pos.product.create') && (
           <Link
             href="/app/pos/products/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Produk</span>
           </Link>
         )}
@@ -454,28 +551,39 @@ export default function ProductsPage() {
         itemsPerPage={itemsPerPage}
         searchPlaceholder="Cari produk..."
         actionComponent={(
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             {selectedCount > 0 && (
               <span className="px-2 py-1 text-xs font-medium rounded-md bg-[#F6E7C6] text-[#6A4B16]">
                 {selectedCount} dipilih
               </span>
             )}
+            {/* Checkbox "pilih semua" hanya ada di header tabel, dan tabel itu
+                disembunyikan di layar kecil -- tanpa tombol ini alur pilih-banyak
+                untuk PDF barcode tidak bisa dipakai dari HP sama sekali. */}
+            <button
+              type="button"
+              onClick={handleToggleSelectCurrentPage}
+              disabled={products.length === 0}
+              className="min-h-11 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer lg:hidden"
+            >
+              {isAllCurrentPageSelected ? 'Batal pilih semua' : 'Pilih semua'}
+            </button>
             <button
               type="button"
               onClick={handleDownloadSelectedBarcodePdf}
               disabled={selectedCount === 0 || isGeneratingBarcodePdf}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#142D52] text-white hover:bg-[#0f2442] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#142D52] text-sm text-white hover:bg-[#0f2442] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer sm:flex-none"
             >
-              <Download className="w-4 h-4" />
-              <span>{isGeneratingBarcodePdf ? 'Memproses...' : 'Download PDF Barcode'}</span>
+              <Download className="w-4 h-4 shrink-0" />
+              <span className="whitespace-nowrap">{isGeneratingBarcodePdf ? 'Memproses...' : 'Download PDF Barcode'}</span>
             </button>
             {selectedCount > 0 && (
               <button
                 type="button"
                 onClick={handleClearSelection}
-                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+                className="flex min-h-11 shrink-0 items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 shrink-0" />
                 <span>Reset</span>
               </button>
             )}
@@ -496,6 +604,7 @@ export default function ProductsPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderProductCard}
       />
 
       <ConfirmModal
