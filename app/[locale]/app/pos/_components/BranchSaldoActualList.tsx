@@ -32,6 +32,35 @@ interface BranchSaldoActualListProps {
  * max-w-md) tanpa perlu scroll horizontal -- saldo sistem dilipat jadi
  * sub-teks di bawah nama akun, bukan kolom sendiri.
  */
+function computeRow(item: BranchSaldoItem, actualBalances: Record<string, string>) {
+  const key = item.group.uuid;
+  const rawActual = actualBalances[key] ?? '';
+  const actualNumber = rawActual.trim() === '' ? null : Number(rawActual);
+  const isHidden = item.group.balance === null;
+  const variance =
+    !isHidden && actualNumber !== null && !Number.isNaN(actualNumber)
+      ? actualNumber - (item.group.balance as number)
+      : null;
+  const varianceStyle =
+    variance === null
+      ? 'text-gray-300'
+      : variance === 0
+        ? 'text-gray-500'
+        : variance > 0
+          ? 'text-green-600'
+          : 'text-red-600';
+  const varianceText = isHidden
+    ? '\u2022\u2022\u2022'
+    : variance === null
+      ? '-'
+      : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`;
+  const systemText = isHidden
+    ? 'Sistem disembunyikan'
+    : `Sistem ${formatCurrency(item.group.balance as number)}`;
+
+  return { key, rawActual, isHidden, varianceStyle, varianceText, systemText };
+}
+
 export default function BranchSaldoActualList({
   title,
   isLoading,
@@ -53,7 +82,56 @@ export default function BranchSaldoActualList({
       ) : items.length === 0 ? (
         <p className="text-sm text-gray-400">{emptyMessage || 'Belum ada akun saldo untuk cabang ini'}</p>
       ) : (
-        <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+        <>
+        {/* Layar kecil: tiap akun ditumpuk jadi satu blok. Sebagai tabel 3
+            kolom di lebar 390px, kolom Akun cuma ~120px sehingga nilai
+            "Sistem Rp ..." terpangkas jadi "Sistem Rp 934.9..." dan kolom
+            Selisih tergencet tinggal "-". Tabelnya sendiri tidak diubah dan
+            tetap dipakai mulai sm, jadi tampilan desktop persis seperti
+            semula (komponen ini dipakai juga oleh layar Kasir). */}
+        <div className="space-y-3 sm:hidden">
+          {items.map((item) => {
+            const { key, rawActual, varianceStyle, varianceText, systemText } = computeRow(item, actualBalances);
+
+            return (
+              <div key={`${item.account.uuid}-${item.group.uuid}`} className="rounded-lg border border-gray-100 p-3">
+                {/* Selisih ditaruh di kanan atas sebaris dgn nama akun, bukan
+                    di samping input: kalau bersebelahan, label "Aktual" dan
+                    "Selisih" tidak pernah sejajar karena tinggi keduanya beda
+                    (input vs teks biasa). */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-800">{item.account.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {systemText}
+                      {item.group.name ? ` · ${item.group.name}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Selisih</p>
+                    <p className={`text-sm font-semibold ${varianceStyle}`}>{varianceText}</p>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">Aktual</p>
+                  <RupiahInput value={rawActual} onChange={(v) => onActualBalanceChange(key, v)} />
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+            <span className="text-sm font-semibold text-gray-700">Total</span>
+            <span className="text-sm font-bold text-[#142D52]">{formatCurrency(totalBalance)}</span>
+          </div>
+          {items.some((item) => item.group.balance === null) && (
+            <p className="text-right text-[11px] italic text-gray-400">
+              Total belum termasuk akun yang disembunyikan
+            </p>
+          )}
+        </div>
+
+        <table className="hidden sm:table w-full table-fixed border-separate border-spacing-0 text-sm">
           <colgroup>
             <col className="w-[38%]" />
             <col className="w-[40%]" />
@@ -74,27 +152,14 @@ export default function BranchSaldoActualList({
           </thead>
           <tbody>
             {items.map((item) => {
-              const key = item.group.uuid;
-              const rawActual = actualBalances[key] ?? '';
-              const actualNumber = rawActual.trim() === '' ? null : Number(rawActual);
-              const isHidden = item.group.balance === null;
-              const variance =
-                !isHidden && actualNumber !== null && !Number.isNaN(actualNumber) ? actualNumber - (item.group.balance as number) : null;
-              const varianceStyle =
-                variance === null
-                  ? 'text-gray-300'
-                  : variance === 0
-                    ? 'text-gray-500'
-                    : variance > 0
-                      ? 'text-green-600'
-                      : 'text-red-600';
+              const { key, rawActual, varianceStyle, varianceText, systemText } = computeRow(item, actualBalances);
 
               return (
                 <tr key={`${item.account.uuid}-${item.group.uuid}`} className="align-top">
                   <td className="border-b border-gray-100 py-2.5 pr-1">
                     <p className="font-medium text-gray-800 truncate">{item.account.name}</p>
                     <p className="text-xs text-gray-400 truncate">
-                      {isHidden ? 'Sistem disembunyikan' : `Sistem ${formatCurrency(item.group.balance as number)}`}
+                      {systemText}
                       {item.group.name ? ` · ${item.group.name}` : ''}
                     </p>
                   </td>
@@ -106,7 +171,7 @@ export default function BranchSaldoActualList({
                     />
                   </td>
                   <td className={`border-b border-gray-100 py-2.5 pl-1 text-right text-xs font-semibold ${varianceStyle}`}>
-                    {isHidden ? '•••' : variance === null ? '-' : `${variance > 0 ? '+' : ''}${formatCurrency(variance)}`}
+                    {varianceText}
                   </td>
                 </tr>
               );
@@ -126,6 +191,7 @@ export default function BranchSaldoActualList({
             )}
           </tbody>
         </table>
+        </>
       )}
     </div>
   );

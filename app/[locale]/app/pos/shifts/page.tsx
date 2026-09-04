@@ -411,14 +411,69 @@ export default function CashierShiftsPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 7 kolom, di HP kolom
+  // Cabang/Kasir/Total Sales/Status terpotong, tanggalnya pecah jadi tiga
+  // baris, dan aksinya cuma ikon bertooltip yang tak pernah muncul di layar
+  // sentuh.
+  const renderShiftCard = (row: ShiftRecord) => {
+    const hasSaldo = Boolean(row.opening_saldo || row.closing_saldo);
+
+    return (
+      <div className="space-y-2.5">
+        <div className="flex items-start justify-between gap-3">
+          {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama
+              cabang yang panjang bikin overflow horizontal. */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-gray-900">{row.branch?.name || '-'}</p>
+            <p className="truncate text-xs text-gray-500">{row.user?.name || '-'}</p>
+          </div>
+          <span
+            className={
+              row.status === 'open'
+                ? 'shrink-0 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700'
+                : 'shrink-0 rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700'
+            }
+          >
+            {row.status === 'open' ? 'Open' : 'Closed'}
+          </span>
+        </div>
+
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0 text-xs text-gray-600">
+            <p>Buka: {formatDateTime(row.opened_at)}</p>
+            <p>Tutup: {formatDateTime(row.closed_at)}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="text-[11px] text-gray-500">Total Sales</p>
+            <p className="text-sm font-bold text-gray-900">{formatCurrency(row.total_sales)}</p>
+          </div>
+        </div>
+
+        {/* Aksi berlabel teks & 44px: di layar sentuh tidak ada hover, jadi
+            ikon dompet bertooltip seperti versi tabel tidak akan terbaca. */}
+        <div className="border-t border-gray-100 pt-2.5">
+          <button
+            type="button"
+            onClick={() => handleSaldoClick(row)}
+            disabled={!hasSaldo}
+            className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-100 px-3 text-xs font-semibold text-emerald-800 transition-colors hover:bg-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <Wallet className="h-4 w-4" />
+            {hasSaldo ? 'Lihat Saldo Shift' : 'Saldo tidak tersedia'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#142D52] flex items-center gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-[#142D52] flex items-center gap-2">
           <CircleDot className="w-6 h-6" />
           Shift Kasir
         </h1>
-        <p className="text-gray-600 mt-1">Buka/tutup shift kasir dan pantau histori shift. Rekonsiliasi kas sekarang dilakukan lewat menu Saldo.</p>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Buka/tutup shift kasir dan pantau histori shift. Rekonsiliasi kas sekarang dilakukan lewat menu Saldo.</p>
       </div>
 
       {activeShift ? (
@@ -563,6 +618,7 @@ export default function CashierShiftsPage() {
         }}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderShiftCard}
       />
 
       {saldoModal.isOpen && (
