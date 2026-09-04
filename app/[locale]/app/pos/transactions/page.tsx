@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
-import { Eye, Receipt, X } from 'lucide-react';
+import { ChevronDown, Eye, Receipt, SlidersHorizontal, X } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 
 interface Branch {
@@ -52,6 +52,10 @@ export default function TransactionsPage() {
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  // Panel filter dilipat KHUSUS di bawah lg. Lima field yang selalu terbuka
+  // menumpuk vertikal di HP dan mendorong tabel jauh ke bawah layar. Di
+  // desktop panel ini tetap terbuka permanen seperti sebelumnya.
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   useEffect(() => {
     loadFilterOptions();
@@ -142,7 +146,8 @@ export default function TransactionsPage() {
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = !!(filterBranch || filterPaymentMethod || filterStatus || filterDateFrom || filterDateTo);
+  const activeFilterCount = [filterBranch, filterPaymentMethod, filterStatus, filterDateFrom, filterDateTo].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -187,6 +192,42 @@ export default function TransactionsPage() {
       </span>
     );
   };
+
+  // Tampilan kartu untuk layar kecil -- tabelnya 10 kolom, di HP itu jadi
+  // scroll horizontal panjang dan kolom Total serta Status (dua hal yang
+  // paling dicari) ada di ujung kanan alias tidak terlihat tanpa menggeser.
+  const renderSaleCard = (row: Sale) => (
+    <div className="space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nomor
+            transaksi yang panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-gray-900">{row.sale_number}</p>
+          <p className="truncate text-xs text-gray-400">{formatDate(row.sale_date)}</p>
+        </div>
+        <div className="shrink-0">{getStatusBadge(row.payment_status)}</div>
+      </div>
+
+      <p className="truncate text-sm text-gray-600">{getKeterangan(row)}</p>
+
+      <p className="text-lg font-bold text-gray-900">{formatCurrency(row.total_amount)}</p>
+
+      <p className="truncate text-xs text-gray-500">
+        {row.branch?.name || '-'} &middot; {row.customer?.name || 'Walk-in'} &middot; {row.payment_method?.name || '-'}
+      </p>
+
+      {/* Aksi berlabel teks & 44px: di layar sentuh tidak ada hover, jadi
+          ikon mata bertooltip seperti versi tabel tidak akan terbaca. */}
+      <div className="border-t border-gray-100 pt-2.5">
+        <Link
+          href={`/app/pos/transactions/${row.uuid}`}
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#EBC170] text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+        >
+          Lihat Detail
+        </Link>
+      </div>
+    </div>
+  );
 
   const columns: Column<Sale>[] = [
     {
@@ -276,24 +317,46 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#142D52]">Riwayat Transaksi</h1>
-        <p className="mt-1 text-gray-600">Daftar semua transaksi penjualan.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-[#142D52]">Riwayat Transaksi</h1>
+        <p className="mt-1 text-sm sm:text-base text-gray-600">Daftar semua transaksi penjualan.</p>
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">Filter Transaksi</h3>
+        <div className="flex items-center justify-between gap-3 lg:mb-3">
+          {/* Di bawah lg judulnya jadi tombol lipat; mulai lg dia kembali
+              jadi teks biasa karena panelnya memang selalu terbuka. */}
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters((prev) => !prev)}
+            aria-expanded={showMobileFilters}
+            className="flex min-h-11 flex-1 items-center gap-2 text-left text-sm font-semibold text-gray-700 cursor-pointer lg:min-h-0 lg:cursor-default"
+          >
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-500 lg:hidden" />
+            <span>Filter Transaksi</span>
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-[#142D52] px-2 py-0.5 text-[10px] font-bold text-[#EBC170] lg:hidden">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-gray-500 transition-transform lg:hidden ${showMobileFilters ? 'rotate-180' : ''}`}
+            />
+          </button>
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="flex cursor-pointer items-center space-x-1 text-xs text-red-600 hover:text-red-700"
+              className="flex min-h-11 shrink-0 cursor-pointer items-center space-x-1 text-xs text-red-600 hover:text-red-700 lg:min-h-0"
             >
               <X className="h-3 w-3" />
               <span>Reset Filter</span>
             </button>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <div
+          className={`grid-cols-1 gap-3 md:grid-cols-3 lg:grid lg:grid-cols-5 ${
+            showMobileFilters ? 'mt-3 grid lg:mt-0' : 'hidden'
+          }`}
+        >
           <div>
             <label className="mb-1 block text-xs text-gray-500">Cabang</label>
             <select
@@ -302,7 +365,7 @@ export default function TransactionsPage() {
                 setFilterBranch(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+              className="w-full min-h-11 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] lg:min-h-0 lg:text-sm"
             >
               <option value="">Semua Cabang</option>
               {branches.map((branch) => (
@@ -320,7 +383,7 @@ export default function TransactionsPage() {
                 setFilterPaymentMethod(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+              className="w-full min-h-11 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] lg:min-h-0 lg:text-sm"
             >
               <option value="">Semua Metode</option>
               {paymentMethods.map((pm) => (
@@ -338,7 +401,7 @@ export default function TransactionsPage() {
                 setFilterStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+              className="w-full min-h-11 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] lg:min-h-0 lg:text-sm"
             >
               <option value="">Semua Status</option>
               <option value="paid">Lunas</option>
@@ -355,7 +418,7 @@ export default function TransactionsPage() {
                 setFilterDateFrom(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+              className="w-full min-h-11 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] lg:min-h-0 lg:text-sm"
             />
           </div>
           <div>
@@ -367,7 +430,7 @@ export default function TransactionsPage() {
                 setFilterDateTo(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170]"
+              className="w-full min-h-11 cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-base focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#EBC170] lg:min-h-0 lg:text-sm"
             />
           </div>
         </div>
@@ -394,6 +457,8 @@ export default function TransactionsPage() {
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
         isLoading={isLoading}
+        getRowId={(row) => row.uuid}
+        renderMobileCard={renderSaleCard}
       />
     </div>
   );
