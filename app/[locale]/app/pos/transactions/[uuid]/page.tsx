@@ -132,31 +132,38 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/app/pos/transactions" className="cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-100">
+      {/* Di mobile judul & baris aksi ditumpuk. Dipaksa sebaris, tombol
+          "Cetak Ulang" plus badge status mendorong nomor transaksi sampai
+          terpotong di tepi kanan layar. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <Link
+            href="/app/pos/transactions"
+            aria-label="Kembali ke daftar transaksi"
+            className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-gray-100"
+          >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-[#142D52]">Detail Transaksi</h1>
-            <p className="mt-1 text-gray-600">{sale.sale_number}</p>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-[#142D52]">Detail Transaksi</h1>
+            <p className="mt-1 truncate text-sm sm:text-base text-gray-600">{sale.sale_number}</p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowReceipt(true)}
-            className="flex cursor-pointer items-center space-x-2 rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-50"
+            className="flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-50 sm:flex-none"
           >
-            <Printer className="h-4 w-4" />
+            <Printer className="h-4 w-4 shrink-0" />
             <span>Cetak Ulang</span>
           </button>
-          {getStatusBadge(sale.payment_status)}
+          <div className="shrink-0">{getStatusBadge(sale.payment_status)}</div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Informasi Transaksi</h2>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-start space-x-3">
@@ -215,9 +222,36 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
             )}
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Item Transaksi</h2>
-            <div className="overflow-x-auto">
+
+            {/* Mobile: tiap item jadi kartu. Sebagai tabel 6 kolom, kolom
+                Subtotal terdorong keluar layar HP sehingga angka yang paling
+                dicari justru harus digeser dulu. Kolom "No" sengaja dibuang di
+                sini -- cuma nomor urut, tidak menambah informasi. */}
+            <div className="divide-y divide-gray-100 lg:hidden">
+              {sale.items?.map((item) => (
+                <div key={item.uuid} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-3">
+                    {/* min-w-0 wajib: tanpa itu flex child menolak menyusut &
+                        nama produk panjang bikin overflow horizontal. */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-gray-900">{item.product?.name || '-'}</p>
+                      {item.product?.sku && <p className="truncate text-xs text-gray-500">{item.product.sku}</p>}
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold text-gray-900">{formatCurrency(Number(item.subtotal))}</p>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500">
+                    <span>{item.quantity} &times; {formatCurrency(Number(item.unit_price))}</span>
+                    {Number(item.discount) > 0 && (
+                      <span className="text-red-600">Diskon {formatCurrency(Number(item.discount))}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
@@ -252,7 +286,9 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ uu
         </div>
 
         <div className="lg:col-span-1">
-          <div className="sticky top-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          {/* sticky baru mulai lg: di mobile panel ini ditumpuk di bawah dan
+              sticky-nya tidak ada gunanya. */}
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-6 shadow-sm lg:sticky lg:top-6">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Ringkasan</h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
