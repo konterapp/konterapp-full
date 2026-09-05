@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo, ReactNode } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search, Filter } from 'lucide-react';
+import { useState, useMemo, useEffect, ReactNode } from 'react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Search, Filter, Loader2 } from 'lucide-react';
 
 export type SortOrder = 'asc' | 'desc';
 
@@ -36,6 +36,14 @@ export interface DataTableProps<T> {
    renderMobileCard?: (row: T) => ReactNode;
    /** Batas layar peralihan kartu -> tabel. Default `lg` (1024px), samakan dengan breakpoint sidebar. */
    mobileBreakpoint?: 'md' | 'lg';
+   /**
+    * Di tampilan kartu, daftar dimuat dengan infinite scroll (halaman berikutnya
+    * ditambahkan saat digulir sampai bawah) dan tombol paginasi disembunyikan --
+    * di HP menekan angka halaman jauh lebih repot daripada terus menggulir.
+    * Otomatis aktif kalau `renderMobileCard` diisi; set `false` untuk tetap
+    * memakai paginasi. Tabel di layar besar SELALU memakai paginasi.
+    */
+   mobileInfiniteScroll?: boolean;
    // Server-side pagination props
    serverSide?: boolean;
    currentPage?: number;
@@ -65,6 +73,7 @@ export default function DataTable<T extends Record<string, any>>({
    getRowId = (row) => row.id,
    renderMobileCard,
    mobileBreakpoint = 'lg',
+   mobileInfiniteScroll = true,
    serverSide = false,
    currentPage: externalCurrentPage,
    totalPages: externalTotalPages,
@@ -146,7 +155,13 @@ export default function DataTable<T extends Record<string, any>>({
    const totalItems = serverSide ? (externalTotalItems || data.length) : sortedData.length;
    const startIndex = (currentPage - 1) * itemsPerPage;
    const endIndex = startIndex + itemsPerPage;
-   const paginatedData = serverSide ? data : sortedData.slice(startIndex, endIndex);
+   // useMemo supaya identitas array stabil antar render: efek akumulasi infinite
+   // scroll di bawah memakainya sebagai dependency, dan slice baru tiap render
+   // akan membuat efek itu jalan terus-menerus.
+   const paginatedData = useMemo(
+      () => (serverSide ? data : sortedData.slice(startIndex, endIndex)),
+      [serverSide, data, sortedData, startIndex, endIndex],
+   );
 
    const handleSort = (field: string) => {
       const column = columns.find((col) => col.key === field);
@@ -174,10 +189,81 @@ export default function DataTable<T extends Record<string, any>>({
 
    // Class ditulis literal (bukan string dinamis) supaya tidak kena purge Tailwind.
    const responsiveClasses = {
-      md: { cardsOnly: 'md:hidden', tableOnly: 'hidden md:block' },
-      lg: { cardsOnly: 'lg:hidden', tableOnly: 'hidden lg:block' },
+      md: { cardsOnly: 'md:hidden', tableOnly: 'hidden md:block', tableOnlyFlex: 'hidden md:flex' },
+      lg: { cardsOnly: 'lg:hidden', tableOnly: 'hidden lg:block', tableOnlyFlex: 'hidden lg:flex' },
    }[mobileBreakpoint];
    const hasMobileCards = Boolean(renderMobileCard);
+   const infiniteScrollActive = hasMobileCards && mobileInfiniteScroll;
+
+   // Identitas stabil satu baris, dipakai untuk key React sekaligus dedupe saat
+   // baris ditumpuk oleh infinite scroll. `null` = baris tidak punya id, jatuh
+   // kembali ke index seperti sebelumnya.
+   const rowIdentity = (row: T): string | null => {
+      const id = getRowId?.(row) ?? row.uuid ?? row.id;
+      return id === undefined || id === null ? null : String(id);
+   };
+
+   // Halaman induk (serverSide) MENGGANTI `data` tiap pindah halaman, jadi baris
+   // hasil scroll harus ditumpuk di sini.
+   const [accumulatedRows, setAccumulatedRows] = useState<T[]>([]);
+   // Halaman yang datanya sudah benar-benar masuk ke `accumulatedRows`. Dipakai
+   // sebagai gerbang observer di bawah, jadi harus state (bukan ref) supaya
+   // perubahannya menjalankan ulang efek itu.
+   const [loadedPage, setLoadedPage] = useState(0);
+
+   useEffect(() => {
+      if (!infiniteScrollActive || isLoading) return;
+      // Halaman 1 dipakai sebagai satu-satunya sinyal reset: setiap perubahan
+      // cari/urut/jumlah-per-halaman selalu mengembalikan induk ke halaman 1.
+      // Membandingkan kueri secara langsung TIDAK bisa dipakai -- induk mencari
+      // dengan nilai debounce, jadi ada jeda saat kueri sudah berubah tapi
+      // datanya masih milik kueri lama, dan sebaris sisa ikut tertinggal.
+      setAccumulatedRows((rows) => {
+         if (currentPage <= 1) return paginatedData;
+         // Dedupe sebelum ditambahkan: efek ini bisa jalan lagi untuk halaman yang
+         // sama saat induk me-render ulang dengan array baru. Tanpa ini key React
+         // jadi kembar dan React meninggalkan node lama di DOM -- daftarnya
+         // terlihat menggandakan diri padahal datanya benar.
+         const seen = new Set(rows.map(rowIdentity).filter((key): key is string => key !== null));
+         return [...rows, ...paginatedData.filter((row) => {
+            const key = rowIdentity(row);
+            return key === null || !seen.has(key);
+         })];
+      });
+      setLoadedPage(currentPage);
+   }, [paginatedData, currentPage, isLoading, infiniteScrollActive]);
+
+   const mobileRows = infiniteScrollActive ? accumulatedRows : paginatedData;
+   const hasMoreRows = currentPage < totalPages;
+
+   // Sentinel diamati IntersectionObserver, bukan event scroll: yang menggulir di
+   // app ini elemen <main> (shell-nya h-dvh + overflow-hidden), jadi listener di
+   // window tidak akan pernah kena.
+   //
+   // Simpan node-nya sebagai STATE lewat callback ref, bukan useRef. Sentinel baru
+   // ikut ter-render satu render setelah baris pertama masuk, sedangkan efek di
+   // bawah tidak punya alasan untuk jalan ulang saat itu -- dengan useRef ia
+   // membaca `null`, keluar lebih awal, dan observer tidak pernah terpasang.
+   const [sentinelEl, setSentinelEl] = useState<HTMLDivElement | null>(null);
+
+   useEffect(() => {
+      // `loadedPage !== currentPage` = permintaan halaman berikutnya masih jalan.
+      // Menggantungkan gerbang ini pada `isLoading` saja tidak cukup: ada satu
+      // render setelah `setCurrentPage` di mana induk belum sempat menyalakan
+      // `isLoading`, dan di situ observer terpasang lagi lalu langsung menyala --
+      // halaman 3 & 4 ikut diminta padahal 2 belum tiba, dan barisnya hilang.
+      if (!infiniteScrollActive || !hasMoreRows || isLoading || !sentinelEl) return;
+      if (loadedPage !== currentPage) return;
+
+      const observer = new IntersectionObserver(
+         (entries) => {
+            if (entries[0]?.isIntersecting) setCurrentPage(currentPage + 1);
+         },
+         { rootMargin: '200px' },
+      );
+      observer.observe(sentinelEl);
+      return () => observer.disconnect();
+   }, [infiniteScrollActive, hasMoreRows, isLoading, currentPage, loadedPage, setCurrentPage, sentinelEl]);
 
    return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
@@ -220,7 +306,7 @@ export default function DataTable<T extends Record<string, any>>({
          {/* Kartu (layar kecil) -- hanya kalau halaman menyediakan renderMobileCard */}
          {hasMobileCards && (
             <div className={responsiveClasses.cardsOnly}>
-               {isLoading ? (
+               {isLoading && mobileRows.length === 0 ? (
                   <div className="space-y-3">
                      {Array.from({ length: Math.min(itemsPerPage, 5) }).map((_, index) => (
                         <div key={`skeleton-card-${index}`} className="rounded-xl border border-gray-200 p-4">
@@ -235,10 +321,10 @@ export default function DataTable<T extends Record<string, any>>({
                         </div>
                      ))}
                   </div>
-               ) : paginatedData.length > 0 ? (
+               ) : mobileRows.length > 0 ? (
                   <div className="space-y-3">
-                     {paginatedData.map((row, index) => {
-                        const rowKey = getRowId?.(row) ?? row.uuid ?? row.id ?? index;
+                     {mobileRows.map((row, index) => {
+                        const rowKey = rowIdentity(row) ?? index;
                         return (
                            <div
                               key={rowKey}
@@ -249,6 +335,24 @@ export default function DataTable<T extends Record<string, any>>({
                            </div>
                         );
                      })}
+
+                     {infiniteScrollActive && (
+                        <>
+                           <div ref={setSentinelEl} aria-hidden className="h-px" />
+                           <div className="py-3 text-center text-xs text-gray-500" aria-live="polite">
+                              {isLoading ? (
+                                 <span className="inline-flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Memuat data lain...
+                                 </span>
+                              ) : hasMoreRows ? (
+                                 `Menampilkan ${mobileRows.length} dari ${totalItems} data`
+                              ) : (
+                                 `Semua data sudah dimuat (${totalItems})`
+                              )}
+                           </div>
+                        </>
+                     )}
                   </div>
                ) : (
                   <div className="py-10 text-center">
@@ -350,7 +454,7 @@ export default function DataTable<T extends Record<string, any>>({
 
          {/* Pagination */}
          {totalItems > 0 && (
-            <div className="flex flex-col gap-3 pt-4 border-t border-gray-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-2">
+            <div className={`${infiniteScrollActive ? responsiveClasses.tableOnlyFlex : 'flex'} flex-col gap-3 pt-4 border-t border-gray-200 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-2`}>
                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="text-xs text-gray-600 sm:text-sm">
                      Menampilkan <span className="font-semibold">{startIndex + 1}</span> -{' '}
