@@ -519,6 +519,38 @@ export default function ProductsPage() {
     },
   ];
 
+  // Dipakai di DUA tempat: slot actionComponent DataTable (desktop) dan bar
+  // tersendiri di atas tabel (layar kecil). Sengaja satu variabel, bukan dua
+  // salinan JSX, supaya tombolnya tidak pernah berbeda antar ukuran layar.
+  const barcodeActions = (
+    <>
+      {selectedCount > 0 && (
+        <span className="shrink-0 rounded-md bg-[#F6E7C6] px-2 py-1 text-xs font-medium text-[#6A4B16]">
+          {selectedCount} dipilih
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={handleDownloadSelectedBarcodePdf}
+        disabled={selectedCount === 0 || isGeneratingBarcodePdf}
+        className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-[#142D52] px-3 py-2 text-sm text-white hover:bg-[#0f2442] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer lg:flex-none"
+      >
+        <Download className="w-4 h-4 shrink-0" />
+        <span className="whitespace-nowrap">{isGeneratingBarcodePdf ? 'Memproses...' : 'Download PDF Barcode'}</span>
+      </button>
+      {selectedCount > 0 && (
+        <button
+          type="button"
+          onClick={handleClearSelection}
+          className="flex min-h-11 shrink-0 items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          <X className="w-4 h-4 shrink-0" />
+          <span>Reset</span>
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
       {/* Mobile: judul & tombol ditumpuk, karena dipaksa sebaris membuat judul
@@ -545,50 +577,31 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {/* Di bawah lg toolbar barcode keluar dari slot actionComponent: di sana
+          dia sebaris dengan kolom cari (search `flex-1`) dan menghimpitnya
+          sampai tinggal sempit sekali di layar HP. Mulai lg dia kembali ke
+          slot aslinya, jadi tampilan desktop tidak berubah sama sekali. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white p-4 shadow-sm lg:hidden">
+        {/* Checkbox "pilih semua" hanya ada di header tabel, dan tabel itu
+            disembunyikan di layar kecil -- tanpa tombol ini alur pilih-banyak
+            untuk PDF barcode tidak bisa dipakai dari HP sama sekali. */}
+        <button
+          type="button"
+          onClick={handleToggleSelectCurrentPage}
+          disabled={products.length === 0}
+          className="min-h-11 shrink-0 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          {isAllCurrentPageSelected ? 'Batal pilih semua' : 'Pilih semua'}
+        </button>
+        {barcodeActions}
+      </div>
+
       <DataTable
         data={products}
         columns={columns}
         itemsPerPage={itemsPerPage}
         searchPlaceholder="Cari produk..."
-        actionComponent={(
-          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            {selectedCount > 0 && (
-              <span className="px-2 py-1 text-xs font-medium rounded-md bg-[#F6E7C6] text-[#6A4B16]">
-                {selectedCount} dipilih
-              </span>
-            )}
-            {/* Checkbox "pilih semua" hanya ada di header tabel, dan tabel itu
-                disembunyikan di layar kecil -- tanpa tombol ini alur pilih-banyak
-                untuk PDF barcode tidak bisa dipakai dari HP sama sekali. */}
-            <button
-              type="button"
-              onClick={handleToggleSelectCurrentPage}
-              disabled={products.length === 0}
-              className="min-h-11 rounded-lg border border-gray-200 px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer lg:hidden"
-            >
-              {isAllCurrentPageSelected ? 'Batal pilih semua' : 'Pilih semua'}
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadSelectedBarcodePdf}
-              disabled={selectedCount === 0 || isGeneratingBarcodePdf}
-              className="flex min-h-11 flex-1 items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#142D52] text-sm text-white hover:bg-[#0f2442] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer sm:flex-none"
-            >
-              <Download className="w-4 h-4 shrink-0" />
-              <span className="whitespace-nowrap">{isGeneratingBarcodePdf ? 'Memproses...' : 'Download PDF Barcode'}</span>
-            </button>
-            {selectedCount > 0 && (
-              <button
-                type="button"
-                onClick={handleClearSelection}
-                className="flex min-h-11 shrink-0 items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4 shrink-0" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
-        )}
+        actionComponent={<div className="hidden items-center gap-2 lg:flex">{barcodeActions}</div>}
         emptyMessage="Tidak ada produk ditemukan"
         emptyIcon={<Package className="w-16 h-16 text-gray-300 mx-auto" />}
         serverSide={true}
