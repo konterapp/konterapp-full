@@ -60,6 +60,7 @@ async function ensureCommissionProduct(prisma: PrismaClient | Prisma.Transaction
         companyUuid,
         name: COMMISSION_CATEGORY_NAME,
         description: "Kategori internal untuk produk yang dibuat otomatis oleh sistem -- jangan dihapus.",
+        isSystem: true,
       },
     });
   }

@@ -361,6 +361,11 @@ model AppPosProductCategory {
   companyUuid String   @map("company_uuid") @db.Char(36)
   name        String   @db.VarChar(255)
   description String?  @db.Text
+  /// Kategori internal yang dibuat otomatis oleh sistem (mis. wadah produk
+  /// sintetis "Laba PPOB"/"Komisi Agen Bank"). Disembunyikan dari listing
+  /// kategori & dropdown produk, serta tidak boleh diubah/dihapus user --
+  /// pola yang sama dengan AppPosProduct.isSystem.
+  isSystem    Boolean  @default(false) @map("is_system")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

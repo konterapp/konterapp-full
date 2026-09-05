@@ -36,6 +36,7 @@ async function ensureProfitProduct(tx: Prisma.TransactionClient, companyUuid: st
         companyUuid,
         name: PROFIT_CATEGORY_NAME,
         description: 'Kategori internal untuk produk yang dibuat otomatis oleh sistem -- jangan dihapus.',
+        isSystem: true,
       },
     });
   }

@@ -13,7 +13,11 @@ export const posCategoryService = {
     const { page, perPage, search, sortBy, sortOrder } = params;
     const skip = (page - 1) * perPage;
 
-    const where: any = {};
+    // Kategori internal sistem (wadah produk sintetis "Laba PPOB"/"Komisi
+    // Agen Bank") tidak pernah ditampilkan ke user. Endpoint ini juga dipakai
+    // dropdown kategori di form produk, jadi satu filter ini sekaligus
+    // mencegah user menempelkan produk jualan ke kategori internal.
+    const where: any = { isSystem: false };
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -50,7 +54,9 @@ export const posCategoryService = {
 
   async getCategoryDetail(uuid: string) {
     const category = await posCategoryRepository.findByUuid(uuid);
-    if (!category) {
+    if (!category || category.isSystem) {
+      // Kategori sistem diperlakukan seolah tidak ada, supaya halaman edit
+      // tidak bisa dibuka lewat URL langsung.
       throw new ApiError('Category not found', 404);
     }
 
@@ -76,6 +82,9 @@ export const posCategoryService = {
     if (!existing) {
       throw new ApiError('Category not found', 404);
     }
+    if (existing.isSystem) {
+      throw new ApiError('Kategori internal sistem tidak dapat diubah', 403);
+    }
 
     const category = await posCategoryRepository.updateByUuid(uuid, {
       name: payload.name ?? existing.name,
@@ -89,6 +98,9 @@ export const posCategoryService = {
     const existing = await posCategoryRepository.findByUuid(uuid);
     if (!existing) {
       throw new ApiError('Category not found', 404);
+    }
+    if (existing.isSystem) {
+      throw new ApiError('Kategori internal sistem tidak dapat dihapus', 403);
     }
 
     const productCount = await posCategoryRepository.countProducts(uuid);
