@@ -8,7 +8,7 @@ export default function CreateProductPage() {
       <div>
         <Link
           href="/app/pos/products"
-          className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          className="inline-flex min-h-11 items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Kembali ke Daftar Produk</span>

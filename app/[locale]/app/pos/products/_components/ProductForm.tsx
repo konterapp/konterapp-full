@@ -538,7 +538,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="sku"
               value={formData.sku}
               onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+              className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                 fieldErrors.sku
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -560,7 +560,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="barcode"
               value={formData.barcode}
               onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+              className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                 fieldErrors.barcode
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -582,7 +582,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="additional_barcodes"
               value={formData.additional_barcodes}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+              className="w-full px-3 py-3 text-base sm:py-2 sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
               placeholder="8991...,8992..."
             />
             <p className="mt-1 text-xs text-gray-500">Pisahkan dengan koma, contoh: 8991...,8992...</p>
@@ -598,7 +598,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+              className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                 fieldErrors.name
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -619,7 +619,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="category_uuid"
               value={formData.category_uuid}
               onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+              className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                 fieldErrors.category_uuid
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -646,7 +646,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="kind"
               value={formData.kind}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+              className="w-full px-3 py-3 text-base sm:py-2 sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
             >
               {PRODUCT_KIND_OPTIONS.map(option => (
                 <option key={option.value} value={option.value}>
@@ -668,7 +668,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
               name="unit"
               value={formData.unit}
               onChange={handleChange}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+              className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                 fieldErrors.unit
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -706,7 +706,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                 <select
                   value={row.unit}
                   onChange={(e) => handleUnitConversionChange(index, 'unit', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                  className="w-full px-3 py-3 text-base sm:py-2 sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
                 >
                   <option value="">Pilih Satuan</option>
                   {unitOptions.map(option => (
@@ -724,7 +724,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                   step="0.01"
                   value={row.factor_to_base}
                   onChange={(e) => handleUnitConversionChange(index, 'factor_to_base', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
+                  className="w-full px-3 py-3 text-base sm:py-2 sm:text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#EBC170] focus:border-[#EBC170] bg-white"
                   placeholder="0"
                 />
               </div>
@@ -809,7 +809,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
                 value={formData.min_stock}
                 onChange={handleChange}
                 min="0"
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                className={`w-full px-3 py-3 text-base sm:py-2 sm:text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
                   fieldErrors.min_stock
                     ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                     : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
@@ -941,23 +941,25 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
           </div>
         </div>
 
-        <div className="flex items-center">
+        {/* Label ikut jadi area sentuh (min-h-11) supaya checkbox 16px tidak
+            perlu dibidik tepat di kotaknya saat dipakai di HP. */}
+        <label htmlFor="is_active" className="flex min-h-11 items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
             id="is_active"
             name="is_active"
             checked={formData.is_active}
             onChange={handleChange}
-            className="w-4 h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170]"
+            className="w-5 h-5 sm:w-4 sm:h-4 text-[#EBC170] border-gray-300 rounded focus:ring-[#EBC170] cursor-pointer"
           />
-          <label htmlFor="is_active" className="ml-2 text-sm font-medium text-gray-700">
-            Produk Aktif
-          </label>
-        </div>
+          <span className="text-sm font-medium text-gray-700">Produk Aktif</span>
+        </label>
 
-        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200">
-          <Link href="/app/pos/products">
-            <Button type="button" variant="light" icon={X}>
+        {/* Di HP tombol ditumpuk & melebar penuh; rata kanan bikin keduanya
+            sempit (~90-105px) dan susah dipencet dengan jempol. */}
+        <div className="flex flex-col-reverse gap-3 pt-4 border-t border-gray-200 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          <Link href="/app/pos/products" className="w-full sm:w-auto">
+            <Button type="button" variant="light" icon={X} className="w-full min-h-11 justify-center sm:w-auto">
               Batal
             </Button>
           </Link>
@@ -966,6 +968,7 @@ export default function ProductForm({ productId, mode }: ProductFormProps) {
             variant="warning"
             icon={Save}
             isLoading={isLoading}
+            className="w-full min-h-11 justify-center sm:w-auto"
           >
             Simpan
           </Button>
