@@ -230,19 +230,73 @@ export default function SuppliersPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 7 kolom, kolom
+  // Telepon/Email/Alamat/Status tidak terlihat sama sekali dan aksinya cuma
+  // ikon bertooltip yang tidak pernah muncul di layar sentuh.
+  const renderSupplierCard = (row: Supplier) => (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama
+            panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+          <p className="truncate font-mono text-xs text-gray-500">{row.code}</p>
+        </div>
+        <span
+          className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+            row.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}
+        >
+          {row.is_active ? 'Aktif' : 'Non-aktif'}
+        </span>
+      </div>
+
+      <div className="space-y-1 text-xs text-gray-600">
+        {row.contact_person && <p>CP: {row.contact_person}</p>}
+        <p>{row.phone}</p>
+        {row.email && <p className="truncate">{row.email}</p>}
+        {row.address && <p className="line-clamp-2 text-gray-500">{row.address}</p>}
+      </div>
+
+      {(hasPermission('pos.supplier.update') || hasPermission('pos.supplier.delete')) && (
+        <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+          {hasPermission('pos.supplier.update') && (
+            <Link
+              href={`/app/pos/suppliers/${row.uuid}/edit`}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+              Edit
+            </Link>
+          )}
+          {hasPermission('pos.supplier.delete') && (
+            <button
+              type="button"
+              onClick={() => handleDeleteClick(row)}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+            >
+              Hapus
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Supplier</h1>
-          <p className="text-gray-600 mt-1">Kelola data supplier produk Anda</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya dipaksa sebaris sehingga
+          label "Tambah Supplier" pecah dua baris dan menghimpit judul. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Supplier</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola data supplier produk Anda</p>
         </div>
         {hasPermission('pos.supplier.create') && (
           <Link
             href="/app/pos/suppliers/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors cursor-pointer font-semibold"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors cursor-pointer font-semibold"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Supplier</span>
           </Link>
         )}
@@ -273,6 +327,7 @@ export default function SuppliersPage() {
           sortBy={sortBy}
           sortOrder={sortOrder}
           getRowId={(row) => row.uuid}
+          renderMobileCard={renderSupplierCard}
         />
       </div>
 

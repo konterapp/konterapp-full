@@ -199,19 +199,56 @@ export default function CustomersPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel, kolom Telepon/Email/
+  // Alamat tidak terlihat sama sekali dan aksinya cuma ikon bertooltip yang
+  // tidak pernah muncul di layar sentuh.
+  const renderCustomerCard = (row: Customer) => (
+    <div className="space-y-2">
+      {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama panjang
+          bikin overflow horizontal. */}
+      <p className="min-w-0 truncate text-sm font-semibold text-gray-900">{row.name}</p>
+
+      <div className="space-y-1 text-xs text-gray-600">
+        {row.phone && <p>{row.phone}</p>}
+        {row.email && <p className="truncate">{row.email}</p>}
+        {row.address && <p className="line-clamp-2 text-gray-500">{row.address}</p>}
+      </div>
+
+      {hasPermission('pos.sale.create') && (
+        <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+          <Link
+            href={`/app/pos/customers/${row.uuid}/edit`}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+          >
+            Edit
+          </Link>
+          <button
+            type="button"
+            onClick={() => handleDeleteClick(row)}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+          >
+            Hapus
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Pelanggan</h1>
-          <p className="text-gray-600 mt-1">Kelola data pelanggan untuk transaksi POS.</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya dipaksa sebaris sehingga
+          label "Tambah Pelanggan" pecah dua baris dan menghimpit judul. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Pelanggan</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola data pelanggan untuk transaksi POS.</p>
         </div>
         {hasPermission('pos.sale.create') && (
           <Link
             href="/app/pos/customers/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Pelanggan</span>
           </Link>
         )}
@@ -240,6 +277,7 @@ export default function CustomersPage() {
         onSearchChange={setSearchQuery}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderCustomerCard}
       />
 
       <ConfirmModal
