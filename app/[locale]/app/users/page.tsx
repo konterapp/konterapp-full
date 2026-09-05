@@ -284,19 +284,102 @@ export default function UsersPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 8 kolom, di HP hanya
+  // No/Aksi/Nama yang terlihat; Email, status verifikasi, status undangan,
+  // Role, dan Status aktif semuanya di luar layar. Aksinya pun cuma ikon
+  // bertooltip yang tidak pernah muncul di layar sentuh.
+  const renderUserCard = (row: UserRow) => {
+    const self = isSelf(row);
+
+    return (
+      <div className="space-y-2.5">
+        <div className="flex items-start justify-between gap-3">
+          {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & email
+              yang panjang bikin overflow horizontal. */}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+              {self && (
+                <span className="shrink-0 rounded-full bg-[#EBC170] px-2 py-0.5 text-xs font-medium text-gray-900">
+                  Anda
+                </span>
+              )}
+            </div>
+            <p className="truncate text-xs text-gray-500">{row.email}</p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+              row.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {row.is_active ? 'Aktif' : 'Nonaktif'}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          {row.roles.map((role) => (
+            <span key={role.uuid} className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+              {role.name}
+            </span>
+          ))}
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-medium ${
+              row.email_verified_at ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {row.email_verified_at ? 'Email terverifikasi' : 'Email belum verif'}
+          </span>
+          <span
+            className={`rounded-full px-2 py-1 text-xs font-medium ${
+              row.invitation_accepted_at ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {row.invitation_accepted_at ? 'Undangan diterima' : 'Undangan menunggu'}
+          </span>
+        </div>
+
+        {(hasPermission('user.update') || (hasPermission('user.delete') && !self)) && (
+          <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+            {hasPermission('user.update') && (
+              <Link
+                href={`/app/users/${row.uuid}/edit`}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+              >
+                Edit
+              </Link>
+            )}
+            {/* Sama seperti versi tabel: tombol hapus tidak muncul untuk akun
+                sendiri, supaya user tidak menghapus akunnya sendiri. */}
+            {hasPermission('user.delete') && !self && (
+              <button
+                type="button"
+                onClick={() => handleDeleteClick(row)}
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Manajemen User</h1>
-          <p className="text-gray-600 mt-1">Kelola user dan role-nya untuk perusahaan ini.</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya dipaksa sebaris sehingga
+          judul menghimpit tombol dan label "Tambah User" pecah dua baris. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Manajemen User</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola user dan role-nya untuk perusahaan ini.</p>
         </div>
         {hasPermission('user.create') && (
           <Link
             href="/app/users/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah User</span>
           </Link>
         )}
@@ -328,6 +411,7 @@ export default function UsersPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderUserCard}
       />
 
       <ConfirmModal
