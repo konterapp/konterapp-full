@@ -137,6 +137,45 @@ export default function UnitsPage() {
     setDeleteModal({ isOpen: false, unit: null, isLoading: false });
   };
 
+  // Tampilan kartu untuk layar kecil. Aksinya pakai label teks, bukan ikon
+  // bertooltip seperti versi tabel -- di layar sentuh tidak ada hover jadi
+  // tooltipnya tidak pernah terbaca.
+  const renderUnitCard = (row: Unit) => (
+    <div className="space-y-2.5">
+      {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & teks panjang
+          bikin overflow horizontal. */}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+        <p className="truncate text-xs text-gray-500">
+          {row.description || <span className="text-gray-400">Tanpa deskripsi</span>}
+        </p>
+      </div>
+
+      {(hasPermission('pos.unit.update') || hasPermission('pos.unit.delete')) && (
+        <div className="flex gap-2 border-t border-gray-100 pt-2.5">
+          {hasPermission('pos.unit.update') && (
+            <Link
+              href={`/app/pos/units/${row.uuid}/edit`}
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#EBC170] text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+              <Edit className="h-3.5 w-3.5" />
+              Edit
+            </Link>
+          )}
+          {hasPermission('pos.unit.delete') && (
+            <button
+              onClick={() => handleDeleteClick(row)}
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-200 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 cursor-pointer"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Hapus
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   const columns: Column<Unit>[] = [
     {
       key: 'no',
@@ -201,17 +240,19 @@ export default function UnitsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Satuan Produk</h1>
-          <p className="text-gray-600 mt-1">Kelola satuan untuk pemilihan pada form produk POS.</p>
+      {/* Di mobile judul & tombol ditumpuk; dipaksa sebaris membuat label
+          tombol pecah jadi beberapa baris. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-[#142D52]">Satuan Produk</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola satuan untuk pemilihan pada form produk POS.</p>
         </div>
         {hasPermission('pos.unit.create') && (
           <Link
             href="/app/pos/units/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Satuan</span>
           </Link>
         )}
@@ -243,6 +284,7 @@ export default function UnitsPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderUnitCard}
       />
 
       <ConfirmModal
