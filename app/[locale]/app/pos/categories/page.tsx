@@ -192,19 +192,60 @@ export default function CategoriesPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel, kolom Nama Kategori
+  // terpotong di HP ("Elektronik & Gadget" jadi "Elektronik & Gadge...") dan
+  // kolom Deskripsi tidak terlihat sama sekali; aksinya pun cuma ikon
+  // bertooltip yang tidak pernah muncul di layar sentuh.
+  const renderCategoryCard = (row: Category) => (
+    <div className="space-y-2.5">
+      {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama kategori
+          yang panjang bikin overflow horizontal. */}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-gray-900">{row.name}</p>
+        <p className="text-xs text-gray-500">
+          {row.description || <span className="text-gray-400">Tanpa deskripsi</span>}
+        </p>
+      </div>
+
+      {(hasPermission('pos.category.update') || hasPermission('pos.category.delete')) && (
+        <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+          {hasPermission('pos.category.update') && (
+            <Link
+              href={`/app/pos/categories/${row.uuid}/edit`}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[#EBC170] px-2 text-xs font-semibold text-gray-900 transition-colors hover:bg-[#d4ab5f] cursor-pointer"
+            >
+              Edit
+            </Link>
+          )}
+          {hasPermission('pos.category.delete') && (
+            <button
+              type="button"
+              onClick={() => handleDeleteClick(row)}
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+            >
+              Hapus
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Kategori Produk</h1>
-          <p className="text-gray-600 mt-1">Kelola kategori produk untuk sistem POS.</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya dipaksa sebaris sehingga
+          judul menghimpit tombol dan label "Tambah Kategori" pecah dua baris. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Kategori Produk</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola kategori produk untuk sistem POS.</p>
         </div>
         {hasPermission('pos.category.create') && (
           <Link
             href="/app/pos/categories/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Kategori</span>
           </Link>
         )}
@@ -236,6 +277,7 @@ export default function CategoriesPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderCategoryCard}
       />
 
       <ConfirmModal
