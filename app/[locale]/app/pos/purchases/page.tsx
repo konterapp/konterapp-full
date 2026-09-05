@@ -274,19 +274,72 @@ export default function PurchasesPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 7 kolom, kolom
+  // Cabang/Supplier/Total/Status tidak terlihat sama sekali dan aksinya cuma
+  // ikon bertooltip yang tidak pernah muncul di layar sentuh.
+  const renderPurchaseCard = (row: Purchase) => (
+    <div className="space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nomor
+            pembelian yang panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-mono text-sm font-semibold text-gray-900">{row.purchase_number}</p>
+          <p className="truncate text-xs text-gray-400">{formatDate(row.purchase_date)}</p>
+        </div>
+        <div className="shrink-0">{getStatusBadge(row.payment_status)}</div>
+      </div>
+
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-gray-900">{row.supplier?.name || 'Tanpa Supplier'}</p>
+          <p className="truncate text-xs text-gray-500">{row.branch?.name || '-'}</p>
+        </div>
+        <p className="shrink-0 text-base font-bold text-gray-900">{formatCurrency(row.total_amount)}</p>
+      </div>
+
+      <div className="flex items-center gap-2 border-t border-gray-100 pt-2.5">
+        <Link
+          href={`/app/pos/purchases/${row.uuid}`}
+          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-blue-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-blue-600 cursor-pointer"
+        >
+          Detail
+        </Link>
+        {row.payment_status === 'draft' && hasPermission('pos.purchase.create') && (
+          <Link
+            href={`/app/pos/purchases/${row.uuid}/edit`}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-amber-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-amber-600 cursor-pointer"
+          >
+            Edit Draft
+          </Link>
+        )}
+        {hasPermission('pos.purchase.delete') && row.payment_status !== 'void' && (
+          <button
+            type="button"
+            onClick={() => handleDeleteClick(row)}
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-red-500 px-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 cursor-pointer"
+          >
+            Void
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#142D52]">Pembelian / Stock In</h1>
-          <p className="text-gray-600 mt-1">Kelola stock in pembelian dengan atau tanpa supplier.</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Mobile: judul & tombol ditumpuk. Sebelumnya dipaksa sebaris sehingga
+          label tombol pecah beberapa baris dan menghimpit judul. */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Pembelian / Stock In</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Kelola stock in pembelian dengan atau tanpa supplier.</p>
         </div>
         {hasPermission('pos.purchase.create') && (
           <Link
             href="/app/pos/purchases/create"
-            className="flex items-center space-x-2 px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
+            className="flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap px-4 py-2 bg-[#EBC170] text-gray-900 rounded-lg hover:bg-[#d4ab5f] transition-colors font-semibold cursor-pointer"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-5 h-5 shrink-0" />
             <span>Tambah Pembelian</span>
           </Link>
         )}
@@ -318,6 +371,7 @@ export default function PurchasesPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderPurchaseCard}
       />
 
       <ConfirmModal

@@ -280,11 +280,43 @@ export default function StockOnHandPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 8 kolom, kolom
+  // Kategori, Min Stok, dan Update Terakhir tidak terlihat sama sekali.
+  const renderStockCard = (row: StockOnHandItem) => (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama
+            produk yang panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-gray-900">{row.product?.name || '-'}</p>
+          <p className="truncate text-xs text-gray-500">
+            {row.product?.sku || '-'}
+            {row.product?.category?.name ? ` · ${row.product.category.name}` : ''}
+          </p>
+        </div>
+        <div className="shrink-0">{getStockStatusBadge(row.stock_status)}</div>
+      </div>
+
+      <div className="flex items-end justify-between gap-3">
+        <p className="min-w-0 truncate text-xs text-gray-500">
+          {row.branch?.name || '-'}
+          {row.branch?.code ? ` (${row.branch.code})` : ''}
+        </p>
+        <p className="shrink-0 text-sm font-semibold text-gray-900">
+          {row.stock} <span className="font-normal text-gray-500">{row.product?.unit || ''}</span>
+          <span className="ml-1 font-normal text-gray-400">/ min {row.min_stock}</span>
+        </p>
+      </div>
+
+      <p className="text-[11px] text-gray-400">Update terakhir: {formatDate(row.updated_at)}</p>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-[#142D52]">Stock On-Hand</h1>
-        <p className="text-gray-600 mt-1">Snapshot saldo stok terkini per produk dan cabang.</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="min-w-0">
+        <h1 className="text-lg sm:text-2xl font-bold text-[#142D52]">Stock On-Hand</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Snapshot saldo stok terkini per produk dan cabang.</p>
       </div>
 
       <DataTable
@@ -308,6 +340,7 @@ export default function StockOnHandPage() {
         onSortChange={handleSortChange}
         isLoading={isLoading}
         getRowId={(row) => row.uuid}
+        renderMobileCard={renderStockCard}
       />
     </div>
   );

@@ -244,15 +244,49 @@ export default function StockMovementsPage() {
     },
   ];
 
+  // Tampilan kartu untuk layar kecil -- sebagai tabel 7 kolom, kolom Stok
+  // Sebelum/Sesudah dan Referensi tidak terlihat sama sekali.
+  const renderMovementCard = (row: StockMovement) => (
+    <div className="space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        {/* min-w-0 wajib: tanpa itu flex child menolak menyusut & nama
+            produk yang panjang bikin overflow horizontal. */}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-gray-900">{row.product?.name || '-'}</p>
+          <p className="truncate text-xs text-gray-400">{formatDate(row.created_at)}</p>
+        </div>
+        <div className="shrink-0">{getMovementTypeBadge(row.movement_type)}</div>
+      </div>
+
+      <div className="flex items-end justify-between gap-3">
+        <p className="min-w-0 truncate text-xs text-gray-500">{row.branch?.name || '-'}</p>
+        <p className="shrink-0 text-sm text-gray-700">
+          <span className={row.quantity_change > 0 ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
+            {row.quantity_change > 0 ? '+' : ''}{row.quantity_change}
+          </span>
+          <span className="ml-1 text-gray-400">({row.quantity_before} &rarr; {row.quantity_after})</span>
+        </p>
+      </div>
+
+      {(row.reference_type || row.notes) && (
+        <p className="truncate text-xs text-gray-500">
+          {row.reference_type}
+          {row.reference_type && row.notes ? ' · ' : ''}
+          {row.notes}
+        </p>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-[#142D52] flex items-center gap-2">
-            <History className="h-6 w-6" />
+          <h1 className="text-lg sm:text-2xl font-bold text-[#142D52] flex items-center gap-2">
+            <History className="h-6 w-6 shrink-0" />
             Riwayat Pergerakan Stok
           </h1>
-          <p className="text-gray-600 mt-1">Audit trail semua perubahan stok produk</p>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Audit trail semua perubahan stok produk</p>
         </div>
       </div>
 
@@ -357,6 +391,8 @@ export default function StockMovementsPage() {
           searchPlaceholder="Cari produk..."
           searchQuery={filters.search}
           onSearchChange={(value) => handleFilterChange('search', value)}
+          getRowId={(row) => row.uuid}
+          renderMobileCard={renderMovementCard}
         />
       </div>
     </div>
