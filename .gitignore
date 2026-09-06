@@ -41,6 +41,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cache skill Claude Code (dokumen referensi yang di-fetch on-demand,
+# bukan kode project -- tidak perlu ikut ter-commit)
+/.claude/skills/
+/.agents/
+skills-lock.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
