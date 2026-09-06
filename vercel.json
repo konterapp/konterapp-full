@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm install --force",
   "functions": {
     "app/api/**/*.ts": {
       "regions": ["sin1"]
