@@ -20,7 +20,7 @@ export const posCustomerRepository = {
     return prisma.appPosCustomer.findFirst({ where: { uuid } });
   },
 
-  create(data: { name: string; phone: string | null; email: string | null; address: string | null }) {
+  create(data: { name: string; phone: string | null; email: string | null; address: string | null; isDefault?: boolean }) {
     // companyUuid diisi otomatis oleh extension tenant di lib/prisma.ts,
     // jadi tipe Prisma yang mewajibkannya di-cast eksplisit di sini.
     return prisma.appPosCustomer.create({
