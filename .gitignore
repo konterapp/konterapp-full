@@ -41,11 +41,11 @@ yarn-error.log*
 # vercel
 .vercel
 
-# cache skill Claude Code (dokumen referensi yang di-fetch on-demand,
-# bukan kode project -- tidak perlu ikut ter-commit)
+# cache skill Claude Code: dokumen referensi yang di-fetch on-demand sesuai
+# skills-lock.json (TETAP di-track -- itu penunjuk versi, bukan cache). Isi
+# dokumennya sendiri tidak perlu ikut commit, akan ke-fetch ulang otomatis.
 /.claude/skills/
 /.agents/
-skills-lock.json
 
 # typescript
 *.tsbuildinfo
