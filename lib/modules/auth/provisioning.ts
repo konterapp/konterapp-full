@@ -226,59 +226,62 @@ export async function provisionCompanyForUser(params: {
 }): Promise<{ uuid: string; code: string; name: string }> {
   const { userId, companyName } = params;
 
-  return prisma.$transaction(async (tx) => {
-    const company = await createCompanyWithUniqueCode(tx, companyName);
+  return prisma.$transaction(
+    async (tx) => {
+      const company = await createCompanyWithUniqueCode(tx, companyName);
 
-    await seedTenantDefaultRoles(tx, company.uuid);
-    await seedTenantDefaults(tx, company.uuid);
+      await seedTenantDefaultRoles(tx, company.uuid);
+      await seedTenantDefaults(tx, company.uuid);
 
-    const adminRole = await tx.role.findFirst({
-      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
-      select: { id: true },
-    });
-    if (!adminRole) {
-      throw new Error("Role administrator tenant tidak ditemukan");
-    }
+      const adminRole = await tx.role.findFirst({
+        where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
+        select: { id: true },
+      });
+      if (!adminRole) {
+        throw new Error("Role administrator tenant tidak ditemukan");
+      }
 
-    await tx.modelHasRole.create({
-      data: {
-        roleId: adminRole.id,
-        modelType: MODEL_TYPE_USER,
-        modelId: userId,
-        companyUuid: company.uuid,
-      },
-    });
-
-    await tx.companyUser.create({
-      data: {
-        companyUuid: company.uuid,
-        userId,
-        isDefault: true,
-        isActive: true,
-        // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
-        invitationAcceptedAt: new Date(),
-      },
-    });
-
-    const trialPlan = await tx.plan.findUnique({
-      where: { code: FREE_PLAN_CODE },
-    });
-    if (trialPlan) {
-      const startedAt = new Date();
-      await tx.companySubscription.create({
+      await tx.modelHasRole.create({
         data: {
+          roleId: adminRole.id,
+          modelType: MODEL_TYPE_USER,
+          modelId: userId,
           companyUuid: company.uuid,
-          planUuid: trialPlan.uuid,
-          status: "active",
-          startedAt,
-          // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
-          expiresAt: null,
         },
       });
-    }
 
-    return company;
-  });
+      await tx.companyUser.create({
+        data: {
+          companyUuid: company.uuid,
+          userId,
+          isDefault: true,
+          isActive: true,
+          // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
+          invitationAcceptedAt: new Date(),
+        },
+      });
+
+      const trialPlan = await tx.plan.findUnique({
+        where: { code: FREE_PLAN_CODE },
+      });
+      if (trialPlan) {
+        const startedAt = new Date();
+        await tx.companySubscription.create({
+          data: {
+            companyUuid: company.uuid,
+            planUuid: trialPlan.uuid,
+            status: "active",
+            startedAt,
+            // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
+            expiresAt: null,
+          },
+        });
+      }
+
+      return company;
+    },
+    { timeout: 30_000 }
+  );
 }
 
 /**
@@ -298,96 +301,99 @@ export async function provisionTenantUser(params: {
 }> {
   const { name, email, passwordHash, companyName, referredByUserId } = params;
 
-  return prisma.$transaction(async (tx) => {
-    const company = await createCompanyWithUniqueCode(tx, companyName || `Konter ${name}`);
+  return prisma.$transaction(
+    async (tx) => {
+      const company = await createCompanyWithUniqueCode(tx, companyName || `Konter ${name}`);
 
-    await seedTenantDefaultRoles(tx, company.uuid);
-    await seedTenantDefaults(tx, company.uuid);
+      await seedTenantDefaultRoles(tx, company.uuid);
+      await seedTenantDefaults(tx, company.uuid);
 
-    const adminRole = await tx.role.findFirst({
-      where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
-      select: { id: true },
-    });
-    if (!adminRole) {
-      throw new Error("Role administrator tenant tidak ditemukan");
-    }
-
-    // Generate kode referral unik untuk user baru (retry jika tabrakan).
-    let referralCode: string | undefined;
-    for (let i = 0; i < 10; i++) {
-      const candidate = generateReferralCode();
-      const exists = await tx.user.findUnique({
-        where: { referralCode: candidate },
+      const adminRole = await tx.role.findFirst({
+        where: { companyUuid: company.uuid, name: TENANT_DEFAULT_ROLE_ADMINISTRATOR },
         select: { id: true },
       });
-      if (!exists) {
-        referralCode = candidate;
-        break;
+      if (!adminRole) {
+        throw new Error("Role administrator tenant tidak ditemukan");
       }
-    }
-    if (!referralCode) {
-      throw new Error("Gagal membuat kode referral unik");
-    }
 
-    const user = await tx.user.create({
-      data: {
-        uuid: uuidv7(),
-        name,
-        email,
-        password: passwordHash,
-        isActive: true,
-        referralCode,
-        referredByUserId: referredByUserId ?? undefined,
-        // Registrasi password: wajib verifikasi email sebelum bisa login.
-        emailVerifiedAt: null,
-      },
-      select: {
-        id: true,
-        uuid: true,
-        name: true,
-        email: true,
-      },
-    });
+      // Generate kode referral unik untuk user baru (retry jika tabrakan).
+      let referralCode: string | undefined;
+      for (let i = 0; i < 10; i++) {
+        const candidate = generateReferralCode();
+        const exists = await tx.user.findUnique({
+          where: { referralCode: candidate },
+          select: { id: true },
+        });
+        if (!exists) {
+          referralCode = candidate;
+          break;
+        }
+      }
+      if (!referralCode) {
+        throw new Error("Gagal membuat kode referral unik");
+      }
 
-    await tx.modelHasRole.create({
-      data: {
-        roleId: adminRole.id,
-        modelType: MODEL_TYPE_USER,
-        modelId: user.id,
-        companyUuid: company.uuid,
-      },
-    });
-
-    await tx.companyUser.create({
-      data: {
-        companyUuid: company.uuid,
-        userId: user.id,
-        isDefault: true,
-        isActive: true,
-        // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
-        invitationAcceptedAt: new Date(),
-      },
-    });
-
-    const trialPlan = await tx.plan.findUnique({
-      where: { code: FREE_PLAN_CODE },
-    });
-    if (trialPlan) {
-      const startedAt = new Date();
-      await tx.companySubscription.create({
+      const user = await tx.user.create({
         data: {
-          companyUuid: company.uuid,
-          planUuid: trialPlan.uuid,
-          status: "active",
-          startedAt,
-          // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
-          expiresAt: null,
+          uuid: uuidv7(),
+          name,
+          email,
+          password: passwordHash,
+          isActive: true,
+          referralCode,
+          referredByUserId: referredByUserId ?? undefined,
+          // Registrasi password: wajib verifikasi email sebelum bisa login.
+          emailVerifiedAt: null,
+        },
+        select: {
+          id: true,
+          uuid: true,
+          name: true,
+          email: true,
         },
       });
-    }
 
-    return { user, company };
-  });
+      await tx.modelHasRole.create({
+        data: {
+          roleId: adminRole.id,
+          modelType: MODEL_TYPE_USER,
+          modelId: user.id,
+          companyUuid: company.uuid,
+        },
+      });
+
+      await tx.companyUser.create({
+        data: {
+          companyUuid: company.uuid,
+          userId: user.id,
+          isDefault: true,
+          isActive: true,
+          // Company dibuat sendiri oleh user ini, bukan diundang -> langsung diterima.
+          invitationAcceptedAt: new Date(),
+        },
+      });
+
+      const trialPlan = await tx.plan.findUnique({
+        where: { code: FREE_PLAN_CODE },
+      });
+      if (trialPlan) {
+        const startedAt = new Date();
+        await tx.companySubscription.create({
+          data: {
+            companyUuid: company.uuid,
+            planUuid: trialPlan.uuid,
+            status: "active",
+            startedAt,
+            // Free selamanya: berlaku tanpa kedaluwarsa (expiresAt null).
+            expiresAt: null,
+          },
+        });
+      }
+
+      return { user, company };
+    },
+    { timeout: 30_000 }
+  );
 }
 
 /**
