@@ -41,11 +41,17 @@ yarn-error.log*
 # vercel
 .vercel
 
-# cache skill Claude Code: dokumen referensi yang di-fetch on-demand sesuai
+# Cache skill Claude Code yang di-fetch otomatis (bukan dibuat manual) sesuai
 # skills-lock.json (TETAP di-track -- itu penunjuk versi, bukan cache). Isi
 # dokumennya sendiri tidak perlu ikut commit, akan ke-fetch ulang otomatis.
-/.claude/skills/
-/.agents/
+# Sengaja spesifik per-skill (bukan /.claude/skills/ atau /.agents/ secara
+# keseluruhan) supaya skill/agent lain yang dibuat manual tetap ter-track.
+# .claude/skills/<nama> adalah SYMLINK ke .agents/skills/<nama> (bukan folder
+# asli) -- pola berakhiran "/" tidak match ke symlink, jadi tanpa "/" di sini.
+/.claude/skills/neon
+/.claude/skills/neon-postgres
+/.agents/skills/neon/
+/.agents/skills/neon-postgres/
 
 # typescript
 *.tsbuildinfo
