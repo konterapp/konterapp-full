@@ -19,7 +19,6 @@ const TENANT_DEFAULT_SALDO_ACCOUNTS = [
 ];
 
 const TENANT_DEFAULT_PRODUCT_CATEGORIES = [
-  { name: "Pulsa & Voucher", description: "Voucher pulsa, paket data, dan token listrik" },
   { name: "Aksesoris HP", description: "Case, charger, headset, dan aksesoris ponsel lainnya" },
   { name: "Minuman & Snack", description: "Minuman ringan, kopi, dan makanan ringan" },
   { name: "Rokok", description: "Berbagai merek rokok dan produk tembakau" },
@@ -35,13 +34,6 @@ const TENANT_DEFAULT_UNITS = [
 
 // categoryName harus cocok dengan salah satu nama di TENANT_DEFAULT_PRODUCT_CATEGORIES.
 const TENANT_DEFAULT_PRODUCTS = [
-  {
-    categoryName: "Pulsa & Voucher",
-    name: "Pulsa Elektrik 10.000",
-    unit: "pcs",
-    purchasePrice: 10500,
-    sellingPrice: 12000,
-  },
   {
     categoryName: "Aksesoris HP",
     name: "Kabel Data USB",
