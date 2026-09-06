@@ -12,6 +12,7 @@ import { seedBankAgentTransactions } from "./bank-agent-transactions";
 import { seedProducts } from "./products";
 import { seedPurchases } from "./purchases";
 import { seedStockMovements } from "./stock-movements";
+import { seedStockTransfers } from "./stock-transfers";
 import { seedPpobTransactions } from "./ppob-transactions";
 import { seedCashierShifts } from "./cashier-shifts";
 import { seedSales } from "./sales";
@@ -31,6 +32,7 @@ async function seedDummy(prisma: PrismaClient) {
   await seedProducts(prisma);
   await seedPurchases(prisma);
   await seedStockMovements(prisma);
+  await seedStockTransfers(prisma);
   await seedSales(prisma);
   await seedPpobTransactions(prisma);
   await seedCashierShifts(prisma);

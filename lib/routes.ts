@@ -130,6 +130,14 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/pos/stock-movements',
     permission: 'pos.stock-movement.index',
   },
+  'pos.stock-transfer.index': {
+    path: '/app/pos/stock-transfers',
+    permission: 'pos.stock-transfer.index',
+  },
+  'pos.stock-transfer.create': {
+    path: '/app/pos/stock-transfers/create',
+    permission: 'pos.stock-transfer.create',
+  },
   'pos.stock-opname.index': {
     path: '/app/pos/stock-opname',
     permission: 'pos.stock-movement.index',

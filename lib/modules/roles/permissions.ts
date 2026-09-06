@@ -49,6 +49,14 @@ export const PERMISSIONS = [
   "pos.purchase.delete",
   // POS - Stock Movement
   "pos.stock-movement.index",
+  // POS - Stock Transfer (pindah stok fisik antar cabang). Sengaja permission
+  // terpisah dari pos.stock-movement.index (yang cuma baca riwayat) karena
+  // transfer benar-benar MENULIS ke stok, sama alasannya kenapa Stock Opname
+  // juga bisa nulis lewat izin baca "pos.stock-movement.index" saja -- lihat
+  // pos.stock-opname.create di lib/routes.ts, itu sisa desain lama yang belum
+  // dirapikan. Untuk fitur baru ini permission create-nya dibuat eksplisit.
+  "pos.stock-transfer.index",
+  "pos.stock-transfer.create",
   // POS - Report
   "pos.report.index",
   // POS - Saldo (akun uang konter, sebagian juga bisa jadi metode bayar)

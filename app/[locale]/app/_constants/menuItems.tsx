@@ -14,6 +14,7 @@ import {
     UserRound,
     Printer,
     ArrowLeftRight,
+    Shuffle,
     ClipboardCheck,
     Wallet,
     Banknote,
@@ -183,6 +184,13 @@ const coreMenuItems: MenuItem[] = [
         href: '/app/pos/stock-opname',
         icon: <ClipboardCheck className="w-5 h-5" />,
         permission: 'pos.stock-movement.index'
+    },
+    {
+        section: 'Inventori',
+        label: 'Transfer Stok',
+        href: '/app/pos/stock-transfers',
+        icon: <Shuffle className="w-5 h-5" />,
+        permission: 'pos.stock-transfer.index'
     },
     // Keuangan
     {
