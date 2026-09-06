@@ -144,6 +144,16 @@ async function seedTenantDefaults(tx: TransactionClient, companyUuid: string) {
     });
   }
 
+  await tx.appPosCustomer.create({
+    data: {
+      uuid: uuidv7(),
+      companyUuid,
+      name: "Walk In Customer",
+      phone: "-",
+      isDefault: true,
+    },
+  });
+
   for (const product of TENANT_DEFAULT_PRODUCTS) {
     const categoryUuid = categoryUuidByName.get(product.categoryName);
     if (!categoryUuid) continue;
