@@ -51,6 +51,8 @@ model Administrator {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
+  settledInvoices SubscriptionInvoice[]
+
   @@map("administrators")
 }
 
@@ -98,12 +100,13 @@ model PasswordResetToken {
 }
 
 model Company {
-  uuid      String   @id @default(uuid()) @db.Char(36)
-  code      String   @unique @db.VarChar(50)
-  name      String   @db.VarChar(255)
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  uuid                String   @id @default(uuid()) @db.Char(36)
+  code                String   @unique @db.VarChar(50)
+  name                String   @db.VarChar(255)
+  isActive            Boolean  @default(true) @map("is_active")
+  allowNegativeStock  Boolean  @default(false) @map("allow_negative_stock")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
 
   memberships                CompanyUser[]
   memberBranches             CompanyUserBranch[]
@@ -249,6 +252,8 @@ model SubscriptionInvoice {
   uuid                   String    @id @default(uuid()) @db.Char(36)
   companyUuid            String    @map("company_uuid") @db.Char(36)
   planUuid               String    @map("plan_uuid") @db.Char(36)
+  paidByAdministratorId  Int?      @map("paid_by_administrator_id")
+  adminNote              String?   @map("admin_note") @db.Text
   provider               String    @default("mayar") @db.VarChar(20)
   providerInvoiceId      String    @unique @map("provider_invoice_id") @db.VarChar(100)
   providerTransactionId  String?   @map("provider_transaction_id") @db.VarChar(100)
@@ -268,9 +273,11 @@ model SubscriptionInvoice {
 
   company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
   plan    Plan    @relation(fields: [planUuid], references: [uuid], onDelete: Restrict)
+  administrator Administrator? @relation(fields: [paidByAdministratorId], references: [id], onDelete: SetNull)
 
   @@index([companyUuid])
   @@index([status])
+  @@index([paidByAdministratorId])
   @@map("subscription_invoices")
 }
 

@@ -17,6 +17,7 @@ export interface UserCompany {
   uuid: string;
   code: string;
   name: string;
+  allow_negative_stock?: boolean;
   is_default?: boolean;
 }
 

@@ -61,12 +61,17 @@ DOING:
     - (done) fix vuln push
     - (done) user by cabang
     - (done) user login as
-    - Kasir Digital
+    - (done) Kasir Digital
+    - billing bisa di lunaskan oleh admin
 - konterapp-full-2
     - (done) edit nominal saldo
     - (done) admin bank laba rugi
+    - (done) pindah stock dari cabang ke cabang lain
 - konterapp-full-3
     - (done) menu langganan & referral
+    - bisa transaksi stock kosong
+
+
 
 PENDING:
 - /app/pos/* ganti /app/* saja

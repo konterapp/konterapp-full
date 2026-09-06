@@ -4,6 +4,7 @@ export type UserCompanySummary = {
   uuid: string;
   code: string;
   name: string;
+  allow_negative_stock: boolean;
   is_default: boolean;
 };
 
@@ -21,6 +22,7 @@ export async function getUserCompanyMemberships(userId: number): Promise<UserCom
           uuid: true,
           code: true,
           name: true,
+          allowNegativeStock: true,
         },
       },
     },
@@ -31,6 +33,7 @@ export async function getUserCompanyMemberships(userId: number): Promise<UserCom
     uuid: membership.company.uuid,
     code: membership.company.code,
     name: membership.company.name,
+    allow_negative_stock: membership.company.allowNegativeStock,
     is_default: membership.isDefault,
   }));
 }

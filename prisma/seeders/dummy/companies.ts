@@ -11,16 +11,21 @@ const COMPANIES_DATA = [
     code: 'CMP-002',
     name: 'Konter Berkah Jaya',
     isActive: true,
+    // Contoh company yang mengaktifkan "boleh jual stok minus" supaya
+    // ada data dummy untuk setting POS ini.
+    allowNegativeStock: true,
   },
   {
     code: 'CMP-003',
     name: 'Konter Sinar Abadi',
     isActive: true,
+    allowNegativeStock: false,
   },
   {
     code: 'CMP-004',
     name: 'Konter Maju Bersama',
     isActive: false,
+    allowNegativeStock: false,
   },
 ];
 
@@ -28,12 +33,15 @@ export async function seedCompanies(prisma: PrismaClient) {
   for (const data of COMPANIES_DATA) {
     const company = await prisma.company.upsert({
       where: { code: data.code },
-      update: {},
+      update: {
+        allowNegativeStock: data.allowNegativeStock,
+      },
       create: {
         uuid: uuidv7(),
         code: data.code,
         name: data.name,
         isActive: data.isActive,
+        allowNegativeStock: data.allowNegativeStock,
       },
     });
 

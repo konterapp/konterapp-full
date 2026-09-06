@@ -194,8 +194,17 @@ let subtotal = 0;
       const productKindByUuid = new Map(products.map((p) => [p.uuid, p.kind]));
       const tracksStock = (productUuid: string) => (productKindByUuid.get(productUuid) ?? 'barang') === 'barang';
 
+      // Setting company "boleh jual stok minus" -- kalau true, produk barang
+      // tidak dicek kecukupan stoknya (stok bisa turun ke negatif).
+      const company = await tx.company.findUnique({
+        where: { uuid: companyUuid },
+        select: { allowNegativeStock: true },
+      });
+      const allowNegativeStock = company?.allowNegativeStock === true;
+
       for (const item of items) {
         if (!tracksStock(item.productUuid)) continue;
+        if (allowNegativeStock) continue;
 
         const stock = await tx.appPosProductStock.findFirst({
           where: {
@@ -206,7 +215,7 @@ let subtotal = 0;
         });
 
         if (!stock || stock.stock < item.quantity) {
-          throw new ApiError(`Stok ${item.productUuid} tidak cukup (tersedia: ${stock?.stock || 0})`, 400);
+          throw new ApiError(`Stok ${item.productUuid} tidak mencukupi (tersedia: ${stock?.stock || 0}). Activekan izin jual stok minus di Pengaturan POS jika diperlukan.`, 400);
         }
       }
 

@@ -25,6 +25,7 @@ import {
     CircleDollarSign,
     Shield,
     Gift,
+    Settings,
 } from 'lucide-react';
 
 export type MenuSection =
@@ -249,6 +250,13 @@ const coreMenuItems: MenuItem[] = [
         label: 'Referral',
         href: '/app/referral',
         icon: <Gift className="w-5 h-5" />
+    },
+    {
+        section: 'Pengaturan',
+        label: 'Pengaturan POS',
+        href: '/app/pos/settings',
+        icon: <Settings className="w-5 h-5" />,
+        permission: 'company.update'
     },
 ];
 

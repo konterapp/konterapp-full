@@ -14,6 +14,7 @@ import BarcodeScanner from './_components/BarcodeScanner';
 import { useBranchSaldoActual } from './_components/useBranchSaldoActual';
 import BranchSaldoActualList from './_components/BranchSaldoActualList';
 import RupiahInput from '@/components/ui/RupiahInput';
+import { useUser } from '../_context/UserContext';
 
 interface CartItem {
   id: number;
@@ -61,6 +62,10 @@ interface ClosedShiftSummary {
 }
 
 export default function KasirPage() {
+  const { user, activeCompanyUuid } = useUser();
+  const activeCompany = user?.companies?.find((c) => c.uuid === activeCompanyUuid);
+  const allowNegativeStock = activeCompany?.allow_negative_stock === true;
+
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [productSearch, setProductSearch] = useState('');
@@ -164,7 +169,7 @@ export default function KasirPage() {
     if (!selectedBranch || !activeShift) return;
     setIsSearching(true);
     try {
-      const response = await getProducts(1, 20, query, 'name', 'asc', selectedBranch, undefined, true);
+      const response = await getProducts(1, 20, query, 'name', 'asc', selectedBranch, undefined, undefined);
       if (response.data) {
         const items = Array.isArray(response.data)
           ? response.data
@@ -216,9 +221,13 @@ export default function KasirPage() {
 
   const addToCart = (product: Product) => {
     const stock = getStockForBranch(product);
+    // Produk non-'barang' (digital/jasa/ppob) selalu boleh dijual dan, kalau
+    // setting company "boleh jual stok minus" aktif, produk barang juga tidak
+    // dibatasi stoknya -- kuantitas bisa melebihi stok (versi stok minus).
+    const unlimited = product.kind !== 'barang' || allowNegativeStock;
     const existingItem = cart.find(item => item.product_uuid === product.uuid);
     if (existingItem) {
-      if (existingItem.quantity >= stock) {
+      if (!unlimited && existingItem.quantity >= stock) {
         setError(`Stok ${product.name} tidak cukup (tersedia: ${stock})`);
         return;
       }
@@ -230,14 +239,14 @@ export default function KasirPage() {
         )
       );
     } else {
-      if (stock <= 0) {
+      if (!unlimited && stock <= 0) {
         setError(`Stok ${product.name} habis`);
         return;
       }
       const price = Number(product.selling_price);
       setCart(prev => [
         ...prev,
-        { id: nextCartId, product_uuid: product.uuid, product_name: product.name, product_sku: product.sku, product_image: product.image || null, product_images: product.images || [], unit_price: price, quantity: 1, discount: 0, subtotal: price, available_stock: stock },
+        { id: nextCartId, product_uuid: product.uuid, product_name: product.name, product_sku: product.sku, product_image: product.image || null, product_images: product.images || [], unit_price: price, quantity: 1, discount: 0, subtotal: price, available_stock: unlimited ? Number.MAX_SAFE_INTEGER : stock },
       ]);
       setNextCartId(prev => prev + 1);
     }
@@ -800,6 +809,8 @@ export default function KasirPage() {
                   <div className="divide-y divide-gray-100">
                     {productResults.map(product => {
                       const stock = getStockForBranch(product);
+                      const unlimited = product.kind !== 'barang' || allowNegativeStock;
+                      const disabled = !unlimited && stock <= 0;
                       return (
                         <button
                           key={product.uuid}
@@ -808,9 +819,9 @@ export default function KasirPage() {
                             addToCart(product);
                             setProductSearch('');
                           }}
-                          disabled={stock <= 0}
+                          disabled={disabled}
                           className={`w-full min-h-14 px-3 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                            stock <= 0 ? 'opacity-50 cursor-not-allowed' : ''
+                            disabled ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
                           <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">

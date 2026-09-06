@@ -1,0 +1,257 @@
+PLAN: Produk stok kosong tetap tampil di POS + setting boleh/tidak jual stok minus
+=====================================================================================
+Status: BELUM DIKERJAKAN -- ini baru hasil diskusi desain, belum ada
+implementasi/migration/kode yang dibuat untuk plan ini.
+
+Project: konterapp-full (Next.js 16 App Router + Prisma 6 + PostgreSQL,
+multi-tenant POS/SaaS). Baca dulu CLAUDE.md di root project untuk aturan
+wajib sebelum mulai coding -- semua aturan itu berlaku juga untuk fitur
+ini. PERHATIAN KHUSUS: CLAUDE.md sudah update sejak 6 September 2026,
+aplikasi ini SEKARANG SUDAH LIVE/PRODUCTION (Vercel + Neon Singapura).
+Aturan lama "bebas edit migration file lalu migrate reset --force" SUDAH
+TIDAK BERLAKU -- perubahan skema di plan ini WAJIB migration file BARU
+(`prisma migrate dev --create-only` di DB dev lokal untuk generate SQL,
+baru direview), bukan edit migration lama. Baca bagian paling atas
+CLAUDE.md untuk detail lengkap alur expand-contract kalau plan ini nanti
+berkembang jadi butuh hapus/rename kolom.
+
+
+1. LATAR BELAKANG
+------------------
+Ditemukan lewat investigasi kode + tes langsung ke API (bukan dugaan):
+halaman kasir (`/app/pos`) memanggil pencarian produk dengan parameter
+`in_stock=true` (lihat `app/[locale]/app/pos/page.tsx` fungsi
+`searchProducts`, memanggil `getProducts(..., true)` di
+`lib/api/app/product.ts:73-97`). Di `lib/modules/pos/products/admin.service.ts:165-172`,
+parameter ini diterjemahkan jadi filter Prisma:
+
+    if (inStockOnly === 'true' && branchUuid) {
+      where.stockItems = { some: { branchUuid, stock: { gt: 0 } } };
+    }
+
+Efeknya: produk dengan stok 0 di cabang itu HILANG TOTAL dari hasil
+pencarian kasir -- bukan cuma tidak bisa dibeli, tapi tidak muncul sama
+sekali. Kasir yang mencari produk itu akan mengira produknya belum
+tercatat di sistem, padahal datanya ada. Sudah dites langsung ke API dev
+(`in_stock=true` di branch manapun saat semua 41 produk dummy berstok 0
+-> hasil 0 produk sama sekali), jadi ini bukan cuma kasus tepi.
+
+Filter yang sama juga TIDAK punya pengecualian untuk `kind` produk --
+produk `jasa`/`digital` (yang menurut desain memang TIDAK PERNAH punya
+baris stok sama sekali, lihat komentar di
+`lib/modules/pos/transactions/admin.service.ts:187-189` dan
+`lib/modules/pos/products/product.mapper.ts:74-81` yang selalu
+menghasilkan `total_stock: 0` kalau tidak ada `stockItems`) IKUT
+KETUTUP dari pencarian kasir. Ini jelas salah -- jasa/produk digital
+harusnya selalu bisa dicari & dijual, tidak tergantung stok sama sekali.
+
+Bug KEDUA yang menumpuk di halaman yang sama: tombol "tambah ke
+keranjang" di hasil pencarian (`app/[locale]/app/pos/page.tsx:811`)
+di-disable dengan `disabled={stock <= 0}` TANPA memandang `kind` --
+padahal baris di sebelahnya (baris 838-843) sudah punya UI yang benar
+untuk kasus ini: kalau `product.kind !== 'barang'` ditampilkan label
+"Tanpa stok" (bukan angka stok), yang secara desain berarti "konsep
+stok tidak berlaku, harusnya selalu bisa ditambahkan". Disable
+unconditional ini bikin jasa/digital juga tidak bisa ditambahkan ke
+keranjang kalau (seperti biasanya) `total_stock`-nya 0.
+
+User sudah setuju arah perbaikan bug pertama: produk TETAP TAMPIL di
+pencarian kasir walaupun stoknya 0 (hapus/ubah filter `in_stock`, bukan
+sembunyikan). Tapi soal BOLEH/TIDAKNYA transaksi dengan stok 0, user
+mau itu jadi SETTING per company (bukan hardcoded selalu boleh atau
+selalu tidak boleh) -- pendekatan yang disepakati: setting-nya di
+LEVEL COMPANY (bukan per-produk).
+
+
+2. MASALAH DESAIN YANG PERLU DIKONFIRMASI DULU KE USER
+---------------------------------------------------------
+Sebelum coding, WAJIB tanya user (jangan asumsi/tebak, ini keputusan
+produk):
+
+a) Nama & lokasi setting. Usulan: kolom baru di model `Company`
+   (`prisma/schema.prisma`), misal `allowNegativeStock Boolean @default(false)`.
+   `Company` adalah tabel administrator SaaS (bukan tabel tenant app),
+   jadi TIDAK perlu prefix `app_`/`company_uuid` sesuai aturan CLAUDE.md
+   soal itu -- kolom ini langsung melekat di baris company itu sendiri.
+   Default `false` (tidak boleh stok minus) supaya perilaku default
+   konsisten dengan ekspektasi kebanyakan toko & tidak mengubah perilaku
+   existing secara diam-diam untuk company yang belum sempat atur
+   setting-nya.
+
+b) Di mana admin tenant mengatur setting ini? Dua opsi:
+   - Tempelkan ke endpoint & halaman company profile yang SUDAH ADA
+     (`app/api/app/company/route.ts` PUT, schema
+     `updateTenantCompanySchema` di `lib/validations/company.ts`,
+     halaman `app/[locale]/app/company/page.tsx`) -- paling murah, tapi
+     "boleh stok minus" secara konsep lebih ke pengaturan POS daripada
+     profil perusahaan.
+   - Buat bagian "Pengaturan POS" terpisah (belum ada saat ini) --
+     lebih rapi secara IA tapi nambah endpoint & halaman baru.
+   REKOMENDASI: mulai dari opsi pertama (tempel di company profile) dulu
+   karena settingnya baru satu ini, kecuali user sudah berencana bikin
+   halaman "Pengaturan POS" untuk hal lain juga.
+
+c) Permission apa yang menggerbangi endpoint update setting ini?
+   Kemungkinan cukup permission `company.update` yang sudah dipakai
+   endpoint company yang ada, KECUALI user mau permission baru khusus
+   (misal `pos.settings.update`) supaya bisa dipisah dari izin edit
+   profil perusahaan.
+
+d) Pesan error saat transaksi ditolak karena stok kosong & setting
+   `false` -- apakah pesan sekarang (`Stok {uuid} tidak cukup (tersedia: X)`
+   di `lib/modules/pos/transactions/admin.service.ts:209`) sudah cukup,
+   atau perlu dibedakan pesannya supaya kasir paham ini soal kebijakan
+   company, bukan bug?
+
+e) Kalau setting `true` (boleh stok minus): apakah stok BOLEH turun
+   sampai negatif tanpa batas, atau tetap perlu batas bawah (misal tidak
+   boleh lebih negatif dari suatu angka)? Asumsi awal: tanpa batas bawah
+   (paling sederhana), TAPI konfirmasi ke user karena ini bisa berdampak
+   ke laporan stok/nilai persediaan.
+
+
+3. DESAIN SOLUSI (garis besar, detail final menyesuaikan jawaban poin 2)
+----------------------------------------------------------------------------
+
+3a. Bug hilang dari pencarian (independen dari setting, SELALU diperbaiki):
+    - Hapus pengiriman `in_stock=true` dari pemanggilan
+      `getProducts(...)` di `searchProducts` (`app/[locale]/app/pos/page.tsx`).
+      Endpoint & filter `in_stock` di
+      `lib/modules/pos/products/admin.service.ts` boleh TETAP ADA (siapa
+      tahu dipakai tempat lain / berguna untuk kasus lain), yang berubah
+      cuma pemanggil dari halaman kasir.
+    - Tombol tambah-ke-keranjang: ubah `disabled={stock <= 0}` di
+      `app/[locale]/app/pos/page.tsx:811` jadi kondisional berdasar
+      `kind` DAN setting company:
+        - `kind !== 'barang'` -> TIDAK PERNAH disable karena stok (selalu
+          boleh, sesuai desain "Tanpa stok" yang sudah ada).
+        - `kind === 'barang'` -> disable kalau `stock <= 0` DAN setting
+          `allowNegativeStock` company === false. Kalau setting true,
+          tetap boleh ditambahkan (opsional: tampilkan indikator visual
+          "stok akan minus" biar kasir sadar, detail UI didiskusikan
+          lagi kalau perlu).
+    - Fungsi `addToCart` (baris ~218-240 di file yang sama) juga perlu
+      cek yang sama -- saat ini ada guard `if (stock <= 0) { ...; return; }`
+      yang perlu disesuaikan supaya konsisten dengan tombol.
+
+3b. Setting company & enforcement server-side (WAJIB, jangan cuma UI):
+    - Tambah kolom `allowNegativeStock` (nama final tergantung poin 2a)
+      ke model `Company` di `prisma/schema.prisma` + migration BARU
+      (lihat catatan production di atas -- JANGAN edit migration lama).
+    - `lib/validations/company.ts`: tambah field ke schema update yang
+      relevan (tergantung jawaban poin 2b, apakah `updateTenantCompanySchema`
+      atau schema baru).
+    - `lib/modules/companies/app.service.ts`: update service company
+      untuk baca/tulis field baru ini, mapper response perlu include
+      field ini (snake_case di API, sesuai aturan CLAUDE.md).
+    - PENTING -- validasi stok WAJIB diubah di server, bukan cuma
+      disable tombol di client (kalau tidak, siapa pun bisa POST
+      langsung ke API dan bypass client). Titik enforcement utama:
+      `lib/modules/pos/transactions/admin.service.ts:197-211` (loop
+      cek stok sebelum create sale) -- baca `company.allowNegativeStock`
+      (via `context`/query company yang sudah tersedia di scope function
+      ini) dan skip pengecekan `stock.stock < item.quantity` kalau
+      settingnya true DAN `tracksStock(item.productUuid)` true (kalau
+      false / jasa-digital, memang sudah selalu di-skip, tidak berubah).
+    - Cek juga apakah ada titik enforcement stok lain yang perlu
+      perlakuan sama (misal endpoint retur/refund penjualan, atau modul
+      lain yang mengurangi stok saat create sale) -- grep
+      `stock.*<.*quantity\|stock < item` di `lib/modules/pos/` sebelum
+      mulai coding untuk pastikan semua titik konsisten.
+
+
+4. FILE-FILE YANG RELEVAN (referensi kalau lanjut implementasi)
+------------------------------------------------------------------
+- `prisma/schema.prisma` -- model `Company` (baris ~100-138).
+- `lib/validations/company.ts` -- schema create/update company.
+- `lib/modules/companies/app.service.ts` -- service company sisi tenant
+  (`getCompanyDetail`, `updateCompany`).
+- `app/api/app/company/route.ts` -- endpoint GET/PUT company, permission
+  `company.update`.
+- `app/[locale]/app/company/page.tsx` -- halaman edit profil company
+  (kalau setting ditaruh di sini sesuai poin 2b).
+- `app/[locale]/app/pos/page.tsx` -- halaman kasir: `searchProducts`
+  (baris ~163-179, hapus `in_stock=true`), `addToCart` (~218-240,
+  guard stok), render hasil pencarian & tombol tambah (~795-845,
+  `disabled={stock <= 0}`).
+- `lib/api/app/product.ts` -- fungsi client `getProducts` (param
+  `in_stock`, baris 73-97).
+- `lib/modules/pos/products/admin.service.ts` -- filter `inStockOnly`
+  (baris 165-172), boleh dibiarkan ada untuk kegunaan lain.
+- `lib/modules/pos/products/product.mapper.ts` -- perhitungan
+  `total_stock` (baris 74-81), untuk konteks kenapa jasa/digital selalu
+  bernilai 0.
+- `lib/modules/pos/transactions/admin.service.ts` -- enforcement stok
+  server-side saat create sale (baris 186-211), titik utama yang perlu
+  baca setting company.
+- CLAUDE.md -- aturan wajib (migration baru utk skema live/production,
+  transaction untuk multi-write, snake_case di boundary API, version
+  bump di package.json tiap commit, cursor-pointer di elemen clickable,
+  dst) yang berlaku untuk perubahan apa pun di fitur ini.
+
+
+5. LANGKAH KERJA (garis besar, urutan disarankan)
+---------------------------------------------------
+1. Konfirmasi ke user poin 2 (a-e) dulu -- terutama nama kolom, lokasi
+   UI setting, dan permission gate-nya. Pakai AskUserQuestion kalau
+   tools-nya tersedia.
+2. Migration BARU (bukan edit migration lama, aplikasi sudah live) untuk
+   tambah kolom `allowNegativeStock` (atau nama final) ke `Company`,
+   default `false`. Jalankan `prisma migrate dev --create-only` di DB
+   dev lokal dulu untuk generate SQL, review, baru `migrate dev` biasa
+   untuk apply ke DB dev lokal (migration ke production dijalankan
+   terpisah & manual, lihat CLAUDE.md).
+3. Update `lib/validations/company.ts`, `lib/modules/companies/app.service.ts`,
+   mapper terkait, dan endpoint `app/api/app/company/route.ts` (atau
+   endpoint baru kalau poin 2b memilih halaman terpisah) supaya setting
+   ini bisa dibaca & ditulis lewat API.
+4. Update UI tempat setting diatur (company profile page atau halaman
+   baru sesuai poin 2b) -- ingat aturan cursor-pointer utk elemen
+   clickable (toggle/checkbox).
+5. Perbaiki `searchProducts` di `app/[locale]/app/pos/page.tsx` (hapus
+   `in_stock=true`) -- ini independen dari setting, langsung perbaiki
+   duluan supaya produk tampil lagi di pencarian.
+6. Update logic disable tombol & `addToCart` di halaman kasir supaya
+   baca `kind` produk DAN setting company (fetch data company yang
+   relevan ke halaman kasir kalau belum ada -- cek apakah context/hook
+   company sudah tersedia di halaman ini atau perlu ditambah).
+7. Update enforcement server-side di
+   `lib/modules/pos/transactions/admin.service.ts` supaya skip
+   pengecekan stok kalau `allowNegativeStock` true (untuk kind='barang'
+   -- kind lain sudah selalu di-skip).
+8. Cek apakah ada titik lain yang perlu perlakuan sama (grep pengecekan
+   stok serupa di modul lain sebelum menganggap selesai).
+9. Update seeder dummy (`prisma/seeders/dummy/`) sesuai aturan "setiap
+   buat fitur sediakan data dummy" di CLAUDE.md -- minimal 1 company
+   dummy dengan setting `true` supaya ada contoh data untuk kasus stok
+   minus.
+10. Jalankan `npx tsc --noEmit`, `eslint`, `vitest`, dan
+    `npm run check:transactions` (karena `admin.service.ts` transaksi
+    yang disentuh sudah punya multi-write dalam transaction, pastikan
+    perubahan tidak memecah pola itu). `prisma migrate reset --force` +
+    restart dev server (untuk apply migration ke DB dev lokal) perlu
+    dijalankan user sendiri (operasi ini butuh app khusus untuk
+    dieksekusi otomatis oleh Claude Code) -- minta user jalankan manual
+    kalau AI yang mengerjakan plan ini tidak punya akses tersebut.
+
+
+6. CATATAN PENTING
+-------------------
+- JANGAN mulai coding sebelum poin 2 (a-e) dikonfirmasi ulang ke user --
+  terutama soal batas bawah stok minus (poin 2e) karena berdampak ke
+  laporan/nilai persediaan, bukan cuma detail implementasi.
+- Aplikasi SUDAH LIVE PRODUCTION sejak 6 Sept 2026 -- migration WAJIB
+  file baru, JANGAN edit migration lama yang sudah pernah di-deploy.
+  Baca bagian paling atas CLAUDE.md untuk detail alur expand-contract
+  kalau ternyata plan ini butuh ubah/hapus kolom existing (kemungkinan
+  besar TIDAK perlu untuk plan ini karena cuma nambah kolom baru, tapi
+  tetap cek ulang saat itu).
+- Ada kemungkinan sesi/AI lain bekerja di repo yang sama secara
+  bersamaan (sudah beberapa kali terjadi di project ini). Sebelum
+  mulai, cek `git status` dan `git diff` untuk lihat apakah ada
+  perubahan in-flight yang belum di-commit yang tidak berhubungan
+  dengan plan ini -- jangan ikut-ikutan commit perubahan itu.
+- Ikuti semua aturan di CLAUDE.md tanpa kecuali (validasi di API pakai
+  zod, transaction wajib untuk multi-write, snake_case di boundary API,
+  cursor-pointer di elemen UI clickable, version bump di package.json
+  tiap commit, dst).
