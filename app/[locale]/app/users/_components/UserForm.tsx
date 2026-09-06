@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, Link } from '@/i18n/navigation';
-import { Save, X } from 'lucide-react';
+import { Save, X, Eye, EyeOff } from 'lucide-react';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/toast/ToastContainer';
@@ -38,6 +38,7 @@ export default function UserForm({ userId, mode }: UserFormProps) {
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(mode === 'edit');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [roles, setRoles] = useState<RoleOption[]>([]);
@@ -303,23 +304,33 @@ export default function UserForm({ userId, mode }: UserFormProps) {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
             Password {mode === 'create' && <span className="text-red-500">*</span>}
           </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
-              fieldErrors.password
-                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
-            }`}
-            placeholder={
-              mode === 'edit'
-                ? 'Kosongkan jika tidak ingin mengubah password'
-                : 'Minimal 8 karakter'
-            }
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 pr-12 text-sm border rounded-lg focus:outline-none focus:ring-2 bg-white ${
+                fieldErrors.password
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-200 focus:ring-[#EBC170] focus:border-[#EBC170]'
+              }`}
+              placeholder={
+                mode === 'edit'
+                  ? 'Kosongkan jika tidak ingin mengubah password'
+                  : 'Minimal 8 karakter'
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+              className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
           {fieldErrors.password && (
             <div className="mt-1 text-sm text-red-600">{fieldErrors.password[0]}</div>
           )}
