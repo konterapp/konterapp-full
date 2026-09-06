@@ -15,6 +15,7 @@ import { seedStockMovements } from "./stock-movements";
 import { seedPpobTransactions } from "./ppob-transactions";
 import { seedCashierShifts } from "./cashier-shifts";
 import { seedSales } from "./sales";
+import { seedWhatsapp } from "./whatsapp";
 
 async function seedDummy(prisma: PrismaClient) {
   await seedCore(prisma);
@@ -34,6 +35,7 @@ async function seedDummy(prisma: PrismaClient) {
   await seedSales(prisma);
   await seedPpobTransactions(prisma);
   await seedCashierShifts(prisma);
+  await seedWhatsapp(prisma);
 }
 
 if (require.main === module) {

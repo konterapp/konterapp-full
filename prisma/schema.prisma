@@ -137,6 +137,9 @@ model Company {
   bankAgentTransactionTypes  AppPosBankAgentTransactionType[]
   ppobTransactionTypes       AppPosPpobTransactionType[]
   ppobTransactions           AppPosPpobTransaction[]
+  whatsappSession            AppWhatsappSession?
+  whatsappNotificationSettings AppWhatsappNotificationSetting[]
+  whatsappMessages           AppWhatsappMessage[]
 
   @@map("companies")
 }
@@ -1042,4 +1045,75 @@ model AppPosBankAgentTransaction {
   @@index([paymentMethodUuid])
   @@index([transactionTypeUuid])
   @@map("app_pos_bank_agent_transactions")
+}
+
+// ========================================================================
+// WhatsApp (Baileys -- unofficial WhatsApp Web API)
+// ========================================================================
+
+// 1 baris = 1 koneksi WhatsApp per tenant. Kredensial Baileys disimpan di
+// filesystem (`storage/whatsapp/<company_uuid>/`), tabel ini cuma metadata &
+// status terakhir yang di-persist supaya UI dan manager punya satu sumber
+// status yang sama. Sesi dibuat otomatis ketika user membuka halaman
+// WhatsApp / menekan tombol Connect, dan reconnect otomatis saat server
+// restart (via useMultiFileAuthState, scan QR cukup sekali).
+model AppWhatsappSession {
+  uuid            String    @id @default(uuid()) @db.Char(36)
+  companyUuid     String    @map("company_uuid") @db.Char(36)
+  // disconnected, connecting, waiting_qr, connected, failed
+  status          String    @default("disconnected") @db.VarChar(20)
+  phoneNumber     String?   @map("phone_number") @db.VarChar(20)
+  lastError       String?   @map("last_error") @db.Text
+  lastConnectedAt DateTime? @map("last_connected_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([companyUuid])
+  @@map("app_whatsapp_sessions")
+}
+
+// Konfigurasi notifikasi WhatsApp per jenis kejadian. Satu baris per
+// (company, type). threshold: stok minimum utk `stock_low`, saldo minimum
+// utk `saldo_low`. target_phone memakai format internasional tanpa '+' (62xx).
+model AppWhatsappNotificationSetting {
+  uuid        String   @id @default(uuid()) @db.Char(36)
+  companyUuid String   @map("company_uuid") @db.Char(36)
+  // stock_low, saldo_low
+  type        String   @db.VarChar(30)
+  isEnabled   Boolean  @default(false) @map("is_enabled")
+  targetPhone String?  @map("target_phone") @db.VarChar(20)
+  threshold   Decimal? @db.Decimal(15, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+
+  @@unique([companyUuid, type])
+  @@map("app_whatsapp_notification_settings")
+}
+
+// Antrian kirim & log pesan (outbox). status: pending, sending, sent, failed,
+// resolved. dedup_key dipakai supaya notifikasi stok/saldo menipis tidak
+// dikirim berulang untuk kondisi yang sama; saat kondisi pulih, dedup_key
+// dikosongkan (status resolved) sehingga boleh notif lagi saat turun lagi.
+model AppWhatsappMessage {
+  uuid           String    @id @default(uuid()) @db.Char(36)
+  companyUuid    String    @map("company_uuid") @db.Char(36)
+  // stock_low, saldo_low, test
+  type           String    @db.VarChar(30)
+  recipientPhone String    @map("recipient_phone") @db.VarChar(20)
+  text           String    @db.Text
+  status         String    @default("pending") @db.VarChar(20)
+  dedupKey       String?   @unique @map("dedup_key") @db.VarChar(100)
+  errorMessage   String?   @map("error_message") @db.Text
+  sentAt         DateTime? @map("sent_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([companyUuid, status])
+  @@map("app_whatsapp_messages")
 }
