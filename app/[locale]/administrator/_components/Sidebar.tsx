@@ -17,6 +17,7 @@ export default function Sidebar() {
   } = useSidebar();
   const [isResizing, setIsResizing] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -26,6 +27,10 @@ export default function Sidebar() {
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  useEffect(() => {
+    setAppVersion(process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0');
   }, []);
 
   // On mobile, always show full sidebar (not collapsed)
@@ -213,6 +218,14 @@ export default function Sidebar() {
             </div>
           )}
         </div>
+
+        {!effectiveCollapsed && appVersion && (
+          <div className="px-3 pb-2 text-center">
+            <span className="text-sm font-semibold text-white/40 tracking-wide">
+              {`v${appVersion}`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Resize Handle - hidden on mobile */}
