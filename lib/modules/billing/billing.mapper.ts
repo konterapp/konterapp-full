@@ -82,6 +82,15 @@ export function formatAdminInvoice(invoice: any) {
     expired_at: invoice.expiredAt,
     created_at: invoice.createdAt,
     updated_at: invoice.updatedAt,
+    paid_by_administrator_id: invoice.paidByAdministratorId ?? null,
+    admin_note: invoice.adminNote ?? null,
+    paid_by_administrator: invoice.administrator
+      ? {
+          id: invoice.administrator.id,
+          name: invoice.administrator.name,
+          email: invoice.administrator.email,
+        }
+      : null,
   };
 }
 

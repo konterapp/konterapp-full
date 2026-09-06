@@ -16,6 +16,9 @@ export interface AdminBillingInvoice {
   expired_at?: string | null;
   created_at: string;
   updated_at?: string;
+  paid_by_administrator_id?: number | null;
+  admin_note?: string | null;
+  paid_by_administrator?: { id: number; name: string; email: string } | null;
 }
 
 export async function getBillingInvoicesList(
@@ -43,4 +46,14 @@ export async function getBillingInvoicesList(
 
 export async function getBillingInvoice(uuid: string): Promise<ApiResponse<AdminBillingInvoice>> {
   return apiRequest<AdminBillingInvoice>(`/api/administrator/billing/${uuid}`);
+}
+
+export async function markBillingInvoicePaid(
+  uuid: string,
+  note?: string
+): Promise<ApiResponse<AdminBillingInvoice>> {
+  return apiRequest<AdminBillingInvoice>(`/api/administrator/billing/${uuid}/mark-paid`, {
+    method: 'POST',
+    data: { note },
+  });
 }

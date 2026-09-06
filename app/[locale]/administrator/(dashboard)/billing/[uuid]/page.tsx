@@ -2,8 +2,11 @@
 
 import { use, useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ArrowLeft, Building2, CreditCard, FileText, Hash, Link2, RefreshCw, Ticket } from 'lucide-react';
-import { getBillingInvoice, AdminBillingInvoice } from '@/lib/api/administrator/billing';
+import { ArrowLeft, Building2, CreditCard, FileText, Hash, Link2, RefreshCw, StickyNote, Ticket, UserCheck } from 'lucide-react';
+import { getBillingInvoice, markBillingInvoicePaid, AdminBillingInvoice } from '@/lib/api/administrator/billing';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import Button from '@/components/ui/Button';
+import { useToast } from '@/components/toast/ToastContainer';
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -33,9 +36,15 @@ const statusBadge: Record<string, { label: string; className: string }> = {
 
 export default function BillingDetailPage({ params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = use(params);
+  const toast = useToast();
   const [invoice, setInvoice] = useState<AdminBillingInvoice | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [settleModal, setSettleModal] = useState<{
+    isOpen: boolean;
+    note: string;
+    isLoading: boolean;
+  }>({ isOpen: false, note: '', isLoading: false });
 
   const fetchInvoice = useCallback(async () => {
     try {
@@ -54,6 +63,27 @@ export default function BillingDetailPage({ params }: { params: Promise<{ uuid: 
       setIsLoading(false);
     }
   }, [uuid]);
+
+  const canSettle = invoice?.status === 'pending' || invoice?.status === 'expired';
+
+  const handleSettle = useCallback(async () => {
+    setSettleModal((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await markBillingInvoicePaid(uuid, settleModal.note || undefined);
+
+      if (response.status === 'success' && response.data) {
+        toast.success('Invoice berhasil dilunaskan');
+        setSettleModal({ isOpen: false, note: '', isLoading: false });
+        setInvoice(response.data);
+      } else {
+        toast.error(response.message || 'Gagal melunaskan invoice');
+        setSettleModal((prev) => ({ ...prev, isLoading: false }));
+      }
+    } catch {
+      toast.error('Terjadi kesalahan, silakan coba lagi');
+      setSettleModal((prev) => ({ ...prev, isLoading: false }));
+    }
+  }, [uuid, settleModal.note, toast]);
 
   useEffect(() => {
     fetchInvoice();
@@ -103,6 +133,24 @@ export default function BillingDetailPage({ params }: { params: Promise<{ uuid: 
     { icon: <RefreshCw className="w-4 h-4 text-gray-400" />, label: 'Dibuat', value: formatDateTime(invoice.created_at) },
     { icon: <RefreshCw className="w-4 h-4 text-gray-400" />, label: 'Dibayar', value: formatDateTime(invoice.paid_at) },
     { icon: <RefreshCw className="w-4 h-4 text-gray-400" />, label: 'Kedaluwarsa', value: formatDateTime(invoice.expired_at) },
+    ...(invoice.paid_by_administrator
+      ? [
+          {
+            icon: <UserCheck className="w-4 h-4 text-gray-400" />,
+            label: 'Dilunaskan oleh',
+            value: invoice.paid_by_administrator.name,
+          },
+        ]
+      : []),
+    ...(invoice.admin_note
+      ? [
+          {
+            icon: <StickyNote className="w-4 h-4 text-gray-400" />,
+            label: 'Catatan',
+            value: invoice.admin_note,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -126,9 +174,20 @@ export default function BillingDetailPage({ params }: { params: Promise<{ uuid: 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">{invoice.plan.name}</h2>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.className}`}>
-              {badge.label}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.className}`}>
+                {badge.label}
+              </span>
+              {canSettle && (
+                <Button
+                  size="sm"
+                  variant="warning"
+                  onClick={() => setSettleModal({ isOpen: true, note: '', isLoading: false })}
+                >
+                  Lunaskan Manual
+                </Button>
+              )}
+            </div>
           </div>
 
           <dl className="divide-y divide-gray-100">
@@ -180,6 +239,39 @@ export default function BillingDetailPage({ params }: { params: Promise<{ uuid: 
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={settleModal.isOpen}
+        onClose={() => {
+          if (!settleModal.isLoading) {
+            setSettleModal({ isOpen: false, note: settleModal.note, isLoading: false });
+          }
+        }}
+        onConfirm={handleSettle}
+        title="Lunaskan Invoice Manual"
+        type="warning"
+        confirmText="Lunaskan"
+        isLoading={settleModal.isLoading}
+        message={
+          <div className="mt-1">
+            <p className="text-sm text-gray-600">
+              Invoice ini akan ditandai lunas dan langganan tenant akan diaktifkan
+              langsung, tanpa menunggu webhook pembayaran. Lanjutkan?
+            </p>
+            <label className="block mt-4">
+              <span className="text-sm font-medium text-gray-700">Catatan (opsional)</span>
+              <textarea
+                value={settleModal.note}
+                onChange={(e) => setSettleModal((prev) => ({ ...prev, note: e.target.value }))}
+                disabled={settleModal.isLoading}
+                rows={3}
+                placeholder="Contoh: transfer manual, konfirmasi via telepon, dll."
+                className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#EBC170]/50 disabled:opacity-60"
+              />
+            </label>
+          </div>
+        }
+      />
     </div>
   );
 }

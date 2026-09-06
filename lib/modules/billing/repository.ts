@@ -111,7 +111,7 @@ export const billingRepository = {
     const { where, orderBy, skip, take } = params;
     return prisma.subscriptionInvoice.findMany({
       where,
-      include: { company: true, plan: true },
+      include: { company: true, plan: true, administrator: true },
       orderBy,
       skip,
       take,
@@ -125,7 +125,7 @@ export const billingRepository = {
   async findInvoiceByUuid(uuid: string) {
     return prisma.subscriptionInvoice.findUnique({
       where: { uuid },
-      include: { company: true, plan: true },
+      include: { company: true, plan: true, administrator: true },
     });
   },
 

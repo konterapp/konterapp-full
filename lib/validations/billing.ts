@@ -8,3 +8,7 @@ export const midtransNotificationSchema = z.object({
   fraud_status: z.string().optional(),
   signature_key: z.string({ error: "signature_key wajib diisi" }).min(1),
 });
+
+export const markInvoicePaidSchema = z.object({
+  note: z.string().trim().max(500).optional(),
+});

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { ApiError } from "@/lib/api-errors";
 import { billingRepository } from "./repository";
 import { formatAdminInvoice } from "./billing.mapper";
+import { billingSettlementService } from "./settlement.service";
 
 function getSortConfig(
   sortBy: string,
@@ -68,5 +69,23 @@ export const billingAdminService = {
     }
 
     return formatAdminInvoice(invoice);
+  },
+
+  async markInvoicePaid(uuid: string, administratorId: number, note?: string | null) {
+    const invoice = await billingRepository.findInvoiceByUuid(uuid);
+    if (!invoice) {
+      throw new ApiError("Transaksi billing tidak ditemukan", 404);
+    }
+    if (invoice.status === "paid") {
+      throw new ApiError("Invoice ini sudah lunas", 400);
+    }
+
+    await billingSettlementService.settleInvoice(invoice, {
+      paidByAdministratorId: administratorId,
+      adminNote: note ?? null,
+    });
+
+    const updated = await billingRepository.findInvoiceByUuid(uuid);
+    return formatAdminInvoice(updated);
   },
 };
