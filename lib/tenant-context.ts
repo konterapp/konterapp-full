@@ -40,9 +40,6 @@ export const TENANT_MODELS = new Set<string>([
   "AppPosSaldoMutation",
   "AppPosBankAgentTransactionType",
   "AppPosBankAgentTransaction",
-  "AppWhatsappSession",
-  "AppWhatsappNotificationSetting",
-  "AppWhatsappMessage",
 ]);
 
 export function runWithTenantContext<T>(companyUuid: string, callback: () => Promise<T>): Promise<T> {

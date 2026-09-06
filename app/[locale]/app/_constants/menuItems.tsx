@@ -24,7 +24,6 @@ import {
     CircleDollarSign,
     Shield,
     Gift,
-    MessageCircle,
 } from 'lucide-react';
 
 export type MenuSection =
@@ -236,13 +235,6 @@ const coreMenuItems: MenuItem[] = [
         href: '/app/roles',
         icon: <Shield className="w-5 h-5" />,
         permission: 'role.index'
-    },
-    {
-        section: 'Pengaturan',
-        label: 'WhatsApp',
-        href: '/app/whatsapp',
-        icon: <MessageCircle className="w-5 h-5" />,
-        permission: 'whatsapp.index'
     },
     {
         section: 'Pengaturan',

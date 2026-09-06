@@ -36,9 +36,6 @@ const UUID_MODELS = new Set<string>([
   "AppPosSaldoMutation",
   "AppPosBankAgentTransactionType",
   "AppPosBankAgentTransaction",
-  "AppWhatsappSession",
-  "AppWhatsappNotificationSetting",
-  "AppWhatsappMessage",
 ]);
 
 function mergeCompanyWhere(where: unknown, companyUuid: string): unknown {

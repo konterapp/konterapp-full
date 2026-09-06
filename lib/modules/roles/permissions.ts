@@ -20,9 +20,6 @@ export const PERMISSIONS = [
   "role.create",
   "role.update",
   "role.delete",
-  // WhatsApp (notifikasi via Baileys -- koneksi, pengaturan notifikasi, log)
-  "whatsapp.index",
-  "whatsapp.update",
   // POS - Sale (Kasir & Riwayat Transaksi)
   "pos.sale.index",
   "pos.sale.create",

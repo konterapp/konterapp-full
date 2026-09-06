@@ -43,6 +43,3 @@ next-env.d.ts
 
 /app/generated/prisma
 /public/uploads/
-# auth state WhatsApp/Baileys (per-company) -- berisi kredensial sesi
-/storage/
-.env*

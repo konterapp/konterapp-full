@@ -214,10 +214,6 @@ const routes: Record<string, RouteInfo> = {
     path: '/app/company',
     permission: 'company.update',
   },
-  'whatsapp.index': {
-    path: '/app/whatsapp',
-    permission: 'whatsapp.index',
-  },
   'user.index': {
     path: '/app/users',
     permission: 'user.index',
