@@ -4,6 +4,7 @@ import { posBankAgentTransactionRepository } from './repository';
 import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
 import { appUserRepository } from '@/lib/modules/users/app.repository';
 import { mapBankAgentTransaction, mapBankAgentTransactionType } from './bank-agent-transaction.mapper';
+import type { TransactionClient } from "@/lib/prisma";
 
 function generateTransactionNumber() {
   const date = new Date();
@@ -25,7 +26,7 @@ const COMMISSION_CATEGORY_NAME = 'Sistem';
  * `isSystem: true`. 1 produk per company, dibuat otomatis saat pertama kali
  * dibutuhkan (find-or-create), sku deterministik per company biar idempoten.
  */
-async function ensureCommissionProduct(tx: Prisma.TransactionClient, companyUuid: string) {
+async function ensureCommissionProduct(tx: TransactionClient, companyUuid: string) {
   const sku = `SYS-KOMISI-AGEN-BANK-${companyUuid}`;
   const existing = await tx.appPosProduct.findUnique({ where: { sku } });
   if (existing) return existing;

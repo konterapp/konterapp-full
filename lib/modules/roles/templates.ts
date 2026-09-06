@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { v7 as uuidv7 } from "uuid";
 import type { Permission } from "./permissions";
+import type { TransactionClient } from "@/lib/prisma";
 
 /**
  * Template default role per tenant. Saat sebuah company dibuat, template ini
@@ -61,7 +62,7 @@ export const TENANT_DEFAULT_ROLE_TEMPLATES: RoleTemplate[] = [
  * dibuat (companyService.createCompany) dan oleh seeder.
  */
 export async function seedTenantDefaultRoles(
-  prisma: PrismaClient | Prisma.TransactionClient,
+  prisma: PrismaClient | TransactionClient,
   companyUuid: string
 ) {
   for (const template of TENANT_DEFAULT_ROLE_TEMPLATES) {

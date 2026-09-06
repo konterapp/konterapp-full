@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 
 const purchaseListInclude = {
   branch: { select: { uuid: true, name: true, code: true } },
@@ -115,7 +115,7 @@ export const posPurchaseRepository = {
     });
   },
 
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>) {
     return prisma.$transaction(cb);
   },
 };

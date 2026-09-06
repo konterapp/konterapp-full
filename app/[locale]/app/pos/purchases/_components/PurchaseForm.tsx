@@ -598,7 +598,7 @@ export default function PurchaseForm({ mode, purchaseUuid }: { mode: PurchaseFor
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const product = row.product_uuid ? productMap.get(row.product_uuid) : null;
+                  const product = row.product_uuid ? productMap.get(row.product_uuid) : undefined;
                   const baseUnit = product?.unit || 'pcs';
                   const factorToBase = resolveSelectedUnitFactor(product, row.unit);
                   const quantityBase = Number(row.quantity || 0) * factorToBase;

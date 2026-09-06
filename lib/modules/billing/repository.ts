@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 
-type Client = Prisma.TransactionClient | typeof prisma;
+type Client = TransactionClient | typeof prisma;
 
 export const billingRepository = {
   async findTierByCode(code: string) {
@@ -143,7 +143,7 @@ export const billingRepository = {
     });
   },
 
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>): Promise<T> {
     return prisma.$transaction(cb);
   },
 };

@@ -29,6 +29,11 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts';
+import type { TooltipValueType } from 'recharts';
+
+// NameType tidak di-re-export dari root recharts, jadi didefinisikan lokal
+// sesuai definisi aslinya (number | string).
+type TooltipNameType = number | string | undefined;
 
 type ReportMode = 'profit-loss' | 'sales-summary' | 'purchase-summary' | 'receivables' | 'payables';
 type DebtMode = 'receivable' | 'payable';
@@ -395,7 +400,7 @@ export default function ReportsPage() {
               <XAxis type="number" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
               <YAxis type="category" dataKey="label" tick={{ fontSize: 12, fill: '#334155' }} width={78} />
               <Tooltip
-                formatter={(value: number | string, name: string) => {
+                formatter={(value: TooltipValueType | undefined, name: TooltipNameType) => {
                   if (name === 'amount') return [formatCurrency(Number(value)), 'Nilai'];
                   if (name === 'invoices') return [Number(value), 'Invoice'];
                   return [value, name];
@@ -444,7 +449,7 @@ export default function ReportsPage() {
               <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
               <Tooltip
                 labelFormatter={(_, payload) => payload?.[0]?.payload?.date || '-'}
-                formatter={(value: number | string, name: string) => {
+                formatter={(value: TooltipValueType | undefined, name: TooltipNameType) => {
                   if (name === 'totalAmount') return [formatCurrency(Number(value)), 'Nilai Transaksi'];
                   if (name === 'transactions') return [Number(value), 'Transaksi'];
                   return [value, name];
@@ -523,7 +528,7 @@ export default function ReportsPage() {
                 if (!row) return '-';
                 return `${row.docNumber} · ${row.relationName}`;
               }}
-              formatter={(value: number | string) => [formatCurrency(Number(value)), 'Outstanding']}
+              formatter={(value: TooltipValueType | undefined) => [formatCurrency(Number(value)), 'Outstanding']}
             />
             <Bar dataKey="outstanding" fill="#dc2626" radius={[0, 6, 6, 0]} />
           </BarChart>
@@ -703,7 +708,7 @@ export default function ReportsPage() {
                       <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={formatCurrencyTick} />
                       <Tooltip
                         labelFormatter={(_, payload) => payload?.[0]?.payload?.productName || '-'}
-                        formatter={(value: number | string, name: string) => {
+                        formatter={(value: TooltipValueType | undefined, name: TooltipNameType) => {
                           if (name === 'profit') return [formatCurrency(Number(value)), 'Laba'];
                           return [value, name];
                         }}
@@ -826,6 +831,10 @@ export default function ReportsPage() {
     mode: 'sales' | 'purchase'
   ) => {
     const isSales = mode === 'sales';
+    // `isSales` cuma boolean, tidak menyempitkan union `report`. Pakai
+    // pengecekan properti supaya TypeScript tahu varian mana yang dipakai.
+    const totalAmount =
+      'total_sales' in report.summary ? report.summary.total_sales : report.summary.total_purchases;
 
     return (
       <>
@@ -835,7 +844,7 @@ export default function ReportsPage() {
               <div>
                 <p className="text-sm text-gray-500">{isSales ? 'Total Penjualan' : 'Total Pembelian'}</p>
                 <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(isSales ? report.summary.total_sales : report.summary.total_purchases)}
+                  {formatCurrency(totalAmount)}
                 </p>
               </div>
               <div className="p-3 bg-blue-50 rounded-full">

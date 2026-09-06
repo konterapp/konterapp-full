@@ -3,6 +3,7 @@ import { ApiError, ValidationApiError } from '@/lib/api-errors';
 import { getTenantCompanyUuid } from '@/lib/tenant-context';
 import { posPurchaseRepository } from './repository';
 import { mapPurchaseDetail, mapPurchaseListItem } from './purchase.mapper';
+import type { TransactionClient } from "@/lib/prisma";
 
 type PurchaseItemInput = {
   productUuid: string;
@@ -148,7 +149,7 @@ function parsePurchaseDate(purchaseDate?: string | null) {
 }
 
 async function assertPurchaseReferencesExist(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   params: {
     branchUuid: string;
     supplierUuid?: string | null;
@@ -266,7 +267,7 @@ function resolveItemsWithConversion(params: {
 }
 
 async function applyStockInForItems(
-  tx: Prisma.TransactionClient,
+  tx: TransactionClient,
   params: {
     companyUuid: string;
     branchUuid: string;

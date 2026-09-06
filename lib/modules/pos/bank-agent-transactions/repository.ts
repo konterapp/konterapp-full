@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 const transactionInclude = {
@@ -14,8 +14,8 @@ export type BankAgentTransactionWithRelations = Prisma.AppPosBankAgentTransactio
 }>;
 
 export const posBankAgentTransactionRepository = {
-  runInTransaction<T>(callback: (tx: Prisma.TransactionClient) => Promise<T>) {
-    return (prisma as unknown as PrismaClient).$transaction(callback);
+  runInTransaction<T>(callback: (tx: TransactionClient) => Promise<T>) {
+    return prisma.$transaction(callback);
   },
 
   findMany(params: {
@@ -45,7 +45,7 @@ export const posBankAgentTransactionRepository = {
     });
   },
 
-  createInTx(tx: Prisma.TransactionClient, data: Prisma.AppPosBankAgentTransactionUncheckedCreateInput) {
+  createInTx(tx: TransactionClient, data: Prisma.AppPosBankAgentTransactionUncheckedCreateInput) {
     return tx.appPosBankAgentTransaction.create({
       data,
       include: transactionInclude,

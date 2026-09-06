@@ -1,9 +1,9 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 export const posBranchRepository = {
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
-    return (prisma as unknown as PrismaClient).$transaction(cb);
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>) {
+    return prisma.$transaction(cb);
   },
 
   findMany(params: { where: Prisma.AppPosBranchWhereInput; skip: number; take: number }) {
@@ -38,12 +38,12 @@ export const posBranchRepository = {
     isActive: boolean;
     isMain: boolean;
     maxConcurrentUsers: number;
-  }, tx?: Prisma.TransactionClient) {
+  }, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosBranch.create({ data });
   },
 
-  unsetOtherMainBranches(uuidToKeep?: string, tx?: Prisma.TransactionClient) {
+  unsetOtherMainBranches(uuidToKeep?: string, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosBranch.updateMany({
       where: {

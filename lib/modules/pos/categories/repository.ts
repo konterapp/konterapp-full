@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export const posCategoryRepository = {
   findMany(params: { where: any; skip: number; take: number; orderBy: any }) {
@@ -36,7 +37,11 @@ export const posCategoryRepository = {
   },
 
   create(data: { name: string; description: string | null }) {
-    return prisma.appPosProductCategory.create({ data });
+    // companyUuid diisi otomatis oleh extension tenant di lib/prisma.ts,
+    // jadi tipe Prisma yang mewajibkannya di-cast eksplisit di sini.
+    return prisma.appPosProductCategory.create({
+      data: data as unknown as Prisma.AppPosProductCategoryUncheckedCreateInput,
+    });
   },
 
   updateByUuid(uuid: string, data: { name: string; description: string | null }) {

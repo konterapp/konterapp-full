@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 /**
@@ -29,8 +29,8 @@ export type SaldoAccountWithBalances = Prisma.AppPosSaldoAccountGetPayload<{
 }>;
 
 export const posSaldoRepository = {
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
-    return (prisma as unknown as PrismaClient).$transaction(cb);
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>) {
+    return prisma.$transaction(cb);
   },
 
   findMany(params: {
@@ -97,7 +97,7 @@ export const posSaldoRepository = {
     });
   },
 
-  updateSortOrderInTx(tx: Prisma.TransactionClient, uuid: string, sortOrder: number) {
+  updateSortOrderInTx(tx: TransactionClient, uuid: string, sortOrder: number) {
     return tx.appPosSaldoAccount.update({ where: { uuid }, data: { sortOrder } });
   },
 
@@ -113,7 +113,7 @@ export const posSaldoRepository = {
     sortOrder: number;
     isBankAgent: boolean;
     isPpobServer: boolean;
-  }, tx?: Prisma.TransactionClient) {
+  }, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccount.create({ data });
   },
@@ -122,7 +122,7 @@ export const posSaldoRepository = {
     return prisma.appPosSaldoAccount.update({ where: { uuid }, data });
   },
 
-  deleteByUuid(uuid: string, tx?: Prisma.TransactionClient) {
+  deleteByUuid(uuid: string, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccount.delete({ where: { uuid } });
   },
@@ -170,7 +170,7 @@ export const posSaldoRepository = {
    * supaya cabang itu otomatis dapat grup balance sendiri (terpisah, saldo
    * 0) untuk tiap akun saldo yang ada.
    */
-  listActiveAccountUuids(companyUuid: string, tx?: Prisma.TransactionClient) {
+  listActiveAccountUuids(companyUuid: string, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccount.findMany({
       where: { companyUuid, isActive: true },
@@ -201,7 +201,7 @@ export const posSaldoRepository = {
    * pemanggil.
    */
   async createBalanceGroupInTx(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     data: {
       companyUuid: string;
       saldoAccountUuid: string;
@@ -245,7 +245,7 @@ export const posSaldoRepository = {
    * per-baris via updateMany karena tidak ada unique identifier lain.
    */
   reassignBranchesInTx(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     data: { saldoAccountUuid: string; branchUuids: string[]; targetBalanceUuid: string }
   ) {
     const { saldoAccountUuid, branchUuids, targetBalanceUuid } = data;
@@ -264,7 +264,7 @@ export const posSaldoRepository = {
    * transaction pemanggil.
    */
   async updateBalanceGroupInTx(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     data: {
       balanceUuid: string;
       companyUuid: string;
@@ -316,7 +316,7 @@ export const posSaldoRepository = {
     }
   },
 
-  deleteBalanceByUuid(balanceUuid: string, tx?: Prisma.TransactionClient) {
+  deleteBalanceByUuid(balanceUuid: string, tx?: TransactionClient) {
     const client = tx ?? prisma;
     return client.appPosSaldoAccountBalance.delete({ where: { uuid: balanceUuid } });
   },
@@ -347,7 +347,7 @@ export const posSaldoRepository = {
    * (misal createSale) tanpa nested prisma.$transaction.
    */
   async applyMutationInTx(
-    tx: Prisma.TransactionClient,
+    tx: TransactionClient,
     params: {
       saldoAccountBalanceUuid: string;
       companyUuid: string;
@@ -408,8 +408,8 @@ export const posSaldoRepository = {
     notes: string | null;
     createdBy: number;
   }) {
-    return (prisma as unknown as PrismaClient).$transaction((tx) =>
-      posSaldoRepository.applyMutationInTx(tx as Prisma.TransactionClient, params)
+    return prisma.$transaction((tx) =>
+      posSaldoRepository.applyMutationInTx(tx as TransactionClient, params)
     );
   },
 };

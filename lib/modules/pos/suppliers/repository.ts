@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export const posSupplierRepository = {
   countAll() {
@@ -27,7 +28,11 @@ export const posSupplierRepository = {
     address: string | null;
     isActive: boolean;
   }) {
-    return prisma.appPosSupplier.create({ data });
+    // companyUuid diisi otomatis oleh extension tenant di lib/prisma.ts,
+    // jadi tipe Prisma yang mewajibkannya di-cast eksplisit di sini.
+    return prisma.appPosSupplier.create({
+      data: data as unknown as Prisma.AppPosSupplierUncheckedCreateInput,
+    });
   },
 
   updateByUuid(uuid: string, data: Record<string, unknown>) {

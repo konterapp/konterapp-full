@@ -1,8 +1,8 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import { v7 as uuidv7 } from 'uuid';
 
-type Client = Prisma.TransactionClient | typeof prisma;
+type Client = TransactionClient | typeof prisma;
 
 const roleInclude = {
   roleHasPermissions: { select: { permissionName: true } },
@@ -10,7 +10,7 @@ const roleInclude = {
 } as const;
 
 export const appRoleRepository = {
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>): Promise<T> {
     return prisma.$transaction(cb);
   },
 

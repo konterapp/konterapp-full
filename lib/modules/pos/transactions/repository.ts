@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import type { Prisma, PrismaClient } from '@prisma/client';
 
 export const posTransactionRepository = {
@@ -80,7 +80,7 @@ export const posTransactionRepository = {
     });
   },
 
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>) {
-    return (prisma as unknown as PrismaClient).$transaction(cb);
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>) {
+    return prisma.$transaction(cb);
   },
 };

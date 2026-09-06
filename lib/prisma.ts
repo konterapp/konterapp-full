@@ -193,6 +193,22 @@ function createPrismaClient() {
 
 type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
 
+/**
+ * Client transaksi milik client yang SUDAH di-$extends() di file ini.
+ *
+ * Jangan pakai `Prisma.TransactionClient` bawaan untuk callback
+ * `prisma.$transaction(...)`: tipe itu menggambarkan client polos tanpa
+ * extension, sedangkan `prisma` di sini sudah dibungkus `$extends()` sehingga
+ * delegate-nya (mis. `tx.user.findUnique`) punya signature berbeda. Keduanya
+ * tidak saling assignable, dan TypeScript malah jatuh ke overload
+ * `$transaction(array)` sehingga hasilnya diam-diam ter-infer `Promise<any[]>`
+ * -- lolos di `next dev` tapi bikin `next build` gagal type check.
+ *
+ * Tipe ini diturunkan langsung dari signature `$transaction` supaya otomatis
+ * ikut kalau daftar extension di atas berubah.
+ */
+export type TransactionClient = Parameters<Parameters<ExtendedPrismaClient["$transaction"]>[0]>[0];
+
 const globalForPrisma = globalThis as unknown as {
   prisma: ExtendedPrismaClient | undefined;
 };

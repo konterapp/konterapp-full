@@ -35,7 +35,11 @@ export const posUnitRepository = {
   },
 
   create(data: { name: string; description: string | null }) {
-    return prisma.appPosProductUnit.create({ data });
+    // companyUuid diisi otomatis oleh extension tenant di lib/prisma.ts,
+    // jadi tipe Prisma yang mewajibkannya di-cast eksplisit di sini.
+    return prisma.appPosProductUnit.create({
+      data: data as unknown as Prisma.AppPosProductUnitUncheckedCreateInput,
+    });
   },
 
   updateByUuid(uuid: string, data: { name: string; description: string | null }) {

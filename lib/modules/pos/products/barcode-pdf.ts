@@ -1,4 +1,4 @@
-import bwipjs from 'bwip-js';
+import bwipjs from 'bwip-js/node';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import type { ProductBarcodePrintItem } from './admin.service';
 

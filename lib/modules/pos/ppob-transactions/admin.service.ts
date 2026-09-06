@@ -4,6 +4,7 @@ import { posPpobTransactionRepository } from './repository';
 import { posSaldoRepository } from '@/lib/modules/pos/saldo/repository';
 import { appUserRepository } from '@/lib/modules/users/app.repository';
 import { mapPpobTransaction, mapPpobTransactionType } from './ppob-transaction.mapper';
+import type { TransactionClient } from "@/lib/prisma";
 
 function generateTransactionNumber() {
   const date = new Date();
@@ -24,7 +25,7 @@ const PROFIT_CATEGORY_NAME = 'Sistem';
  * (pola sama persis dengan Agen Bank). Disembunyikan dari listing produk
  * lewat `isSystem: true`. 1 produk per company, find-or-create.
  */
-async function ensureProfitProduct(tx: Prisma.TransactionClient, companyUuid: string) {
+async function ensureProfitProduct(tx: TransactionClient, companyUuid: string) {
   const sku = `SYS-LABA-PPOB-${companyUuid}`;
   const existing = await tx.appPosProduct.findUnique({ where: { sku } });
   if (existing) return existing;

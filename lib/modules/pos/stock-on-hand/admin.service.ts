@@ -35,10 +35,13 @@ export const posStockOnHandService = {
 
     if (branchUuid) where.branchUuid = branchUuid;
     if (categoryUuid) {
-      where.product = {
-        ...(where.product || {}),
+      // where.product bertipe union (relation filter | where input); di-anotasi
+      // eksplisit dulu supaya spread-nya tidak ter-narrow jadi `undefined`.
+      const productFilter: Prisma.AppPosProductWhereInput = {
+        ...(where.product as Prisma.AppPosProductWhereInput | undefined),
         categoryUuid,
       };
+      where.product = productFilter;
     }
 
     if (stockStatus === 'in_stock') {

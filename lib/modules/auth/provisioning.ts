@@ -1,7 +1,7 @@
 import { hash } from "bcryptjs";
 import { v7 as uuidv7 } from "uuid";
 import { Prisma, PrismaClient } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import {
   seedTenantDefaultRoles,
   TENANT_DEFAULT_ROLE_ADMINISTRATOR,
@@ -72,7 +72,7 @@ const TENANT_DEFAULT_PRODUCTS = [
   },
 ];
 
-async function seedTenantDefaults(tx: Prisma.TransactionClient, companyUuid: string) {
+async function seedTenantDefaults(tx: TransactionClient, companyUuid: string) {
   const mainBranch = await tx.appPosBranch.create({
     data: {
       uuid: uuidv7(),
@@ -193,7 +193,7 @@ function generateCompanyCode(): string {
   return `KTR-${code}`;
 }
 
-async function createCompanyWithUniqueCode(tx: Prisma.TransactionClient, name: string) {
+async function createCompanyWithUniqueCode(tx: TransactionClient, name: string) {
   for (let attempt = 0; attempt < 10; attempt++) {
     const code = generateCompanyCode();
     try {
@@ -226,7 +226,7 @@ export async function provisionCompanyForUser(params: {
 }): Promise<{ uuid: string; code: string; name: string }> {
   const { userId, companyName } = params;
 
-  return (prisma as unknown as PrismaClient).$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const company = await createCompanyWithUniqueCode(tx, companyName);
 
     await seedTenantDefaultRoles(tx, company.uuid);
@@ -298,7 +298,7 @@ export async function provisionTenantUser(params: {
 }> {
   const { name, email, passwordHash, companyName, referredByUserId } = params;
 
-  return (prisma as unknown as PrismaClient).$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const company = await createCompanyWithUniqueCode(tx, companyName || `Konter ${name}`);
 
     await seedTenantDefaultRoles(tx, company.uuid);

@@ -1,10 +1,10 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma, type TransactionClient } from "@/lib/prisma";
 import { TENANT_DEFAULT_ROLE_ADMINISTRATOR } from "@/lib/modules/roles/templates";
 
 const MODEL_TYPE_USER = "App\\Models\\User";
 
-type Client = Prisma.TransactionClient | typeof prisma;
+type Client = TransactionClient | typeof prisma;
 
 function memberInclude(companyUuid: string) {
   return {
@@ -17,7 +17,7 @@ function memberInclude(companyUuid: string) {
 }
 
 export const appUserRepository = {
-  runInTransaction<T>(cb: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  runInTransaction<T>(cb: (tx: TransactionClient) => Promise<T>): Promise<T> {
     return prisma.$transaction(cb);
   },
 

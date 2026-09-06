@@ -228,8 +228,16 @@ export const posProductService = {
       }
     }
 
-    const additionalBarcodes = Array.isArray(payload.additional_barcodes) ? payload.additional_barcodes : [];
-    const dedupedAdditionalBarcodes = [...new Set(additionalBarcodes.map((value: string) => value.trim()).filter(Boolean))];
+    // Anotasi eksplisit: `filter(Boolean)` di atas array bertipe `any`
+    // menghasilkan `unknown[]`, bukan `string[]`. Perilakunya tetap sama --
+    // `additionalBarcodes` sengaja dibiarkan mentah (belum dibersihkan) supaya
+    // perbandingan panjang di bawah tetap menangkap duplikat maupun entri kosong.
+    const additionalBarcodes: unknown[] = Array.isArray(payload.additional_barcodes)
+      ? payload.additional_barcodes
+      : [];
+    const dedupedAdditionalBarcodes: string[] = [
+      ...new Set(additionalBarcodes.map((value) => String(value).trim()).filter((value) => value.length > 0)),
+    ];
     if (dedupedAdditionalBarcodes.length !== additionalBarcodes.length) {
       throw new ValidationApiError({ additional_barcodes: ['Barcode tambahan tidak boleh duplikat'] });
     }
@@ -334,8 +342,8 @@ export const posProductService = {
       }
     }
 
-    const additionalBarcodes = Array.isArray(payload.additional_barcodes)
-      ? payload.additional_barcodes.map((value: string) => value.trim()).filter(Boolean)
+    const additionalBarcodes: string[] | undefined = Array.isArray(payload.additional_barcodes)
+      ? (payload.additional_barcodes as unknown[]).map((value) => String(value).trim()).filter((value) => value.length > 0)
       : undefined;
     if (additionalBarcodes) {
       const deduped = [...new Set(additionalBarcodes)];

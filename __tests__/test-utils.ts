@@ -23,7 +23,9 @@ export function createMockRequest(
   });
 
   // Build request options
-  const reqOptions: RequestInit = {
+  // Pakai tipe parameter konstruktor NextRequest, bukan RequestInit milik DOM
+  // -- Next punya definisi RequestInit sendiri yang tidak identik.
+  const reqOptions: NonNullable<ConstructorParameters<typeof NextRequest>[1]> = {
     method,
     headers: {
       'content-type': 'application/json',
@@ -43,7 +45,10 @@ export function createMockRequest(
  * Creates a mock context for route handlers
  */
 export function createMockContext(overrides: Record<string, any> = {}) {
+  // `params` wajib ada: wrapper route (withAuth dkk) mengetiknya sebagai
+  // Promise, meski handler tanpa dynamic segment tidak memakainya.
   return {
+    params: Promise.resolve({} as Record<string, string>),
     userId: 1,
     ...overrides,
   };

@@ -6,6 +6,7 @@ import { posShiftRepository } from '../shifts/repository';
 import { posSaldoRepository } from '../saldo/repository';
 import { getTenantCompanyUuid } from '@/lib/tenant-context';
 import { assertTransactionLimit } from '@/lib/modules/billing/plan-limits';
+import type { TransactionClient } from "@/lib/prisma";
 
 function generateSaleNumber() {
   const date = new Date();
@@ -182,7 +183,7 @@ let subtotal = 0;
           ? 'partial'
           : 'paid';
 
-    const sale = await posTransactionRepository.runInTransaction(async (tx: Prisma.TransactionClient) => {
+    const sale = await posTransactionRepository.runInTransaction(async (tx: TransactionClient) => {
       // Produk non-'barang' (digital/jasa) sengaja TIDAK punya baris
       // stok sama sekali (lihat AppPosProduct.kind) -- jangan ikut dicek/
       // dipotong stoknya, selalu boleh dijual selama harga & qty valid.
