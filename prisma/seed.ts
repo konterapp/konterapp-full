@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { seedCore } from "./seeders/core";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ transactionOptions: { timeout: 30_000 } });
 
 async function main() {
   await seedCore(prisma);

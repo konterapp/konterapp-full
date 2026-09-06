@@ -37,7 +37,7 @@ async function seedDummy(prisma: PrismaClient) {
 }
 
 if (require.main === module) {
-  const prisma = new PrismaClient();
+  const prisma = new PrismaClient({ transactionOptions: { timeout: 30_000 } });
   seedDummy(prisma)
     .then(() => {
       console.log("✓ Dummy seeding completed");
